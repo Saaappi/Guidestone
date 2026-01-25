@@ -74,22 +74,22 @@ end
 --      -- Planning + automation constraints:
 --      maxCrafts = 30, -- planned maximum crafts for this step
 --
---      -- Optional: reagents used per craft (for reagents aggregation)
---      reagents = { { itemID=123, quantity=5 }, ... },
+--      -- Optional: materials used per craft (for materials aggregation)
+--      materials = { { itemID=123, quantity=5 }, ... },
 --
 --      -- Optional: text
 --      note = "...",
 --    },
 --  },
 --
---  -- Reagents section
---  -- You can either provide it explicitly, or allow for auto-generation from step.reagents.
+--  -- Materials section
+--  -- You can either provide it explicitly, or allow for auto-generation from step.materials.
 --  -- Explicit entries allow precise "approximate" totals and custom notes.
---  reagents = {
+--  materials = {
 --    { itemID=123, required=60, wowProfessionsUrl="https://www.wow-professions.com/farming/...", note="..." },
 --  },
 --
---  -- If automatic reagent totals is desired but still need farming URLs, provide:
+--  -- If automatic materials totals is desired but still need farming URLs, provide:
 --  farmingUrls = {
 --    [123] = "https://www.wow-professions.com/farming/...",
 --  },
