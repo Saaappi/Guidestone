@@ -275,6 +275,37 @@ function Guides:GetAll()
   return self._all
 end
 
+function Guides:GetExpansionKeysOrdered()
+  local seen = {}
+  local keys = {}
+
+  -- Known expansions first
+  for k in pairs(self.Expansions or {}) do
+    keys[#keys + 1] = k
+    seen[k] = true
+  end
+
+  -- Include any expansion keys referenced by guides.
+  for _, g in ipairs(self._all) do
+    if g.expansionKey and not seen[g.expansionKey] then
+      keys[#keys + 1] = g.expansionKey
+      seen[g.expansionKey] = true
+    end
+  end
+
+  table.sort(keys, function(a, b)
+    local ma = GetExpansionMeta(a)
+    local mb = GetExpansionMeta(b)
+    if (ma.order or 9999) ~= (mb.order or 9999) then
+      return (ma.order or 9999) < (mb.order or 9999)
+    end
+
+    return tostring(a) < tostring(b)
+  end)
+
+  return keys
+end
+
 ---List guides grouped by expansionKey (for dropdowns).
 ---@return table<string, table>
 function Guides:GetAllGroupedByExpansion()
