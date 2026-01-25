@@ -140,8 +140,8 @@ local function SumMaterialsFromSteps(steps)
 
   for _, step in ipairs(steps) do
     local crafts = tonumber(step and step.maxCrafts) or 0
-    if crafts > 0 and type(step.reagents) == "table" then
-      for _, reagent in ipairs(step.reagents) do
+    if crafts > 0 and type(step.materials) == "table" then
+      for _, reagent in ipairs(step.materials) do
         local itemID = tonumber(reagent and reagent.itemID)
         local qty = tonumber(reagent and reagent.quantity) or 0
         if itemID and itemID > 0 and qty > 0 then
