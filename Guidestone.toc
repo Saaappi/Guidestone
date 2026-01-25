@@ -1,0 +1,19 @@
+## Interface: 120000
+## Title: Guidestone
+## Notes: Adds an in-game leveling guide tab to the Professions window with materials tracking and guided crafting.
+## SavedVariables: GuidestoneDB
+## Author: LightskyGG
+## Version: 1.0.0
+
+Core/Class.lua
+Core/Logger.lua
+Core/Util.lua
+
+Data/Guides.lua
+
+Services/CraftRunner.lua
+
+UI/LinkPopup.lua
+UI/GuidePage.lua
+
+Guidestone.lua
