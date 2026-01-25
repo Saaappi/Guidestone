@@ -11,6 +11,31 @@ Core/Util.lua
 
 Data/Guides.lua
 
+# Guides (one file per expansion + profession)
+# Vanilla
+
+# TBC
+
+# Wrath
+
+# Cata
+
+# MoP
+
+# WoD
+
+# Legion
+
+# BfA
+
+# Shadowlands
+
+# Dragonflight
+
+# The War Within
+
+# Midnight
+
 Services/CraftRunner.lua
 
 UI/LinkPopup.lua

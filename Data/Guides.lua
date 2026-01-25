@@ -5,6 +5,46 @@ ns.Guides = ns.Guides or {}
 local Guides = ns.Guides
 
 -- -----------------------------------------------------------------------------
+-- Expansion registry
+-- -----------------------------------------------------------------------------
+-- Internal stable keys for UI grouping/sorting.
+-- Matching still uses skillLineID (professionInfo.professionID)
+Guides.Expansions = Guides.Expansions or {
+  VANILLA       = { name = EXPANSION_NAME0, order = 10 },
+  TBC           = { name = EXPANSION_NAME1, order = 20 },
+  WRATH         = { name = EXPANSION_NAME2, order = 30 },
+  CATA          = { name = EXPANSION_NAME3, order = 40 },
+  MOP           = { name = EXPANSION_NAME4, order = 50 },
+  WOD           = { name = EXPANSION_NAME5, order = 60 },
+  LEGION        = { name = EXPANSION_NAME6, order = 70 },
+  BFA           = { name = EXPANSION_NAME7, order = 80 },
+  SHADOWLANDS   = { name = EXPANSION_NAME8, order = 90 },
+  DRAGONFLIGHT  = { name = EXPANSION_NAME9, order = 100 },
+  THEWARWITHIN  = { name = EXPANSION_NAME10, order = 110 },
+  MIDNIGHT      = { name = EXPANSION_NAME11, order = 120 },
+}
+
+function Guides:RegisterExpansion(expansionKey, displayName, order)
+  if type(expansionKey) ~= "string" or expansionKey == "" then
+    return
+  end
+
+  self.Expansions[expansionKey] = {
+    name = tostring(displayName or expansionKey),
+    order = tonumber(order) or 9999,
+  }
+end
+
+local function GetExpansionMeta(expansionKey)
+  local meta = Guides.Expansions and Guides.Expansions[expansionKey]
+  if meta then
+    return meta
+  end
+
+  return { name = tostring(expansionKey or "UNKNOWN"), order = 9999 }
+end
+
+-- -----------------------------------------------------------------------------
 -- Data model (expansion-wide)
 -- -----------------------------------------------------------------------------
 -- A guide is scoped to a single expansion and profession.
@@ -91,7 +131,7 @@ local function IsPositiveInt(n)
   return n and n > 0 and math.floor(n) == n
 end
 
-local function SumReagentsFromSteps(steps)
+local function SumMaterialsFromSteps(steps)
   -- Returns: totals[itemID] = requiredCount
   local totals = {}
   if type(steps) ~= "table" then
@@ -114,7 +154,7 @@ local function SumReagentsFromSteps(steps)
   return totals
 end
 
-local function BuildReagentsFromTotals(totals, farmingUrls)
+local function BuildMaterialsFromTotals(totals, farmingUrls)
   local list = {}
   for itemID, required in pairs(totals or {}) do
     table.insert(list, {
@@ -158,22 +198,22 @@ local function NormalizeGuide(guide)
   normalized.professionKey = tostring(guide.professionKey or "UNKNOWN")
   normalized.professionName = guide.professionName and tostring(guide.professionName) or nil
 
-  normalized.title = tostring(guide.title or (normalized.expansionName .. " " .. (normalized.professionName or normalized.professionKey)))
+  normalized.title = tostring(
+    guide.title or (normalized.expansionName .. " " .. (normalized.professionName or normalized.professionKey))
+  )
 
-  -- Steps: shallow copy array (keeps per-step tables as-is; guide authors own the payload)
   normalized.steps = guide.steps
-
-  -- Reagents: if explicitly provided, use it. Otherwise, auto-build from reagents.
-  if type(guide.reagents) == "table" and #guide.reagents > 0 then
-    normalized.reagents = guide.reagents
-  else
-    local totals = SumReagentsFromSteps(normalized.steps)
-    normalized.reagents = BuildReagentsFromTotals(totals, guide.farmingUrls)
-  end
-
-  -- Keep optional maps/urls
   normalized.farmingUrls = guide.farmingUrls
   normalized.guideUrl = guide.guideUrl
+
+  -- Materials: if explicitly provided, use it. Otherwise, auto-build from reagents.
+  local explicitMaterials = nil
+  if type(guide.materials) == "table" and #guide.materials > 0 then
+    normalized.materials = guide.materials
+  else
+    local totals = SumMaterialsFromSteps(normalized.steps)
+    normalized.materials = BuildMaterialsFromTotals(totals, guide.farmingUrls)
+  end
 
   return normalized, nil
 end
@@ -256,12 +296,12 @@ end
 ---was explicit or auto-generated.
 ---@param guide table
 ---@return table
-function Guides:GetReagents(guide)
+function Guides:GetMaterials(guide)
   if not guide then
     return {}
   end
 
-  return guide.reagents or {}
+  return guide.materials or {}
 end
 
 ---Helper: recompute reagents from steps (useful for when I implement dynamic step planning in the future)
@@ -272,7 +312,7 @@ function Guides:RebuildReagentsFromSteps(guide)
     return {}
   end
 
-  local totals = SumReagentsFromSteps(guide.steps)
+  local totals = SumMaterialsFromSteps(guide.steps)
 
-  return BuildReagentsFromTotals(totals, guide.farmingUrls)
+  return BuildMaterialsFromTotals(totals, guide.farmingUrls)
 end
