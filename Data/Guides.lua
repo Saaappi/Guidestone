@@ -176,7 +176,7 @@ local function NormalizeGuide(guide)
     return nil, "guide_not_table"
   end
 
-  if type(guide.id) ~= "string" then
+  if type(guide.id) ~= "string" or guide.id == "" then
     return nil, "missing_id"
   end
 
@@ -193,7 +193,9 @@ local function NormalizeGuide(guide)
   normalized.skillLineID = math.floor(tonumber(guide.skillLineID))
 
   normalized.expansionKey = tostring(guide.expansionKey or "UNKNOWN")
-  normalized.expansionName = tostring(guide.expansionName or normalized.expansionKey)
+  local expansionMeta = GetExpansionMeta(normalized.expansionKey)
+  normalized.expansionName = tostring(guide.expansionName or expansionMeta.name)
+  normalized.expansionOrder = tonumber(expansionMeta.order) or 9999
 
   normalized.professionKey = tostring(guide.professionKey or "UNKNOWN")
   normalized.professionName = guide.professionName and tostring(guide.professionName) or nil
@@ -292,7 +294,7 @@ function Guides:GetAllGroupedByExpansion()
   return out
 end
 
----Helper: compute a reagents table that matches the UI needs, regardless of whether the guide
+---Helper: compute a materials table that matches the UI needs, regardless of whether the guide
 ---was explicit or auto-generated.
 ---@param guide table
 ---@return table
@@ -304,10 +306,10 @@ function Guides:GetMaterials(guide)
   return guide.materials or {}
 end
 
----Helper: recompute reagents from steps (useful for when I implement dynamic step planning in the future)
+---Helper: recompute materials from steps (useful for when I implement dynamic step planning in the future)
 ---@param guide table
----@return table reagents
-function Guides:RebuildReagentsFromSteps(guide)
+---@return table materials
+function Guides:RebuildMaterialsFromSteps(guide)
   if not guide or type(guide.steps) ~= "table" then
     return {}
   end
