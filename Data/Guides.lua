@@ -208,8 +208,7 @@ local function NormalizeGuide(guide)
   normalized.farmingUrls = guide.farmingUrls
   normalized.guideUrl = guide.guideUrl
 
-  -- Materials: if explicitly provided, use it. Otherwise, auto-build from reagents.
-  local explicitMaterials = nil
+  -- Materials: if explicitly provided, use it. Otherwise, auto-build from materials.
   if type(guide.materials) == "table" and #guide.materials > 0 then
     normalized.materials = guide.materials
   else
