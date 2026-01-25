@@ -4,6 +4,7 @@
 ## SavedVariables: GuidestoneDB
 ## Author: LightskyGG
 ## Version: 1.0.0
+## IconTexture: 136241
 
 Core/Class.lua
 Core/Logger.lua
