@@ -151,8 +151,20 @@ function GuidePage:Create(parent)
   self.stepsContainer = stepsContainer
 
   page:RegisterEvent("BAG_UPDATE_DELAYED")
-  page:SetScript("OnEvent", function()
-    GuidePage:RefreshMaterialsState()
+  page:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+  page:SetScript("OnEvent", function(_, event, arg1)
+    if event == "BAG_UPDATE_DELAYED" then
+      GuidePage:RefreshMaterialsState()
+      return
+    end
+
+    if event == "GET_ITEM_INFO_RECEIVED" then
+      local itemID = tonumber(arg1)
+      if itemID and GuidePage._pendingItemLoads[itemID] then
+        GuidePage._pendingItemLoads[itemID] = nil
+        GuidePage:RefreshMaterialsState()
+      end
+    end
   end)
 
   return page
