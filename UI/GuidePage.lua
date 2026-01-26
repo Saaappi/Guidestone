@@ -101,6 +101,59 @@ local function GetItemIcon(itemID)
   return "Interface\\Icons\\INV_Misc_QuestionMark"
 end
 
+local function ComputeBufferedRequired(required)
+  required = tonumber(required) or 0
+  if required <= 0 then
+    return 0
+  end
+
+  -- 15% buffer, rounded up to nearest multiple of 5.
+  local withBuffer = math.ceil(required * 1.15)
+  local rem = withBuffer % 5
+  if rem ~= 0 then
+    withBuffer = withBuffer + (5 - rem)
+  end
+  return withBuffer
+end
+
+local function MakeButtonWithStates(parent, texturePath, tooltipText)
+  local b = CreateFrame("Button", nil, parent)
+  b:SetSize(18, 18)
+
+  local t = b:CreateTexture(nil, "ARTWORK")
+  t:SetAllPoints()
+  t:SetTexture(texturePath)
+  b._tex = t
+
+  -- Highlight (hover)
+  local hl = b:CreateTexture(nil, "HIGHLIGHT")
+  hl:SetAllPoints()
+  hl:SetTexture(texturePath)
+  hl:SetBlendMode("ADD")
+  hl:SetAlpha(0.35)
+  b:SetHighlightTexture(hl)
+
+  -- Pushed
+  local pushed = b:CreateTexture(nil, "ARTWORK")
+  pushed:SetAllPoints()
+  pushed:SetTexture(texturePath)
+  pushed:SetAlpha(0.90)
+  pushed:SetVertexColor(0.80, 0.80, 0.80)
+  b:SetPushedTexture(pushed)
+
+  b:SetScript("OnEnter", function()
+    GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+    GameTooltip:SetText(tooltipText or "")
+    GameTooltip:Show()
+  end)
+
+  b:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
+  return b
+end
+
 local function ClearRows(rows)
   for _, row in ipairs(rows) do
     row:Hide()
