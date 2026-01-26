@@ -301,7 +301,7 @@ function GuidePage:RefreshMaterialsState()
       local have = ns.Util.GetItemCount(itemID)
 
       local name = GetItemName(itemID)
-      row._text:SetText("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required)
+      row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
 
       local done = required > 0 and have >= required
       ns.Util.SetFontStringGreyed(row._text, done)
