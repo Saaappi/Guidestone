@@ -241,6 +241,37 @@ function GuidePage:RenderGuide(guide)
   self:Layout()
 end
 
+function GuidePage:RefreshMaterialsState()
+  if not self.currentGuide then
+    return
+  end
+
+  for _, row in ipairs(self.materialRows) do
+    if row._mat and row._text then
+      local mat = row._mat
+      local itemID = mat.itemID
+      local required = tonumber(mat.required) or 0
+      local have = ns.Util.GetItemCount(itemID)
+
+      local name = GetItemName(itemID)
+      row._text:SetText("%s |cffFFFFFF|r / |cffFFFFFF%d|r"):format(name, have, required)
+
+      local done = required > 0 and have >= required
+      ns.Util.SetFontStringGreyed(row._text, done)
+
+      if row._wpBtn and row._wpBtn._tex then
+        row._wpBtn:SetEnabled(not done)
+        ns.Util.SetDesaturatedAndAlpha(row._wpBtn._tex, done, done and 0.35 or 1)
+      end
+
+      if row._whBtn and row._whBtn._tex then
+        row._whBtn:SetEnabled(not done)
+        ns.Util.SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
+      end
+    end
+  end
+end
+
 function GuidePage:Layout()
   if not (self.scrollFrame and self.scrollChild) then
     return
