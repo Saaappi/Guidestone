@@ -132,6 +132,11 @@ function GuidePage:Create(parent)
   stepsContainer:SetHeight(1)
   self.stepsContainer = stepsContainer
 
+  page:RegisterEvent("BAG_UPDATE_DELAYED")
+  page:SetScript("OnEvent", function()
+    GuidePage:RefreshMaterialsState()
+  end)
+
   return page
 end
 
