@@ -90,6 +90,16 @@ function GuidePage:Create(parent)
   page:Hide()
   self.frame = page
 
+  page.GetDesiredPageWidth = function()
+    -- Match Blizzard profession tab widths so ProfessionsFrame:SetTab can resize safely.
+    if ProfessionsUtil and ProfessionsUtil.IsCraftingMinimized and ProfessionsUtil.IsCraftingMinimized() then
+      return 404
+    end
+
+    local compact = (C_TradeSkillUI and (C_TradeSkillUI.IsNPCCrafting() or C_TradeSkillUI.IsRuneforging()))
+    return compact and 786 or 942
+  end
+
   -- Scroll frame
   local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
   scroll:SetPoint("TOPLEFT", 12, -12)
