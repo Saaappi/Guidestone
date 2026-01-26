@@ -14,8 +14,8 @@ local ok, err = ns.Guides:RegisterGuide({
   guideUrl = "https://www.wow-professions.com/guides/vanilla-alchemy-leveling",
 
   materials = {
-    { itemID = 2447,  required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Peacebloom
-    { itemID = 765,   required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Silverleaf
+    { itemID = 2447,  note = "asdfkakdfaskdfaskdfasdf", required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Peacebloom
+    { itemID = 765,   note = "sdfasdfadfadsf", required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Silverleaf
     { itemID = 2450,  required = 105, wowProfessionsUrl = "https://www.wow-professions.com/farming/briarthorn-farming" },            -- Briarthorn
     { itemID = 785,   required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/mageroyal-farming" },             -- Mageroyal
     { itemID = 2453,  required = 35,  wowProfessionsUrl = "https://www.wow-professions.com/farming/bruiseweed-farming" },            -- Bruiseweed
@@ -41,14 +41,12 @@ local ok, err = ns.Guides:RegisterGuide({
       toSkill = 60,
       recipeName = "Minor Healing Potion",
       maxCrafts = 60,
-      note = "Buy Crystal Vials from Alchemy Supplies. Keep these potions for the next step.",
     },
     {
       fromSkill = 60,
       toSkill = 100,
       recipeName = "Lesser Healing Potion",
       maxCrafts = 60,
-      note = "May go yellow near the end. Move on even if you do not hit 100 exactly.",
     },
     {
       fromSkill = 100,
@@ -61,14 +59,12 @@ local ok, err = ns.Guides:RegisterGuide({
       toSkill = 140,
       recipeName = "Healing Potion",
       maxCrafts = 33,
-      note = "May go yellow for the last few points.",
     },
     {
       fromSkill = 140,
       toSkill = 155,
       recipeName = "Lesser Mana Potion",
       maxCrafts = 18,
-      note = "May go yellow near the end.",
     },
     {
       fromSkill = 155,
@@ -87,7 +83,6 @@ local ok, err = ns.Guides:RegisterGuide({
       toSkill = 205,
       recipeName = "Elixir of Agility",
       maxCrafts = 20,
-      note = "If Goldthorn is expensive, you can use Mana Potion or Lesser Invisibility Potion until around 205.",
     },
     {
       fromSkill = 205,
@@ -100,7 +95,6 @@ local ok, err = ns.Guides:RegisterGuide({
       toSkill = 240,
       recipeName = "Superior Healing Potion",
       maxCrafts = 28,
-      note = "May go yellow near the end.",
     },
     {
       fromSkill = 240,
