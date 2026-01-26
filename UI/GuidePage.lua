@@ -2,6 +2,8 @@ local _, ns = ...
 
 ns.GuidePage = ns.GuidePage or {}
 
+local Item = _G.Item
+
 local GuidePage = ns.GuidePage
 
 local WOWPROF_ICON = "Interface\\Common\\Help-i"
@@ -14,6 +16,8 @@ GuidePage.scrollChild = nil
 GuidePage.currentGuide = nil
 GuidePage.materialRows = GuidePage.materialRows or {}
 GuidePage.stepRows = GuidePage.stepRows or {}
+
+GuidePage._pendingItemLoads = GuidePage._pendingItemLoads or {}
 
 local function MakeHeader(parent, text)
   local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -58,8 +62,9 @@ local function MakeIconButton(parent, texturePath, tooltipText)
 end
 
 local function GetItemName(itemID)
-  if not itemID then
-    return nil
+  itemID = tonumber(itemID)
+  if not itemID or itemID <= 0 then
+    return "Unknown Item"
   end
 
   if C_Item and C_Item.GetItemNameByID then
@@ -162,6 +167,36 @@ function GuidePage:LoadForProfession(professionInfo)
   self.currentGuide = guide
 
   self:RenderGuide(guide)
+end
+
+function GuidePage:RequestItemData(itemID)
+  itemID = tonumber(itemID)
+  if not itemID or itemID <= 0 then
+    return
+  end
+
+  -- Check if the name is already available.
+  if C_Item and C_Item.GetItemNameByID then
+    local name = C_Item.GetItemNameByID(itemID)
+    if name and name ~= "" then
+      return
+    end
+  end
+
+  -- Avoid spamming
+  if self._pendingItemLoads[itemID] then
+    return
+  end
+  self._pendingItemLoads[itemID] = true
+
+  if Item and Item.CreateFromItemID then
+    local item = Item:CreateFromItemID(itemID)
+    item:ContinueOnItemLoad(function()
+      -- Mark complete and refresh visible rows.
+      GuidePage._pendingItemLoads[itemID] = nil
+      GuidePage:RefreshMaterialsState()
+    end)
+  end
 end
 
 function GuidePage:RenderGuide(guide)
