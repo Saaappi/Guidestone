@@ -199,8 +199,6 @@ function GuidePage:RenderGuide(guide)
     end
     prev = row
 
-    row._mat = mat
-
     local fs = MakeText(row, "GameFontHighlight", 600)
     fs:SetPoint("LEFT", 0, 0)
     row._text = fs
@@ -290,7 +288,7 @@ function GuidePage:RefreshMaterialsState()
       local have = ns.Util.GetItemCount(itemID)
 
       local name = GetItemName(itemID)
-      row._text:SetText("%s |cffFFFFFF|r / |cffFFFFFF%d|r"):format(name, have, required)
+      row._text:SetText("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required)
 
       local done = required > 0 and have >= required
       ns.Util.SetFontStringGreyed(row._text, done)
