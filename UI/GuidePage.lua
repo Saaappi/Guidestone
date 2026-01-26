@@ -4,6 +4,9 @@ ns.GuidePage = ns.GuidePage or {}
 
 local GuidePage = ns.GuidePage
 
+local WOWPROF_ICON = "Interface\\Common\\Help-i"
+local WOWHEAD_ICON = "Interface\\FriendsFrame\\InformationIcon"
+
 GuidePage.frame = nil
 GuidePage.scrollFrame = nil
 GuidePage.scrollChild = nil
@@ -30,6 +33,28 @@ local function MakeText(parent, template, width)
   end
 
   return fs
+end
+
+local function MakeIconButton(parent, texturePath, tooltipText)
+  local b = CreateFrame("Button", nil, parent)
+  b:SetSize(18, 18)
+
+  local t = b:CreateTexture(nil, "ARTWORK")
+  t:SetAllPoints()
+  t:SetTexture(texturePath)
+  b._tex = t
+
+  b:SetScript("OnEnter", function()
+    GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+    GameTooltip:SetText(tooltipText or "")
+    GameTooltip:Show()
+  end)
+
+  b:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
+  return b
 end
 
 local function GetItemName(itemID)
