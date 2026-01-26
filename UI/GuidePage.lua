@@ -334,16 +334,17 @@ function GuidePage:RenderGuide(guide)
     end
     prev = row
 
-    local fs = MakeText(row, "GameFontHighlight", 600)
-    --fs:SetPoint("LEFT", 0, 0)
-    row._text = fs
-    row._mat = mat
-
     local icon = row:CreateTexture(nil, "ARTWORK")
     icon:SetSize(16, 16)
     icon:SetPoint("LEFT", 0, 0)
     icon:SetTexture(GetItemIcon(mat.itemID))
     row._icon = icon
+
+    local fs = MakeText(row, "GameFontHighlight")
+    fs:ClearAllPoints()
+    fs:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+    row._text = fs
+    row._mat = mat
 
     -- WoW-Professions link button
     local wp = MakeIconButton(row, WOWPROF_ICON, "WoW-Professions")
