@@ -422,6 +422,14 @@ function GuidePage:RefreshMaterialsState()
       row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
 
       local done = required > 0 and have >= required
+
+      -- Once the row is marked complete, avoid inline color codes so SetTextColor can desaturate
+      -- the entire string.
+      if done then
+        row._text:SetText(("%s  %d / %d"):format(name, have, required))
+      else
+        row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
+      end
       ns.Util.SetFontStringGreyed(row._text, done)
 
       if row._icon then
