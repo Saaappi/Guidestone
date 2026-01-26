@@ -116,7 +116,7 @@ local function ComputeBufferedRequired(required)
   return withBuffer
 end
 
-local function MakeButtonWithStates(parent, texturePath, tooltipText)
+local function MakeIconButtonWithStates(parent, texturePath, tooltipText)
   local b = CreateFrame("Button", nil, parent)
   b:SetSize(18, 18)
 
@@ -347,7 +347,7 @@ function GuidePage:RenderGuide(guide)
     row._mat = mat
 
     -- WoW-Professions link button
-    local wp = MakeIconButton(row, WOWPROF_ICON, "WoW-Professions")
+    local wp = MakeIconButtonWithStates(row, WOWPROF_ICON, "WoW-Professions")
     wp:SetPoint("RIGHT", row, "RIGHT", -24, 0)
     wp:SetScript("OnClick", function()
       if ns.LinkPopup and ns.LinkPopup.Show and mat.wowProfessionsUrl then
