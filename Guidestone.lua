@@ -77,6 +77,27 @@ local function TryInitProfessionsTab()
   local tabID = ProfessionsFrame:AddNamedTab("Leveling Guide", page)
   ProfessionsFrame.guidestoneLevelingGuideTabID = tabID
 
+  local function RefreshGuideIfVisible(professionInfo)
+    if not (ProfessionsFrame and ProfessionsFrame.IsShown and ProfessionsFrame:IsShown()) then
+      return
+    end
+
+    if not (ProfessionsFrame.GetTab and ProfessionsFrame:GetTab() == tabID) then
+      return
+    end
+
+    page:Show()
+    ns.GuidePage:LoadForProfession(professionInfo)
+  end
+
+  if EventRegistry and EventRegistry.RegisterCallback and not page.professionSelectedCallbackRegistered then
+    EventRegistry:RegisterCallback("Professions.ProfessionSelected", function(_, professionInfo)
+      RefreshGuideIfVisible(professionInfo)
+    end, page)
+
+    page.professionSelectedCallbackRegistered = true
+  end
+
   ProfessionsFrame:SetTabCallback(tabID, function()
     local info = (Professions and Professions.GetProfessionInfo) and Professions.GetProfessionInfo() or nil
     page:Show()
