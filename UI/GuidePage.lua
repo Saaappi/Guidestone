@@ -356,6 +356,11 @@ function GuidePage:RenderGuide(guide)
     end)
     row._wpBtn = wp
 
+    -- Constrain text width
+    if row._text then
+      row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
+    end
+
     -- Wowhead link button
     local wh = MakeIconButton(row, WOWHEAD_ICON, "Wowhead")
     wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
