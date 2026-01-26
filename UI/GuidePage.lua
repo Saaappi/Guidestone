@@ -432,7 +432,7 @@ function GuidePage:RefreshMaterialsState()
     if row._mat and row._text then
       local mat = row._mat
       local itemID = mat.itemID
-      local required = tonumber(mat.required) or 0
+      local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
       local have = ns.Util.GetItemCount(itemID)
 
       self:RequestItemData(itemID)
