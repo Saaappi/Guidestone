@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON, ns = ...
 
 ns.GuidePage = ns.GuidePage or {}
 
@@ -6,7 +6,7 @@ local Item = _G.Item
 
 local GuidePage = ns.GuidePage
 
-local WOWPROF_ICON = "Interface\\Common\\Help-i"
+local WOWPROF_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\WoWProfessions.png"
 local WOWHEAD_ICON = "Interface\\FriendsFrame\\InformationIcon"
 
 GuidePage.frame = nil
@@ -282,7 +282,7 @@ function GuidePage:RenderGuide(guide)
     prev = row
 
     local fs = MakeText(row, "GameFontHighlight", 600)
-    fs:SetPoint("LEFT", 0, 0)
+    --fs:SetPoint("LEFT", 0, 0)
     row._text = fs
     row._mat = mat
 
