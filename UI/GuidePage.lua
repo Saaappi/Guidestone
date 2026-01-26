@@ -7,7 +7,7 @@ local Item = _G.Item
 local GuidePage = ns.GuidePage
 
 local WOWPROF_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\WoWProfessions.png"
-local WOWHEAD_ICON = "Interface\\FriendsFrame\\InformationIcon"
+local WOWHEAD_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Wowhead.png"
 
 GuidePage.frame = nil
 GuidePage.scrollFrame = nil
@@ -37,28 +37,6 @@ local function MakeText(parent, template, width)
   end
 
   return fs
-end
-
-local function MakeIconButton(parent, texturePath, tooltipText)
-  local b = CreateFrame("Button", nil, parent)
-  b:SetSize(18, 18)
-
-  local t = b:CreateTexture(nil, "ARTWORK")
-  t:SetAllPoints()
-  t:SetTexture(texturePath)
-  b._tex = t
-
-  b:SetScript("OnEnter", function()
-    GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
-    GameTooltip:SetText(tooltipText or "")
-    GameTooltip:Show()
-  end)
-
-  b:SetScript("OnLeave", function()
-    GameTooltip:Hide()
-  end)
-
-  return b
 end
 
 local function GetItemName(itemID)
@@ -362,7 +340,7 @@ function GuidePage:RenderGuide(guide)
     end
 
     -- Wowhead link button
-    local wh = MakeIconButton(row, WOWHEAD_ICON, "Wowhead")
+    local wh = MakeIconButtonWithStates(row, WOWHEAD_ICON, "Wowhead")
     wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
     wh:SetScript("OnClick", function()
       if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
