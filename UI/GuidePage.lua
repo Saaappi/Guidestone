@@ -140,6 +140,10 @@ local function ClearRows(rows)
   wipe(rows)
 end
 
+local function IsNonEmptyString(s)
+  return type(s) == "string" and s:gsub("%s+", "") ~= ""
+end
+
 function GuidePage:Create(parent)
   if self.frame then
     return self.frame
@@ -314,19 +318,29 @@ function GuidePage:RenderGuide(guide)
 
     local icon = row:CreateTexture(nil, "ARTWORK")
     icon:SetSize(16, 16)
-    icon:SetPoint("LEFT", 0, 0)
+    --icon:SetPoint("LEFT", 0, 0)
+    icon:SetPoint("TOPLEFT", 0, 0)
     icon:SetTexture(GetItemIcon(mat.itemID))
     row._icon = icon
 
     local fs = MakeText(row, "GameFontHighlight")
     fs:ClearAllPoints()
-    fs:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+    --fs:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+    fs:SetPoint("TOPLEFT", icon, "RIGHT", 8, 0)
     row._text = fs
     row._mat = mat
 
+    if IsNonEmptyString(mat.note) then
+      local note = MakeText(row, "GameFontHighlightSmall")
+      note:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
+      note:SetText(mat.note)
+      row._note = note
+    end
+
     -- WoW-Professions link button
     local wp = MakeIconButtonWithStates(row, WOWPROF_ICON, "WoW-Professions")
-    wp:SetPoint("RIGHT", row, "RIGHT", -24, 0)
+    --wp:SetPoint("RIGHT", row, "RIGHT", -24, 0)
+    wp:SetPoint("TOPRIGHT", row, "TOPRIGHT", -24, 0)
     wp:SetScript("OnClick", function()
       if ns.LinkPopup and ns.LinkPopup.Show and mat.wowProfessionsUrl then
         ns.LinkPopup:Show("WoW-Professions", mat.wowProfessionsUrl)
@@ -336,12 +350,14 @@ function GuidePage:RenderGuide(guide)
 
     -- Constrain text width
     if row._text then
-      row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
+      --row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
+      row._text:SetPoint("TOPRIGHT", wp, "TOPLEFT", -8, 0)
     end
 
     -- Wowhead link button
     local wh = MakeIconButtonWithStates(row, WOWHEAD_ICON, "Wowhead")
-    wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
+    --wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
+    wh:SetPoint("TOPLEFT", wp, "TOPRIGHT", 6, 0)
     wh:SetScript("OnClick", function()
       if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
         ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
@@ -394,6 +410,13 @@ function GuidePage:RenderGuide(guide)
       end)
     end)
     row._craftBtn = craftBtn
+
+    if IsNonEmptyString(step.note) then
+      local note = MakeText(row, "GameFontHighlightSmall")
+      note:SetPoint("TOPLEFT", craftBtn, "BOTTOMLEFT", 0, -4)
+      note:SetText(step.note)
+      row._note = note
+    end
 
     table.insert(self.stepRows, row)
   end
@@ -448,6 +471,47 @@ function GuidePage:RefreshMaterialsState()
       end
     end
   end
+
+  self:Layout()
+end
+
+function GuidePage:UpdateRowSizing()
+  if not (self.materialsContainer and self.stepsContainer) then
+    return
+  end
+
+  -- Materials: set widths (to allow wrapping) and then compute row heights.
+  local matsWidth = self.materialsContainer:GetWidth() or 1
+  for _, row in ipairs(self.materialRows) do
+    if row:IsShown() and row._text then
+      local available = math.max(100, matsWidth - 90) -- padding budget
+      row._text:SetWidth(available)
+      if row._note then
+        row._note:SetWidth(available)
+      end
+
+      local textHeight = row._text:GetStringHeight() or 0
+      local noteHeight = (row._note and row._note:GetStringHeight()) or 0
+      local height = math.max(18, math.ceil(textHeight + (noteHeight > 0 and (2 + noteHeight) or 0)))
+      row:SetHeight(height)
+    end
+  end
+
+  -- Steps: compute row heights only when notes are present
+  local stepsWidth = self.stepsContainer:GetWidth() or 1
+  for _, row in ipairs(self.stepRows) do
+    if row:IsShown() and row._craftBtn then
+      if row._note then
+        row._note:SetWidth(math.max(200, stepsWidth - 10))
+      end
+
+      local headerHeight = (row._header and row._header:GetStringHeight()) or 0
+      local craftHeight = row._craftBtn:GetHeight() or 0
+      local noteHeight = (row._note and row._note:GetStringHeight()) or 0
+      local computed = headerHeight + 6 + craftHeight + (noteHeight > 0 and (4 + noteHeight) or 0) + 2
+      row:SetHeight(math.max(44, math.ceil(computed)))
+    end
+  end
 end
 
 function GuidePage:Layout()
@@ -460,6 +524,8 @@ function GuidePage:Layout()
   if w and w > 60 then
     self.scrollChild:SetWidth(w - 28)
   end
+
+  self:UpdateRowSizing()
 
   -- Materials container height
   local matsHeight = 0
