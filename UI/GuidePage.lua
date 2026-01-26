@@ -199,16 +199,37 @@ function GuidePage:RenderGuide(guide)
     end
     prev = row
 
-    local name = GetItemName(mat.itemID)
-    local required = tonumber(mat.required) or 0
+    row._mat = mat
 
     local fs = MakeText(row, "GameFontHighlight", 600)
     fs:SetPoint("LEFT", 0, 0)
-    fs:SetText(("%s |cffFFFFFFx%d|r"):format(name, required))
-
     row._text = fs
+
+    -- WoW-Professions link button
+    local wp = MakeIconButton(row, WOWPROF_ICON, "WoW-Professions")
+    wp:SetPoint("RIGHT", row, "RIGHT", -24, 0)
+    wp:SetScript("OnClick", function()
+      if ns.LinkPopup and ns.LinkPopup.Show and mat.wowProfessionsUrl then
+        ns.LinkPopup:Show("WoW-Professions", mat.wowProfessionsUrl)
+      end
+    end)
+    row._wpBtn = wp
+
+    -- Wowhead link button
+    local wh = MakeIconButton(row, WOWHEAD_ICON, "Wowhead")
+    wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
+    wh:SetScript("OnClick", function()
+      if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
+        ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
+      end
+    end)
+    row._whBtn = wh
+
     table.insert(self.materialRows, row)
   end
+
+  -- Apply initial counts/grey-out state for materials
+  self:RefreshMaterialsState()
 
   -- Steps
   prev = nil
@@ -225,16 +246,31 @@ function GuidePage:RenderGuide(guide)
     end
     prev = row
 
+    row._step = step
+
     local header = MakeText(row, "GameFontNormal", 600)
     header:SetPoint("TOPLEFT", 0, 0)
     header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
-
-    local line = MakeText(row, "GameFontHighlight", 600)
-    line:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -4)
-    line:SetText(step.recipeName or "Unknown Recipe")
-
     row._header = header
-    row._line = line
+
+    local craftBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+    craftBtn:SetSize(240, 22)
+    craftBtn:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -6)
+    craftBtn:SetText(step.recipeName or "Craft")
+    craftBtn:SetScript("OnClick", function()
+      if not (ns.CraftRunner and ns.CraftRunner.Start) then
+        return
+      end
+
+      ns.CraftRunner:Start(step, function()
+        -- Re-render to refresh visible state.
+        if GuidePage.currentGuide then
+          GuidePage:RenderGuide(GuidePage.currentGuide)
+        end
+      end)
+    end)
+    row._craftBtn = craftBtn
+
     table.insert(self.stepRows, row)
   end
 
