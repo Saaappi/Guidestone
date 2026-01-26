@@ -14,8 +14,8 @@ local ok, err = ns.Guides:RegisterGuide({
   guideUrl = "https://www.wow-professions.com/guides/vanilla-alchemy-leveling",
 
   materials = {
-    { itemID = 2447,  note = "asdfkakdfaskdfaskdfasdf", required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Peacebloom
-    { itemID = 765,   note = "sdfasdfadfadsf", required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Silverleaf
+    { itemID = 2447,  required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Peacebloom
+    { itemID = 765,   required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Silverleaf
     { itemID = 2450,  required = 105, wowProfessionsUrl = "https://www.wow-professions.com/farming/briarthorn-farming" },            -- Briarthorn
     { itemID = 785,   required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/mageroyal-farming" },             -- Mageroyal
     { itemID = 2453,  required = 35,  wowProfessionsUrl = "https://www.wow-professions.com/farming/bruiseweed-farming" },            -- Bruiseweed
