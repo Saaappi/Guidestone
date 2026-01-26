@@ -347,7 +347,12 @@ function GuidePage:RefreshMaterialsState()
       local required = tonumber(mat.required) or 0
       local have = ns.Util.GetItemCount(itemID)
 
+      self:RequestItemData(itemID)
+
       local name = GetItemName(itemID)
+      if not name or name == "" then
+        name = ("Item %d"):format(tonumber(itemID) or 0)
+      end
       row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
 
       local done = required > 0 and have >= required
