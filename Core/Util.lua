@@ -45,7 +45,7 @@ function ns.Util.GetWowheadItemUrl(itemID)
 end
 
 function ns.Util.SetDesaturatedAndAlpha(region, desaturated, alpha)
-  if region and region.SetSaturated then
+  if region and region.SetDesaturated then
     region:SetDesaturated(desaturated and true or false)
   end
 
