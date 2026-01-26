@@ -107,8 +107,6 @@ function GuidePage:Create(parent)
 
   -- Scroll frame
   local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-  --scroll:SetPoint("TOPLEFT", 12, -12)
-  --scroll:SetPoint("BOTTOMRIGHT", -30, 12)
   scroll:ClearAllPoints()
   scroll:SetPoint("TOPLEFT", 56, -44)
   scroll:SetPoint("BOTTOMRIGHT", -34, 28)
