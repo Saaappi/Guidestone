@@ -77,6 +77,30 @@ local function GetItemName(itemID)
   return ("Item %d"):format(tonumber(itemID) or 0)
 end
 
+local function GetItemIcon(itemID)
+  itemID = tonumber(itemID)
+  if not itemID or itemID <= 0 then
+    return "Interface\\Icons\\INV_Misc_QuestionMark"
+  end
+
+  if C_Item and C_Item.GetItemIconByID then
+    local ok, icon = pcall(C_Item.GetItemIconByID, itemID)
+    if ok and icon then
+      return icon
+    end
+  end
+
+  -- GetItemInfoInstant is synchronous and normally will return an icon immediately.
+  if C_Item and C_Item.GetItemInfoInstant then
+    local ok, _, _, _, _, icon = pcall(C_Item.GetItemInfoInstant, itemID)
+    if ok and icon then
+      return icon
+    end
+  end
+
+  return "Interface\\Icons\\INV_Misc_QuestionMark"
+end
+
 local function ClearRows(rows)
   for _, row in ipairs(rows) do
     row:Hide()
@@ -260,6 +284,13 @@ function GuidePage:RenderGuide(guide)
     local fs = MakeText(row, "GameFontHighlight", 600)
     fs:SetPoint("LEFT", 0, 0)
     row._text = fs
+    row._mat = mat
+
+    local icon = row:CreateTexture(nil, "ARTWORK")
+    icon:SetSize(16, 16)
+    icon:SetPoint("LEFT", 0, 0)
+    icon:SetTexture(GetItemIcon(mat.itemID))
+    row._icon = icon
 
     -- WoW-Professions link button
     local wp = MakeIconButton(row, WOWPROF_ICON, "WoW-Professions")
@@ -355,6 +386,11 @@ function GuidePage:RefreshMaterialsState()
 
       local done = required > 0 and have >= required
       ns.Util.SetFontStringGreyed(row._text, done)
+
+      if row._icon then
+        row._icon:SetTexture(GetItemIcon(itemID))
+        ns.Util.SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
+      end
 
       if row._wpBtn and row._wpBtn._tex then
         row._wpBtn:SetEnabled(not done)
