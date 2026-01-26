@@ -307,6 +307,14 @@ function GuidePage:RenderGuide(guide)
     local row = CreateFrame("Frame", nil, self.materialsContainer)
     row:SetHeight(18)
 
+    -- Keep the main material line (icon/name/buttons) vertically stable
+    -- even when the row grows to account for notes.
+    local line = CreateFrame("Frame", nil, row)
+    line:SetPoint("TOPLEFT", 0, 0)
+    line:SetPoint("TOPRIGHT", 0, 0)
+    line:SetHeight(18)
+    row._line = line
+
     if not prev then
       row:SetPoint("TOPLEFT", 0, 0)
       row:SetPoint("TOPRIGHT", 0, 0)
@@ -316,31 +324,22 @@ function GuidePage:RenderGuide(guide)
     end
     prev = row
 
-    local icon = row:CreateTexture(nil, "ARTWORK")
+    local icon = line:CreateTexture(nil, "ARTWORK")
     icon:SetSize(16, 16)
-    --icon:SetPoint("LEFT", 0, 0)
-    icon:SetPoint("TOPLEFT", 0, 0)
+    icon:SetPoint("LEFT", 0, 0)
     icon:SetTexture(GetItemIcon(mat.itemID))
     row._icon = icon
 
-    local fs = MakeText(row, "GameFontHighlight")
+    local fs = MakeText(line, "GameFontHighlight")
     fs:ClearAllPoints()
-    --fs:SetPoint("LEFT", icon, "RIGHT", 8, 0)
-    fs:SetPoint("TOPLEFT", icon, "RIGHT", 8, 0)
+    fs:SetPoint("LEFT", icon, "RIGHT", 8, 0)
+    fs:SetWordWrap(false)
     row._text = fs
     row._mat = mat
 
-    if IsNonEmptyString(mat.note) then
-      local note = MakeText(row, "GameFontHighlightSmall")
-      note:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
-      note:SetText(mat.note)
-      row._note = note
-    end
-
     -- WoW-Professions link button
-    local wp = MakeIconButtonWithStates(row, WOWPROF_ICON, "WoW-Professions")
-    --wp:SetPoint("RIGHT", row, "RIGHT", -24, 0)
-    wp:SetPoint("TOPRIGHT", row, "TOPRIGHT", -24, 0)
+    local wp = MakeIconButtonWithStates(line, WOWPROF_ICON, "WoW-Professions")
+    wp:SetPoint("RIGHT", line, "RIGHT", -24, 0)
     wp:SetScript("OnClick", function()
       if ns.LinkPopup and ns.LinkPopup.Show and mat.wowProfessionsUrl then
         ns.LinkPopup:Show("WoW-Professions", mat.wowProfessionsUrl)
@@ -350,20 +349,30 @@ function GuidePage:RenderGuide(guide)
 
     -- Constrain text width
     if row._text then
-      --row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
-      row._text:SetPoint("TOPRIGHT", wp, "TOPLEFT", -8, 0)
+      row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
     end
 
     -- Wowhead link button
-    local wh = MakeIconButtonWithStates(row, WOWHEAD_ICON, "Wowhead")
-    --wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
-    wh:SetPoint("TOPLEFT", wp, "TOPRIGHT", 6, 0)
+    local wh = MakeIconButtonWithStates(line, WOWHEAD_ICON, "Wowhead")
+    wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
     wh:SetScript("OnClick", function()
       if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
         ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
       end
     end)
     row._whBtn = wh
+
+    -- Material note, when present, should not affect main line alignment.
+    if IsNonEmptyString(mat.note) then
+      local note = MakeText(row, "GameFontHighlightSmall")
+      note:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
+      note:SetPoint("TOPRIGHT", fs, "BOTTOMRIGHT", 0, -2)
+      note:SetText(mat.note)
+      row._note = note
+
+      -- Expand the row to fit the note without shifting the main line.
+      row:SetHeight(18 + 2 + math.ceil(note:GetStringHeight() or 0))
+    end
 
     table.insert(self.materialRows, row)
   end
@@ -491,8 +500,10 @@ function GuidePage:UpdateRowSizing()
       end
 
       local textHeight = row._text:GetStringHeight() or 0
+      -- Main line is always 18px; only notes should expand the row.
       local noteHeight = (row._note and row._note:GetStringHeight()) or 0
-      local height = math.max(18, math.ceil(textHeight + (noteHeight > 0 and (2 + noteHeight) or 0)))
+      --local height = math.max(18, math.ceil(textHeight + (noteHeight > 0 and (2 + noteHeight) or 0)))
+      local height = 18 + (noteHeight > 0 and (2 + math.ceil(noteHeight)) or 0)
       row:SetHeight(height)
     end
   end
