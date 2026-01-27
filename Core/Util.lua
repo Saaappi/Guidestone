@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON, ns = ...
 
 ns.Util = ns.Util or {}
 
@@ -126,6 +126,7 @@ function ns.Util.AddWaypoint(uiMapID, x, y, title)
       persistent = false,
       minimap = true,
       world = true,
+      from = ADDON,
     }
 
     local ok = pcall(_G.TomTom.AddWaypoint, _G.TomTom, uiMapID, nx, ny, opts)
