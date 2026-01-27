@@ -464,7 +464,18 @@ function GuidePage:RenderGuide(guide)
       end
       row._details = details
 
-      local waypointBtn = MakeIconButtonWithStates(row, TOMTOM_ICON, isTomTomEnabled and "Add TomTom Waypoint" or "Set Waypoint")
+      local icon, isAtlas, tooltipText
+      if isTomTomEnabled then
+        icon = TOMTOM_ICON
+        isAtlas = false
+        tooltipText = "Add TomTom Waypoint"
+      else
+        icon = "Waypoint-MapPin-Untracked"
+        isAtlas = true
+        tooltipText = "Set Waypoint"
+      end
+
+      local waypointBtn = MakeIconButtonWithStates(row, icon, tooltipText, isAtlas)
       waypointBtn:SetPoint("TOPRIGHT", 0, 0)
       waypointBtn:SetScript("OnClick", function()
         if ns.Util and ns.Util.AddWaypoint then
