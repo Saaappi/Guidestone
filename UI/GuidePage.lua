@@ -8,6 +8,7 @@ local GuidePage = ns.GuidePage
 
 local WOWPROF_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\WoWProfessions.png"
 local WOWHEAD_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Wowhead.png"
+local TOMTOM_ICON  = "Interface\\AddOns\\" .. ADDON .. "\\Media\\TomTom.png"
 
 GuidePage.frame = nil
 GuidePage.scrollFrame = nil
@@ -445,10 +446,8 @@ function GuidePage:RenderGuide(guide)
       end
       row._details = details
 
-      local waypointBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-      waypointBtn:SetSize(110, 20)
+      local waypointBtn = MakeIconButtonWithStates(row, TOMTOM_ICON, isTomTomEnabled and "Add TomTom Waypoint" or "Set Waypoint")
       waypointBtn:SetPoint("TOPRIGHT", 0, 0)
-      waypointBtn:SetText(isTomTomEnabled and "TomTom" or "Waypoint")
       waypointBtn:SetScript("OnClick", function()
         if ns.Util and ns.Util.AddWaypoint then
           ns.Util.AddWaypoint(trainer.uiMapID, trainer.x, trainer.y, trainer.name)
