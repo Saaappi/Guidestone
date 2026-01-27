@@ -16,6 +16,7 @@ GuidePage.scrollChild = nil
 GuidePage.currentGuide = nil
 GuidePage.materialRows = GuidePage.materialRows or {}
 GuidePage.stepRows = GuidePage.stepRows or {}
+GuidePage.trainerRows = GuidePage.trainerRows or {}
 
 GuidePage._pendingItemLoads = GuidePage._pendingItemLoads or {}
 
@@ -196,9 +197,20 @@ function GuidePage:Create(parent)
   materialsContainer:SetHeight(1)
   self.materialsContainer = materialsContainer
 
+  -- Trainers header and container
+  local trainersHeader = MakeHeader(child, "Trainers")
+  trainersHeader:SetPoint("TOPLEFT", materialsContainer, "BOTTOMLEFT", 0, -20)
+  self.trainersHeader = trainersHeader
+
+  local trainersContainer = CreateFrame("Frame", nil, child)
+  trainersContainer:SetPoint("TOPLEFT", trainersHeader, "BOTTOMLEFT", 0, -10)
+  trainersContainer:SetPoint("TOPRIGHT", -18, 0)
+  trainersContainer:SetHeight(1)
+  self.trainersContainer = trainersContainer
+
   -- Steps header and container
   local stepsHeader = MakeHeader(child, "Leveling Guide")
-  stepsHeader:SetPoint("TOPLEFT", materialsContainer, "BOTTOMLEFT", 0, -20)
+  stepsHeader:SetPoint("TOPLEFT", trainersContainer, "BOTTOMLEFT", 0, -20)
   self.stepsHeader = stepsHeader
 
   local stepsContainer = CreateFrame("Frame", nil, child)
@@ -274,11 +286,13 @@ function GuidePage:RenderGuide(guide)
   end
 
   ClearRows(self.materialRows)
+  ClearRows(self.trainerRows)
   ClearRows(self.stepRows)
 
   if not guide then
     self.titleText:SetText("Leveling Guide")
     self.materialsHeader:SetText("Materials Required")
+    self.trainersHeader:SetText("Trainers")
     self.stepsHeader:SetText("Leveling Guide")
 
     local row = CreateFrame("Frame", nil, self.scrollChild)
@@ -379,6 +393,86 @@ function GuidePage:RenderGuide(guide)
 
   -- Apply initial counts/grey-out state for materials
   self:RefreshMaterialsState()
+
+  -- Trainers
+  local trainers = guide.trainers or {}
+  local playerFaction = ns.Util.GetPlayerFactionFlag and ns.Util.GetPlayerFactionFlag() or 0
+  local isTomTomEnabled = ns.Util.IsTomTomAvailable and ns.Util.IsTomTomAvailable() or false
+
+  prev = nil
+  local anyTrainer = false
+
+  for _, trainer in ipairs(trainers) do
+    local trainerFaction = tonumber(trainer.faction) or 0
+    if trainerFaction == 0 or trainerFaction == playerFaction then
+      anyTrainer = true
+
+      local row = CreateFrame("Frame", nil, self.trainersContainer)
+
+      if not prev then
+        row:SetPoint("TOPLEFT", 0, 0)
+        row:SetPoint("TOPRIGHT", 0, 0)
+      else
+        row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -8)
+        row:SetPoint("TOPRIGHT", prev, "BOTTOMRIGHT", 0, -8)
+      end
+      prev = row
+
+      row._trainer = trainer
+
+      local name = MakeText(row, "GameFontNormal")
+      name:SetPoint("TOPLEFT", 0, 0)
+      name:SetPoint("TOPRIGHT", -120, 0)
+      name:SetWordWrap(false)
+      name:SetText(trainer.name or "Trainer")
+      row._name = name
+
+      local details = MakeText(row, "GameFontHighlightSmall")
+      details:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -2)
+      details:SetPoint("TOPRIGHT", name, "BOTTOMRIGHT", 0, -2)
+
+      local zone = trainer.zone or trainer.location or ""
+      local x = tonumber(trainer.x)
+      local y = tonumber(trainer.y)
+      if zone ~= "" and x and y then
+        details:SetText(("%s (%.1f, %.1f)"):format(zone, x, y))
+      elseif zone ~= "" then
+        details:SetText(zone)
+      elseif x and y then
+        details:SetText(("(%.1f, %.1f)"):format(x, y))
+      else
+        details:SetText("")
+      end
+      row._details = details
+
+      local waypointBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+      waypointBtn:SetSize(110, 20)
+      waypointBtn:SetPoint("TOPRIGHT", 0, 0)
+      waypointBtn:SetText(isTomTomEnabled and "TomTom" or "Waypoint")
+      waypointBtn:SetScript("OnClick", function()
+        if ns.Util and ns.Util.AddWaypoint then
+          ns.Util.AddWaypoint(trainer.uiMapID, trainer.x, trainer.y, trainer.name)
+        end
+      end)
+      row._waypointBtn = waypointBtn
+
+      table.insert(self.trainerRows, row)
+    end
+  end
+
+  if not anyTrainer then
+    local row = CreateFrame("Frame", nil, self.trainersContainer)
+    row:SetPoint("TOPLEFT", 0, 0)
+    row:SetPoint("TOPRIGHT", 0, 0)
+    row:SetHeight(18)
+
+    local fs = MakeText(row, "GameFontHighlight")
+    fs:SetPoint("LEFT", 0, 0)
+    fs:SetText("No trainers available in this guide.")
+    row._details = fs
+
+    table.insert(self.trainerRows, row)
+  end
 
   -- Steps
   prev = nil
@@ -485,7 +579,7 @@ function GuidePage:RefreshMaterialsState()
 end
 
 function GuidePage:UpdateRowSizing()
-  if not (self.materialsContainer and self.stepsContainer) then
+  if not (self.materialsContainer and self.trainersContainer and self.stepsContainer) then
     return
   end
 
@@ -493,18 +587,32 @@ function GuidePage:UpdateRowSizing()
   local matsWidth = self.materialsContainer:GetWidth() or 1
   for _, row in ipairs(self.materialRows) do
     if row:IsShown() and row._text then
-      local available = math.max(100, matsWidth - 90) -- padding budget
+      local available = math.max(100, matsWidth - 90)
       row._text:SetWidth(available)
       if row._note then
         row._note:SetWidth(available)
       end
 
-      local textHeight = row._text:GetStringHeight() or 0
       -- Main line is always 18px; only notes should expand the row.
       local noteHeight = (row._note and row._note:GetStringHeight()) or 0
-      --local height = math.max(18, math.ceil(textHeight + (noteHeight > 0 and (2 + noteHeight) or 0)))
       local height = 18 + (noteHeight > 0 and (2 + math.ceil(noteHeight)) or 0)
       row:SetHeight(height)
+    end
+  end
+
+  -- Trainers: set widths and compute row heights
+  local trainersWidth = self.trainersContainer:GetWidth() or 1
+  for _, row in ipairs(self.trainerRows) do
+    if row:IsShown() then
+      if row._name and row._details then
+        local available = math.max(160, trainersWidth - 120)
+        row._name:SetWidth(available)
+        row._details:SetWidth(available)
+
+        local detailsHeight = row._details:GetStringHeight() or 0
+        local height = 18 + (detailsHeight > 0 and (2 + math.ceil(detailsHeight)) or 0)
+        row:SetHeight(math.max(18, height))
+      end
     end
   end
 
@@ -551,6 +659,19 @@ function GuidePage:Layout()
   end
   self.materialsContainer:SetHeight(math.max(1, matsHeight))
 
+  -- Trainers container height
+  local trainersHeight = 0
+  for _, row in ipairs(self.trainerRows) do
+    if row:IsShown() then
+      trainersHeight = trainersHeight + row:GetHeight() + 8
+    end
+  end
+
+  if trainersHeight > 0 then
+    trainersHeight = trainersHeight - 8
+  end
+  self.trainersContainer:SetHeight(math.max(1, trainersHeight))
+
   -- Steps container height
   local stepsHeight = 0
   for _, row in ipairs(self.stepRows) do
@@ -569,6 +690,8 @@ function GuidePage:Layout()
     8 + self.titleText:GetHeight()
     + 16 + self.materialsHeader:GetHeight()
     + 10 + self.materialsContainer:GetHeight()
+    + 20 + self.trainersHeader:GetHeight()
+    + 10 + self.trainersContainer:GetHeight()
     + 20 + self.stepsHeader:GetHeight()
     + 10 + self.stepsContainer:GetHeight()
     + 20
