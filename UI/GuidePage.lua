@@ -468,7 +468,7 @@ function GuidePage:RenderGuide(guide)
       if isTomTomEnabled then
         icon = TOMTOM_ICON
         isAtlas = false
-        tooltipText = "Add TomTom Waypoint"
+        tooltipText = "Set TomTom Waypoint"
       else
         icon = "Waypoint-MapPin-Untracked"
         isAtlas = true
