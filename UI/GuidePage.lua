@@ -96,19 +96,33 @@ local function ComputeBufferedRequired(required)
   return withBuffer
 end
 
-local function MakeIconButtonWithStates(parent, texturePath, tooltipText)
+-- Creates a small icon button with hover and pushed states.
+-- The icon can either be a file texture path or an atlas name.
+---@param parent Frame
+---@param icon string
+---@param tooltipText string
+---@param isAtlas boolean|nil
+local function MakeIconButtonWithStates(parent, icon, tooltipText, isAtlas)
   local b = CreateFrame("Button", nil, parent)
   b:SetSize(18, 18)
 
   local t = b:CreateTexture(nil, "ARTWORK")
   t:SetAllPoints()
-  t:SetTexture(texturePath)
+  if isAtlas then
+    t:SetAtlas(icon)
+  else
+    t:SetTexture(icon)
+  end
   b._tex = t
 
   -- Highlight (hover)
   local hl = b:CreateTexture(nil, "HIGHLIGHT")
   hl:SetAllPoints()
-  hl:SetTexture(texturePath)
+  if isAtlas then
+    hl:SetAtlas(icon)
+  else
+    hl:SetTexture(icon)
+  end
   hl:SetBlendMode("ADD")
   hl:SetAlpha(0.35)
   b:SetHighlightTexture(hl)
@@ -116,7 +130,11 @@ local function MakeIconButtonWithStates(parent, texturePath, tooltipText)
   -- Pushed
   local pushed = b:CreateTexture(nil, "ARTWORK")
   pushed:SetAllPoints()
-  pushed:SetTexture(texturePath)
+  if isAtlas then
+    pushed:SetAtlas(icon)
+  else
+    pushed:SetTexture(icon)
+  end
   pushed:SetAlpha(0.90)
   pushed:SetVertexColor(0.80, 0.80, 0.80)
   b:SetPushedTexture(pushed)
