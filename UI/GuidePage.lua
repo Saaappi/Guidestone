@@ -85,8 +85,8 @@ local function ComputeBufferedRequired(required)
     return 0
   end
 
-  -- 15% buffer, rounded up to nearest multiple of 5.
-  local withBuffer = math.ceil(required * 1.15)
+  -- 20% buffer, rounded up to nearest multiple of 5.
+  local withBuffer = math.ceil(required * 1.2)
   local rem = withBuffer % 5
   if rem ~= 0 then
     withBuffer = withBuffer + (5 - rem)
