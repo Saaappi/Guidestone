@@ -169,6 +169,11 @@ local function EnsureCraftButtonVisuals(craftBtn)
     return
   end
 
+  if craftBtn._gsVisuals then
+    return
+  end
+  craftBtn._gsVisuals = true
+
   -- ItemButton created via CreateFrame("ItemButton") won't have template regions.
   -- Create a standard icon region and quickslot border behavior.
   if not craftBtn._icon then
