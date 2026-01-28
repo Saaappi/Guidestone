@@ -590,7 +590,7 @@ function GuidePage:RenderGuide(guide)
   self:Layout()
 end
 
-function GuidePage:RefreshMaterialsState()
+function GuidePage:RefreshMaterialsState(skipLayout)
   if not self.currentGuide then
     return
   end
@@ -638,7 +638,122 @@ function GuidePage:RefreshMaterialsState()
     end
   end
 
-  self:Layout()
+  if not skipLayout then
+    self:Layout()
+  end
+end
+
+function GuidePage:UpdateStepRow(row)
+  if not (row and row._step and row._craftBtn and row._craftName and row._craftReagents) then
+    return
+  end
+
+  local step = row._step
+
+  local displayName = (step and step.recipeName) or "Craft"
+  local iconTexturePath = "Interface\\Icons\\INV_Misc_QuestionMark"
+  row._outputHyperlink = nil
+
+  local recipeID = row._recipeID
+  if not recipeID and step and step.recipeName then
+    recipeID = ns.FindRecipeIDByName(step.recipeName)
+    row._recipeID = recipeID
+  end
+
+  if recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
+    local recipeInfo = C_TradeSkillUI.GetRecipeInfo(recipeID)
+    if recipeInfo and type(recipeInfo.name) == "string" and recipeInfo.name ~= "" then
+      displayName = recipeInfo.name
+    end
+
+    if C_TradeSkillUI.GetRecipeOutputItemData then
+      local ok, outputItemInfo = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID, {})
+      if ok and outputItemInfo then
+        if outputItemInfo.icon then
+          iconTexturePath = outputItemInfo.icon
+        end
+
+        if outputItemInfo.hyperlink then
+          row._outputHyperlink = outputItemInfo.hyperlink
+
+          if Item and Item.CreateFromItemLink then
+            local item = Item:CreateFromItemLink(outputItemInfo.hyperlink)
+            if item then
+              if item:IsItemDataCached() then
+                local name = item:GetItemName()
+                if name and name ~= "" then
+                  displayName = name
+                end
+              else
+                item:ContinueOnItemLoad(function()
+                  GuidePage:RefreshAllState()
+                end)
+              end
+            end
+          end
+        end
+      end
+    end
+
+    -- Reagents (basic required only)
+    local reagentsText = ""
+    if ProfessionsUtil and ProfessionsUtil.GetRecipeSchematic and ProfessionsUtil.IsReagentSlotBasicRequired then
+      local okSchematic, schematic = pcall(ProfessionsUtil.GetRecipeSchematic, recipeID, false)
+      if okSchematic and schematic and type(schematic.reagentSlotSchematics) == "table" then
+        local parts = {}
+
+        for _, slot in ipairs(schematic.reagentSlotSchematics) do
+          if ProfessionsUtil.IsReagentSlotBasicRequired(slot) then
+            local options = {}
+            for _, reagent in ipairs(slot.reagents or {}) do
+              local qty = 0
+              if slot.GetQuantityRequired then
+                qty = tonumber(slot:GetQuantityRequired(reagent)) or 0
+              else
+                qty = tonumber(slot.quantityRequired) or 0
+              end
+
+              local name = nil
+              if reagent.itemID then
+                self:RequestItemData(reagent.itemID)
+                name = GetItemName(reagent.itemID)
+              elseif reagent.currencyID and C_CurrencyInfo and C_CurrencyInfo.GetCurrencyInfo then
+                local info = C_CurrencyInfo.GetCurrencyInfo(reagent.currencyID)
+                name = info and info.name
+              end
+
+              if name and name ~= "" and qty > 0 then
+                table.insert(options, ("%s x%d"):format(name, qty))
+              elseif name and name ~= "" then
+                table.insert(options, name)
+              end
+            end
+
+            if #options > 0 then
+              table.insert(parts, table.concat(options, " or "))
+            end
+          end
+        end
+
+        reagentsText = table.concat(parts, ", ")
+      end
+    end
+
+    row._craftReagents:SetText(reagentsText)
+  else
+    row._craftReagents:SetText("")
+  end
+
+  row._craftName:SetText(displayName)
+  row._craftName:SetTextColor(GetGoldRGB())
+
+  local iconTex = row._craftBtn.Icon or row._craftBtn.IconTexture or row._craftBtn.icon or row._craftBtn._icon
+  if not iconTex then
+    iconTex = row._craftBtn:CreateTexture(nil, "BORDER")
+    iconTex:SetAllPoints()
+    row._craftBtn._icon = iconTex
+  end
+  iconTex:SetTexture(iconTexturePath)
 end
 
 function GuidePage:UpdateRowSizing()
@@ -694,6 +809,27 @@ function GuidePage:UpdateRowSizing()
       row:SetHeight(math.max(44, math.ceil(computed)))
     end
   end
+end
+
+function GuidePage:RefreshStepsState(skipLayout)
+  if not self.currentGuide then
+    return
+  end
+
+  for _, row in ipairs(self.stepRows) do
+    self:UpdateStepRow(row)
+  end
+
+  if not skipLayout then
+    self:Layout()
+  end
+end
+
+function GuidePage:RefreshAllState()
+  -- Refresh item-dependent UI in one pass to avoid double re-layout.
+  self:RefreshMaterialsState(true)
+  self:RefreshStepsState(true)
+  self:Layout()
 end
 
 function GuidePage:Layout()
