@@ -172,8 +172,8 @@ local function EnsureCraftButtonVisuals(craftBtn)
   -- ItemButton created via CreateFrame("ItemButton") won't have template regions.
   -- Create a standard icon region and quickslot border behavior.
   if not craftBtn._icon then
-    craftBtn:SetNormalTexture("Interface\\Buttons\\UI-Quickslot2")
-    craftBtn:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+    --craftBtn:SetNormalTexture("Interface\\Buttons\\UI-Quickslot2")
+    --craftBtn:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
     craftBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 
     local icon = craftBtn:CreateTexture(nil, "ARTWORK")
@@ -582,7 +582,9 @@ function GuidePage:RenderGuide(guide)
     end)
     craftBtn:SetScript("OnEnter", function()
       GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
-      if row._outputHyperlink then
+      if row._outputItemID then
+        GameTooltip:SetItemID(row._outputItemID)
+      elseif row._outputHyperlink then
         GameTooltip:SetHyperlink(row._outputHyperlink)
       else
         GameTooltip:SetText(step.recipeName or "Craft")
@@ -674,6 +676,25 @@ function GuidePage:RefreshMaterialsState(skipLayout)
   end
 end
 
+local function SafeGetRecipeOutputItemData(recipeID)
+  if not (C_TradeSkillUI and C_TradeSkillUI.GetRecipeOutputItemData) then
+    return nil
+  end
+
+  -- I'm not sure if retail accepts {recipeID} or {recipeID, reagents}.
+  local ok, info = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID, {})
+  if ok and info then
+    return info
+  end
+
+  ok, info = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID)
+  if ok and info then
+    return info
+  end
+
+  return nil
+end
+
 function GuidePage:UpdateStepRow(row)
   if not (row and row._step and row._craftBtn and row._craftName and row._craftReagents) then
     return
@@ -697,8 +718,22 @@ function GuidePage:UpdateStepRow(row)
       displayName = recipeInfo.name
     end
 
-    if C_TradeSkillUI.GetRecipeOutputItemData then
-      local ok, outputItemInfo = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID, {})
+    local outputItemInfo = SafeGetRecipeOutputItemData(recipeID)
+    if outputItemInfo then
+      -- Prefer itemID-based icon
+      if outputItemInfo.itemID and tonumber(outputItemInfo.itemID) and tonumber(outputItemInfo.itemID) > 0 then
+        row._outputItemID = tonumber(outputItemInfo.itemID)
+        self:RequestItemData(row._outputItemID)
+        iconTexturePath = GetItemIcon(row._outputItemID)
+      elseif outputItemInfo.icon and outputItemInfo.icon ~= 0 then
+        iconTexturePath = outputItemInfo.icon
+      end
+
+      if outputItemInfo.hyperlink then
+        row._outputHyperlink = outputItemInfo.hyperlink
+        row._outputKey = outputItemInfo.hyperlink
+      end
+      --[[local ok, outputItemInfo = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID, {})
       if ok and outputItemInfo then
         if outputItemInfo.icon and outputItemInfo.icon ~= 0 then
           iconTexturePath = outputItemInfo.icon
@@ -741,7 +776,7 @@ function GuidePage:UpdateStepRow(row)
         then
           iconTexturePath = GetItemIcon(outputItemInfo.itemID)
         end
-      end
+      end]]
     end
 
     -- Reagents (basic required only)
