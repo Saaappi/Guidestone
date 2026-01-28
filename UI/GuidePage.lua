@@ -65,7 +65,7 @@ local function GetItemIcon(itemID)
 
   if C_Item and C_Item.GetItemIconByID then
     local ok, icon = pcall(C_Item.GetItemIconByID, itemID)
-    if ok and icon then
+    if ok and icon and icon ~=0 then
       return icon
     end
   end
@@ -73,7 +73,7 @@ local function GetItemIcon(itemID)
   -- GetItemInfoInstant is synchronous and normally will return an icon immediately.
   if C_Item and C_Item.GetItemInfoInstant then
     local ok, _, _, _, _, icon = pcall(C_Item.GetItemInfoInstant, itemID)
-    if ok and icon then
+    if ok and icon and icon ~= 0 then
       return icon
     end
   end
