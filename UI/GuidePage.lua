@@ -172,13 +172,11 @@ local function EnsureCraftButtonVisuals(craftBtn)
   -- ItemButton created via CreateFrame("ItemButton") won't have template regions.
   -- Create a standard icon region and quickslot border behavior.
   if not craftBtn._icon then
-    --craftBtn:SetNormalTexture("Interface\\Buttons\\UI-Quickslot2")
-    --craftBtn:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
     craftBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
 
     local icon = craftBtn:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("TOPLEFT", 2, -2)
-    icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    icon:SetPoint("TOPLEFT")
+    icon:SetPoint("BOTTOMRIGHT")
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
 
@@ -749,6 +747,11 @@ function GuidePage:UpdateStepRow(row)
 
     -- Reagents (basic required only)
     local reagentsText = ""
+    -- Multiply reagent quantities by the planned crafts for this step.
+    local craftsPlanned = tonumber(step and step.maxCrafts) or 1
+    if craftsPlanned < 1 then
+      craftsPlanned = 1
+    end
     if ProfessionsUtil and ProfessionsUtil.GetRecipeSchematic and ProfessionsUtil.IsReagentSlotBasicRequired then
       local okSchematic, schematic = pcall(ProfessionsUtil.GetRecipeSchematic, recipeID, false)
       if okSchematic and schematic and type(schematic.reagentSlotSchematics) == "table" then
@@ -764,6 +767,7 @@ function GuidePage:UpdateStepRow(row)
               else
                 qty = tonumber(slot.quantityRequired) or 0
               end
+              qty = qty * craftsPlanned
 
               local name = nil
               if reagent.itemID then
