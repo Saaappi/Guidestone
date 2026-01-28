@@ -700,17 +700,23 @@ function GuidePage:UpdateStepRow(row)
     if C_TradeSkillUI.GetRecipeOutputItemData then
       local ok, outputItemInfo = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID, {})
       if ok and outputItemInfo then
-        if outputItemInfo.icon then
+        if outputItemInfo.icon and outputItemInfo.icon ~= 0 then
           iconTexturePath = outputItemInfo.icon
         end
 
         if outputItemInfo.hyperlink then
           row._outputHyperlink = outputItemInfo.hyperlink
+          row._outputKey = outputItemInfo.hyperlink
 
           if Item and Item.CreateFromItemLink then
             local item = Item:CreateFromItemLink(outputItemInfo.hyperlink)
             if item then
               if item:IsItemDataCached() then
+                local icon = item.GetItemIcon and item:GetItemIcon() or nil
+                if icon and icon ~= 0 then
+                  iconTexturePath = icon
+                end
+
                 local name = item:GetItemName()
                 if name and name ~= "" then
                   displayName = name
@@ -718,10 +724,22 @@ function GuidePage:UpdateStepRow(row)
               else
                 item:ContinueOnItemLoad(function()
                   GuidePage:RefreshAllState()
+                  -- Guard against stale callbacks if rows were rebuilt.
+                  if row and row._step == step and row._outputHyperlink == outputItemInfo.hyperlink then
+                    GuidePage:UpdateStepRow(row)
+                    GuidePage:Layout()
+                  end
                 end)
               end
             end
           end
+        end
+
+        -- Fallback: if the API icon was 0, use the output itemID icon if available.
+        if (not iconTexturePath or iconTexturePath == 0 or iconTexturePath == "Interface\\Icons\\INV_Misc_QuestionMark")
+          and outputItemInfo.itemID and tonumber(outputItemInfo.itemID) and tonumber(outputItemInfo.itemID) > 0
+        then
+          iconTexturePath = GetItemIcon(outputItemInfo.itemID)
         end
       end
     end
