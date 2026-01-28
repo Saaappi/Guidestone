@@ -164,6 +164,28 @@ local function IsNonEmptyString(s)
   return type(s) == "string" and s:gsub("%s+", "") ~= ""
 end
 
+local function EnsureCraftButtonVisuals(craftBtn)
+  if not craftBtn then
+    return
+  end
+
+  -- ItemButton created via CreateFrame("ItemButton") won't have template regions.
+  -- Create a standard icon region and quickslot border behavior.
+  if not craftBtn._icon then
+    craftBtn:SetNormalTexture("Interface\\Buttons\\UI-Quickslot2")
+    craftBtn:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+    craftBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+
+    local icon = craftBtn:CreateTexture(nil, "ARTWORK")
+    icon:SetPoint("TOPLEFT", 2, -2)
+    icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+
+    craftBtn._icon = icon
+  end
+end
+
 local function GetGoldRGB()
   if GOLD_FONT_COLOR and GOLD_FONT_COLOR.GetRGB then
     return GOLD_FONT_COLOR:GetRGB()
@@ -250,7 +272,11 @@ function GuidePage:Create(parent)
   page:RegisterEvent("GET_ITEM_INFO_RECEIVED")
   page:SetScript("OnEvent", function(_, event, arg1)
     if event == "BAG_UPDATE_DELAYED" then
-      GuidePage:RefreshMaterialsState()
+      if GuidePage.RefreshAllState then
+        GuidePage:RefreshAllState()
+      else
+        GuidePage:RefreshMaterialsState()
+      end
       return
     end
 
@@ -258,7 +284,11 @@ function GuidePage:Create(parent)
       local itemID = tonumber(arg1)
       if itemID and GuidePage._pendingItemLoads[itemID] then
         GuidePage._pendingItemLoads[itemID] = nil
-        GuidePage:RefreshMaterialsState()
+        if GuidePage.RefreshAllState then
+          GuidePage:RefreshAllState()
+        else
+          GuidePage:RefreshMaterialsState()
+        end
       end
     end
   end)
@@ -532,11 +562,12 @@ function GuidePage:RenderGuide(guide)
     header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
     row._header = header
 
-    local craftBtn = CreateFrame("Button", nil, row, "ItemButtonTemplate")
+    local craftBtn = CreateFrame("ItemButton", nil, row)
     craftBtn:SetSize(32, 32)
-    craftBtn:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -6)
+    craftBtn:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 2, -6)
     craftBtn:SetText(step.recipeName or "Craft")
     craftBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    EnsureCraftButtonVisuals(craftBtn)
     craftBtn:SetScript("OnClick", function()
       if not (ns.CraftRunner and ns.CraftRunner.Start) then
         return
@@ -575,7 +606,7 @@ function GuidePage:RenderGuide(guide)
     craftReagents:SetWordWrap(true)
     row._craftReagents = craftReagents
 
-    self:UpdateStepRow()
+    self:UpdateStepRow(row)
 
     if IsNonEmptyString(step.note) then
       local note = MakeText(row, "GameFontHighlightSmall")
