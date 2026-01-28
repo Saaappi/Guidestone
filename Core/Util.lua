@@ -89,7 +89,7 @@ end
 ---Whether TomTom is available and provides the AddWaypoint method.
 ---@return boolean
 function ns.Util.IsTomTomAvailable()
-  if not C_AddOns.IsAddOnLoaded then
+  if not C_AddOns or not C_AddOns.IsAddOnLoaded then
     return false
   end
 
@@ -98,6 +98,43 @@ function ns.Util.IsTomTomAvailable()
   end
 
   return type(_G.TomTom) == "table" and type(_G.TomTom.AddWaypoint) == "function"
+end
+
+---Whether TomTom is enabled for the current character.
+---TomTom can be enabled but not yet loaded (LoD).
+---@return boolean
+function ns.Util.IsTomTomEnabled()
+  if not C_AddOns or not C_AddOns.GetAddOnEnableState then
+    return false
+  end
+
+  -- C_AddOns.GetAddOnEnableState accepts an optional character GUID.
+  local characterGUID = (UnitGUID and UnitGUID("player")) or nil
+  local ok, state = pcall(C_AddOns.GetAddOnEnableState, "TomTom", characterGUID)
+  if ok and type (state) == "number" then
+    return state > 0
+  end
+
+  return false
+end
+
+---Attempt to load TomTom if it is enabled but not yet loaded.
+---@return boolean loaded
+function ns.Util.TryLoadTomTom()
+  if not (C_AddOns and C_AddOns.LoadAddOn and C_AddOns.IsAddOnLoaded) then
+    return false
+  end
+
+  if not ns.Util.IsTomTomEnabled() then
+    return false
+  end
+
+  if C_AddOns.IsAddOnLoaded("TomTom") then
+    return true
+  end
+
+  local ok, loaded = pcall(C_AddOns.LoadAddOn, "TomTom")
+  return ok and loaded and true or false
 end
 
 ---Add a waypoint to the player's map.
@@ -121,6 +158,17 @@ function ns.Util.AddWaypoint(uiMapID, x, y, title)
   local ny = y / 100
 
   if ns.Util.IsTomTomAvailable() then
+    -- If TomTom is enabled, never fall back to a Blizzard User Waypoint.
+    -- The fallback creates a super-tracked pin, which is not desired when
+    -- the user has chosen TomTom.
+    if ns.Util.IsTomTomAvailable() then
+      ns.Util.TryLoadTomTom()
+
+      if type(_G.TomTom) ~= "table" or type(_G.TomTom.AddWaypoint) ~= "function" then
+        return false
+      end
+    end
+
     local opts = {
       title = title or "Waypoint",
       persistent = false,
