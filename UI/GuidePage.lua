@@ -164,6 +164,14 @@ local function IsNonEmptyString(s)
   return type(s) == "string" and s:gsub("%s+", "") ~= ""
 end
 
+local function GetGoldRGB()
+  if GOLD_FONT_COLOR and GOLD_FONT_COLOR.GetRGB then
+    return GOLD_FONT_COLOR:GetRGB()
+  end
+
+  return 1, 0.82, 0
+end
+
 function GuidePage:Create(parent)
   if self.frame then
     return self.frame
@@ -524,10 +532,11 @@ function GuidePage:RenderGuide(guide)
     header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
     row._header = header
 
-    local craftBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    craftBtn:SetSize(240, 22)
+    local craftBtn = CreateFrame("Button", nil, row, "ItemButtonTemplate")
+    craftBtn:SetSize(32, 32)
     craftBtn:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -6)
     craftBtn:SetText(step.recipeName or "Craft")
+    craftBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     craftBtn:SetScript("OnClick", function()
       if not (ns.CraftRunner and ns.CraftRunner.Start) then
         return
@@ -540,11 +549,37 @@ function GuidePage:RenderGuide(guide)
         end
       end)
     end)
+    craftBtn:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
+      if row._outputHyperlink then
+        GameTooltip:SetHyperlink(row._outputHyperlink)
+      else
+        GameTooltip:SetText(step.recipeName or "Craft")
+      end
+      GameTooltip:Show()
+    end)
+    craftBtn:SetScript("OnLeave", function()
+      GameTooltip:Hide()
+    end)
     row._craftBtn = craftBtn
+
+    local craftName = MakeText(row, "GameFontNormal")
+    craftName:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 8, -2)
+    craftName:SetPoint("TOPRIGHT", -10, 0)
+    craftName:SetWordWrap(true)
+    row._craftName = craftName
+
+    local craftReagents = MakeText(row, "GameFontHighlightSmall")
+    craftReagents:SetPoint("TOPLEFT", craftName, "BOTTOMLEFT", 0, -2)
+    craftReagents:SetPoint("TOPRIGHT", craftName, "BOTTOMRIGHT", 0, -2)
+    craftReagents:SetWordWrap(true)
+    row._craftReagents = craftReagents
+
+    self:UpdateStepRow()
 
     if IsNonEmptyString(step.note) then
       local note = MakeText(row, "GameFontHighlightSmall")
-      note:SetPoint("TOPLEFT", craftBtn, "BOTTOMLEFT", 0, -4)
+      note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", -(craftBtn:GetWidth() + 8), -4)
       note:SetText(step.note)
       row._note = note
     end

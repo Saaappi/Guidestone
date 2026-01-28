@@ -25,7 +25,7 @@ local function GetCurrentSkillLevel()
   return 0
 end
 
-local function FindRecipeIDByName(recipeName)
+ns.FindRecipeIDByName = function(recipeName)
   if type(recipeName) ~= "string" or recipeName == "" then
     return nil
   end
@@ -125,7 +125,7 @@ function CraftRunner:Start(step, onDone)
     return
   end
 
-  local recipeID = FindRecipeIDByName(step.recipeName)
+  local recipeID = ns.FindRecipeIDByName(step.recipeName)
   if not recipeID then
     return
   end
