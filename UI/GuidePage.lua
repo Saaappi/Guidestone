@@ -332,7 +332,11 @@ function GuidePage:RequestItemData(itemID)
     item:ContinueOnItemLoad(function()
       -- Mark complete and refresh visible rows.
       GuidePage._pendingItemLoads[itemID] = nil
-      GuidePage:RefreshMaterialsState()
+      if GuidePage.RefreshAllState then
+        GuidePage:RefreshAllState()
+      else
+        GuidePage:RefreshMaterialsState()
+      end
     end)
   end
 end
@@ -583,7 +587,7 @@ function GuidePage:RenderGuide(guide)
     craftBtn:SetScript("OnEnter", function()
       GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
       if row._outputItemID then
-        GameTooltip:SetItemID(row._outputItemID)
+        GameTooltip:SetItemByID(row._outputItemID)
       elseif row._outputHyperlink then
         GameTooltip:SetHyperlink(row._outputHyperlink)
       else
@@ -705,6 +709,7 @@ function GuidePage:UpdateStepRow(row)
   local displayName = (step and step.recipeName) or "Craft"
   local iconTexturePath = "Interface\\Icons\\INV_Misc_QuestionMark"
   row._outputHyperlink = nil
+  row._outputItemID = nil
 
   local recipeID = row._recipeID
   if not recipeID and step and step.recipeName then
@@ -716,6 +721,13 @@ function GuidePage:UpdateStepRow(row)
     local recipeInfo = C_TradeSkillUI.GetRecipeInfo(recipeID)
     if recipeInfo and type(recipeInfo.name) == "string" and recipeInfo.name ~= "" then
       displayName = recipeInfo.name
+    end
+
+    -- Some recipes don't reliably return output item data.
+    -- If we have a recipe icon from recipeInfo, use it
+    -- as a fallback.
+    if recipeInfo and recipeInfo.icon and recipeInfo.icon ~= 0 then
+      iconTexturePath = recipeInfo.icon
     end
 
     local outputItemInfo = SafeGetRecipeOutputItemData(recipeID)
@@ -733,50 +745,6 @@ function GuidePage:UpdateStepRow(row)
         row._outputHyperlink = outputItemInfo.hyperlink
         row._outputKey = outputItemInfo.hyperlink
       end
-      --[[local ok, outputItemInfo = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID, {})
-      if ok and outputItemInfo then
-        if outputItemInfo.icon and outputItemInfo.icon ~= 0 then
-          iconTexturePath = outputItemInfo.icon
-        end
-
-        if outputItemInfo.hyperlink then
-          row._outputHyperlink = outputItemInfo.hyperlink
-          row._outputKey = outputItemInfo.hyperlink
-
-          if Item and Item.CreateFromItemLink then
-            local item = Item:CreateFromItemLink(outputItemInfo.hyperlink)
-            if item then
-              if item:IsItemDataCached() then
-                local icon = item.GetItemIcon and item:GetItemIcon() or nil
-                if icon and icon ~= 0 then
-                  iconTexturePath = icon
-                end
-
-                local name = item:GetItemName()
-                if name and name ~= "" then
-                  displayName = name
-                end
-              else
-                item:ContinueOnItemLoad(function()
-                  GuidePage:RefreshAllState()
-                  -- Guard against stale callbacks if rows were rebuilt.
-                  if row and row._step == step and row._outputHyperlink == outputItemInfo.hyperlink then
-                    GuidePage:UpdateStepRow(row)
-                    GuidePage:Layout()
-                  end
-                end)
-              end
-            end
-          end
-        end
-
-        -- Fallback: if the API icon was 0, use the output itemID icon if available.
-        if (not iconTexturePath or iconTexturePath == 0 or iconTexturePath == "Interface\\Icons\\INV_Misc_QuestionMark")
-          and outputItemInfo.itemID and tonumber(outputItemInfo.itemID) and tonumber(outputItemInfo.itemID) > 0
-        then
-          iconTexturePath = GetItemIcon(outputItemInfo.itemID)
-        end
-      end]]
     end
 
     -- Reagents (basic required only)
@@ -831,13 +799,17 @@ function GuidePage:UpdateStepRow(row)
   row._craftName:SetText(displayName)
   row._craftName:SetTextColor(GetGoldRGB())
 
-  local iconTex = row._craftBtn.Icon or row._craftBtn.IconTexture or row._craftBtn.icon or row._craftBtn._icon
+  -- Always drive the texture through the custom icon region so implicit
+  -- ItemButton regions are avoided.
+  local iconTex = row._craftBtn._icon
   if not iconTex then
-    iconTex = row._craftBtn:CreateTexture(nil, "BORDER")
-    iconTex:SetAllPoints()
-    row._craftBtn._icon = iconTex
+    EnsureCraftButtonVisuals(row._craftBtn)
+    iconTex = row._craftBtn._icon
   end
-  iconTex:SetTexture(iconTexturePath)
+
+  if iconTex then
+    iconTex:SetTexture(iconTexturePath)
+  end
 end
 
 function GuidePage:UpdateRowSizing()
