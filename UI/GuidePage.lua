@@ -174,17 +174,43 @@ local function EnsureCraftButtonVisuals(craftBtn)
   end
   craftBtn._gsVisuals = true
 
-  -- ItemButton created via CreateFrame("ItemButton") won't have template regions.
-  -- Create a standard icon region and quickslot border behavior.
-  if not craftBtn._icon then
-    craftBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+  do
+    local normal = craftBtn:GetNormalTexture()
+    if not normal then
+      normal = craftBtn:CreateTexture(nil, "BACKGROUND")
+      craftBtn:SetNormalTexture(normal)
+    end
+    normal:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+    normal:ClearAllPoints()
+    normal:SetPoint("TOPLEFT", craftBtn, "TOPLEFT", -12, 12)
+    normal:SetPoint("BOTTOMRIGHT", craftBtn, "BOTTOMRIGHT", 12, -12)
+  end
 
+  do
+    local pushed = craftBtn:GetPushedTexture()
+    if not pushed then
+      pushed = craftBtn:CreateTexture(nil, "BACKGROUND")
+      craftBtn:SetNormalTexture(pushed)
+    end
+    pushed:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+    pushed:SetAllPoints()
+  end
+
+  craftBtn:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+  do
+    local hl = craftBtn:GetHighlightTexture()
+    if hl then
+      hl:SetAllPoints()
+    end
+  end
+
+  if not craftBtn._icon then
     local icon = craftBtn:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("TOPLEFT")
-    icon:SetPoint("BOTTOMRIGHT")
+    icon:ClearAllPoints()
+    icon:SetPoint("TOPLEFT", craftBtn, "TOPLEFT", 1, -1)
+    icon:SetPoint("BOTTOMRIGHT", craftBtn, "BOTTOMRIGHT", -1, 1)
     icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-
     craftBtn._icon = icon
   end
 end

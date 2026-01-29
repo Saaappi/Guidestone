@@ -1,21 +1,20 @@
 local _, ns = ...
 
 local ok, err = ns.Guides:RegisterGuide({
-  id = "vanilla_alchemy",
-  title = "Vanilla Alchemy 1-300",
+  id = "vanilla_jewelcrafting",
+  title = "Vanilla Jewelcrafting 1-300",
   expansionKey = "VANILLA",
-  professionKey = "ALCHEMY",
-  professionName = "Alchemy",
+  professionKey = "JEWELCRAFTING",
+  professionName = "Jewelcrafting",
 
-  -- Vanilla Alchemy (Retail) child skill line ID
   skillLineID = 2485,
 
-  guideUrl = "https://www.wow-professions.com/guides/vanilla-alchemy-leveling",
+  guideUrl = "https://www.wow-professions.com/guides/vanilla-jewelcrafting-leveling",
 
   materials = {
-    { itemID = 2447,  required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Peacebloom
-    { itemID = 765,   required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Silverleaf
-    { itemID = 2450,  required = 105, wowProfessionsUrl = "https://www.wow-professions.com/farming/briarthorn-farming" },            -- Briarthorn
+    { itemID = 2840,  required = 100, wowProfessionsUrl = "https://www.wow-professions.com/farming/copper-ore-farming" },            -- Copper Ore
+    { itemID = 818,   required = 20,  wowProfessionsUrl = "" },                                                                      -- Tigerseye
+    { itemID = 2841,  required = 120, wowProfessionsUrl = "https://www.wow-professions.com/farming/tin-ore-farming" },               -- Tin Ore
     { itemID = 785,   required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/mageroyal-farming" },             -- Mageroyal
     { itemID = 2453,  required = 35,  wowProfessionsUrl = "https://www.wow-professions.com/farming/bruiseweed-farming" },            -- Bruiseweed
     { itemID = 3820,  required = 50,  wowProfessionsUrl = "https://www.wow-professions.com/farming/stranglekelp-farming" },          -- Stranglekelp
@@ -143,5 +142,5 @@ local ok, err = ns.Guides:RegisterGuide({
 })
 
 if not ok then
-  ns.Logger.Warn("Failed to register guide vanilla_alchemy:", err)
+  ns.Logger.Warn("Failed to register guide vanilla_jewelcrafting:", err)
 end
