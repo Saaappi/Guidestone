@@ -31,6 +31,27 @@ local ok, err = ns.Guides:RegisterGuide({
       },
       note = "Smelted from Copper and Tin bars."
     },
+    { -- Shadowgem or Shadowgem/Small Lustrous Pearl
+      type = "group",
+      mode = "choiceSets",
+      label = "Pick:",
+      key = "classicJewelcrafting_Path2",
+      choices = {
+        {
+          label = "All Shadowgem",
+          items = {
+            { itemID = 1210, required = 60 }
+          }
+        },
+        {
+          label = "Shadowgem + Small Lustrous Pearl",
+          items = {
+            { itemID = 1210, required = 20 },
+            { itemID = 5498, required = 20 }
+          }
+        }
+      }
+    }
   },
 
   trainers = {

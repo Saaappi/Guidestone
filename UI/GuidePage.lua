@@ -464,14 +464,14 @@ function GuidePage:RenderGuide(guide)
 
     local links = {}
 
-    if mat.wowProfessionsUrl then
-      table.insert(links, { title = "WoW-Professions", url = mat.wowProfessionsUrl })
+    if type(mat.wowProfessionsUrl) == "string" and mat.wowProfessionsUrl ~= "" then
+      links[#links + 1] = { title = "WoW-Professions", url = mat.wowProfessionsUrl }
     end
 
     if type(mat.links) == "table" then
-      for _, link in ipairs(mat.links) do
-        if type(link) == "table" and type(link.url) == "string" and link.url ~= "" then
-          table.insert(links, { title = link.title, url = link.url })
+      for _, l in ipairs(mat.links) do
+        if type(l) == "table" and type(l.url) == "string" and l.url ~= "" then
+          links[#links + 1] = { title = l.title, url = l.url }
         end
       end
     end
@@ -480,26 +480,23 @@ function GuidePage:RenderGuide(guide)
       return
     end
 
-    if #links == 1 then
+    if #links == 1 or not (ns.LinkPopup.ShowLinks) then
       ns.LinkPopup:Show(links[1].title or "Link", links[1].url)
       return
     end
 
-    if ns.LinkPopup.ShowLinks then
-      ns.LinkPopup:ShowLinks("Links", links)
-      return
-    end
-
-    ns.LinkPopup:Show(links[1].title or "Link", links[1].url)
+    ns.LinkPopup:ShowLinks("Links", links)
   end
 
-  ---@param mat table
-  ---@param rowType "item"|"groupHeader"|"groupOption"
-  ---@param indent number
-  ---@param group table|nil
-  local function AddMaterialRow(mat, rowType, indent, group)
+  ---@param text string
+  ---@param note string|nil
+  ---@param indent number|nil
+  ---@return Frame
+  local function AddHeaderRow(text, note, indent)
     local row = CreateFrame("Frame", nil, self.materialsContainer)
     row:SetHeight(18)
+    row._indent = tonumber(indent) or 0
+    row._gutter = 10
 
     local line = CreateFrame("Frame", nil, row)
     line:SetPoint("TOPLEFT", 0, 0)
@@ -516,52 +513,89 @@ function GuidePage:RenderGuide(guide)
     end
     prev = row
 
-    row._mat = mat
-    row._matType = rowType
-    row._group = group
+    local fs = MakeText(line, "GameFontNormal")
+    fs:SetPoint("LEFT", row._indent, 0)
+    fs:SetPoint("RIGHT", 0, 0)
+    fs:SetWordWrap(false)
+    fs:SetText(text or "")
+    row._text = fs
+
+    if IsNonEmptyString(note) then
+      local n = MakeText(row, "GameFontHighlightSmall")
+      n:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
+      n:SetPoint("TOPRIGHT", fs, "BOTTOMRIGHT", 0, -2)
+      n:SetText(note)
+      row._note = n
+      row:SetHeight(18 + 2 + math.ceil(n:GetStringHeight() or 0))
+    end
+
+    table.insert(self.materialRows, row)
+    return row
+  end
+
+  ---@param mat table
+  ---@param indent number|nil
+  ---@return Frame
+  local function AddItemRow(mat, indent)
+    local row = CreateFrame("Frame", nil, self.materialsContainer)
+    row:SetHeight(18)
     row._indent = tonumber(indent) or 0
-    row._gutter = (rowType == "groupHeader") and 10 or 90
+    row._gutter = 90
+
+    -- Keep the main material line (icon/name/buttons) vertically stable
+    -- even when the row grows to account for notes.
+    local line = CreateFrame("Frame", nil, row)
+    line:SetPoint("TOPLEFT", 0, 0)
+    line:SetPoint("TOPRIGHT", 0, 0)
+    line:SetHeight(18)
+    row._line = line
+
+    if not prev then
+      row:SetPoint("TOPLEFT", 0, 0)
+      row:SetPoint("TOPRIGHT", 0, 0)
+    else
+      row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -6)
+      row:SetPoint("TOPRIGHT", prev, "BOTTOMRIGHT", 0, -6)
+    end
+    prev = row
 
     local icon = line:CreateTexture(nil, "ARTWORK")
     icon:SetSize(16, 16)
     icon:SetPoint("LEFT", row._indent, 0)
+    icon:SetTexture(GetItemIcon(mat.itemID))
     row._icon = icon
 
-    local font = (rowType == "groupHeader") and "GameFontNormal" or "GameFontHighlight"
-    local fs = MakeText(line, font)
+    local fs = MakeText(line, "GameFontHighlight")
     fs:ClearAllPoints()
     fs:SetPoint("LEFT", icon, "RIGHT", 8, 0)
     fs:SetWordWrap(false)
     row._text = fs
+    row._mat = mat
 
-    if rowType ~= "groupHeader" then
-      icon:SetTexture(GetItemIcon(mat.itemID))
+    -- WoW-Professions link button (supports multiple links via mat.links)
+    local wp = MakeIconButtonWithStates(line, WOWPROF_ICON, "WoW-Professions")
+    wp:SetPoint("RIGHT", line, "RIGHT", -24, 0)
+    wp:SetScript("OnClick", function()
+      OpenWoWProfessionsLinks(mat)
+    end)
+    row._wpBtn = wp
 
-      local wp = MakeIconButtonWithStates(line, WOWPROF_ICON, "WoW-Professions")
-      wp:SetPoint("RIGHT", line, "RIGHT", -24, 0)
-      wp:SetScript("OnClick", function()
-        OpenWoWProfessionsLinks(mat)
-      end)
-      row._wpBtn = wp
-
-      if row._text then
-        row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
-      end
-
-      local wh = MakeIconButtonWithStates(line, WOWHEAD_ICON, "Wowhead")
-      wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
-      wh:SetScript("OnClick", function()
-        if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
-          ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
-        end
-      end)
-      row._whBtn = wh
-    else
-      icon:Hide()
-      fs:SetPoint("LEFT", line, "LEFT", row._indent, 0)
-      fs:SetPoint("RIGHT", line, "RIGHT", 0, 0)
+    -- Constrain text width
+    if row._text then
+      row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
     end
 
+    -- Wowhead link button
+    local wh = MakeIconButtonWithStates(line, WOWHEAD_ICON, "Wowhead")
+    wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
+    wh:SetScript("OnClick", function()
+      if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
+        ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
+      end
+    end)
+    row._whBtn = wh
+
+    -- Material note, when present, should not affect main line alignment.
     if IsNonEmptyString(mat.note) then
       local note = MakeText(row, "GameFontHighlightSmall")
       note:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
@@ -569,6 +603,7 @@ function GuidePage:RenderGuide(guide)
       note:SetText(mat.note)
       row._note = note
 
+      -- Expand the row to fit the note without shifting the main line.
       row:SetHeight(18 + 2 + math.ceil(note:GetStringHeight() or 0))
     end
 
@@ -578,15 +613,52 @@ function GuidePage:RenderGuide(guide)
 
   for _, mat in ipairs(materials) do
     if type(mat) == "table" and tostring(mat.type) == "group" then
-      AddMaterialRow(mat, "groupHeader", 0, nil)
+      local mode = tostring(mat.mode or "anyMix")
 
-      if type(mat.options) == "table" then
-        for _, option in ipairs(mat.options) do
-          AddMaterialRow(option, "groupOption", 18, mat)
+      if mode == "choiceSets" then
+        local sel = GetChoiceSelection(guide.id, mat.key)
+        local header = AddHeaderRow(mat.label or "Choose one", mat.note, 0)
+        header._matType = "choiceHeader"
+        header._group = mat
+
+        for idx, choice in ipairs(mat.choices or {}) do
+          local pickText = (idx == sel and "● " or "○ ") .. (choice.label or ("Option " .. idx))
+          local pickRow = AddHeaderRow(pickText, nil, 14)
+          pickRow._matType = "choicePick"
+          pickRow._group = mat
+          pickRow._choiceIndex = idx
+          pickRow._guideID = guide.id
+
+          pickRow:EnableMouse(true)
+          pickRow:SetScript("OnMouseUp", function()
+            SetChoiceSelection(guide.id, mat.key, idx)
+            -- Rebuild rows to show the selected choice's items.
+            self:RenderGuide(self.currentGuide)
+          end)
+
+          if idx == sel then
+            for _, it in ipairs(choice.items or {}) do
+              local itemRow = AddItemRow(it, 28)
+              itemRow._matType = "choiceItem"
+              itemRow._group = mat
+            end
+          end
+        end
+      else
+        -- anyMix (default)
+        local header = AddHeaderRow(mat.label or "Choose any", mat.note, 0)
+        header._matType = "anyMixHeader"
+        header._group = mat
+
+        for _, opt in ipairs(mat.options or {}) do
+          local itemRow = AddItemRow(opt, 18)
+          itemRow._matType = "anyMixOption"
+          itemRow._group = mat
         end
       end
     else
-      AddMaterialRow(mat, "item", 0, nil)
+      local itemRow = AddItemRow(mat, 0)
+      itemRow._matType = "item"
     end
   end
 
@@ -770,16 +842,20 @@ function GuidePage:RefreshMaterialsState(skipLayout)
     return
   end
 
-  -- Precompute group progress (sum of option counts) so headers/options can reference it.
-  local groupState = {}
+  -- anyMix: group progress by summing option counts
+  local anyMixState = {}
 
+  -- choiceSets: completion for selected choice, based on rendered choiceItem rows
+  local choiceDoneByGroup = {}
+
+  -- Pass 1: compute anyMix sums and choiceSets completion
   for _, row in ipairs(self.materialRows) do
-    if row._matType == "groupOption" and row._group and row._mat then
+    if row._matType == "anyMixOption" and row._group and row._mat then
       local g = row._group
-      local st = groupState[g]
+      local st = anyMixState[g]
       if not st then
         st = { have = 0, required = ComputeBufferedRequired(tonumber(g.required) or 0) }
-        groupState[g] = st
+        anyMixState[g] = st
       end
 
       local itemID = tonumber(row._mat.itemID)
@@ -787,70 +863,99 @@ function GuidePage:RefreshMaterialsState(skipLayout)
         st.have = st.have + (ns.Util.GetItemCount(itemID) or 0)
       end
     end
+
+    if row._matType == "choiceItem" and row._group and row._mat then
+      local g = row._group
+      local itemID = tonumber(row._mat.itemID)
+      local required = ComputeBufferedRequired(tonumber(row._mat.required) or 0)
+      local have = itemID and (ns.Util.GetItemCount(itemID) or 0) or 0
+      local done = (required <= 0) or (have >= required)
+
+      if choiceDoneByGroup[g] == nil then
+        choiceDoneByGroup[g] = true
+      end
+      if not done then
+        choiceDoneByGroup[g] = false
+      end
+    end
   end
 
-  for _, st in pairs(groupState) do
+  for _, st in pairs(anyMixState) do
     st.done = st.required > 0 and st.have >= st.required
   end
 
+  -- Pass 2: apply row text + greying/enabled state
   for _, row in ipairs(self.materialRows) do
-    if row._mat and row._text then
+    if row._mat and row._text and (row._matType == "item" or row._matType == "anyMixOption" or row._matType == "choiceItem") then
       local mat = row._mat
+      local itemID = mat.itemID
+      local have = ns.Util.GetItemCount(itemID)
 
-      if row._matType == "groupHeader" then
-        local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
-        local st = groupState[mat] or { have = 0, required = required, done = false }
+      self:RequestItemData(itemID)
 
-        local label = (type(mat.label) == "string" and mat.label ~= "" and mat.label) or "Choose any"
-        row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(label, st.have or 0, required))
-        ns.Util.SetFontStringGreyed(row._text, st.done)
+      local name = GetItemName(itemID)
+      if not name or name == "" then
+        name = ("Item %d"):format(tonumber(itemID) or 0)
+      end
 
+      local done = false
+
+      if row._matType == "anyMixOption" then
+        local gDone = (row._group and anyMixState[row._group] and anyMixState[row._group].done) or false
+        row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
+        done = gDone
       else
-        local itemID = mat.itemID
-        local have = ns.Util.GetItemCount(itemID)
-
-        self:RequestItemData(itemID)
-
-        local name = GetItemName(itemID)
-        if not name or name == "" then
-          name = ("Item %d"):format(tonumber(itemID) or 0)
-        end
-
-        local done = false
-
-        if row._matType == "item" then
-          local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
-          done = required > 0 and have >= required
-          if done then
-            row._text:SetText(("%s  %d / %d"):format(name, have, required))
-          else
-            row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
-          end
+        local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
+        done = required > 0 and have >= required
+        if done then
+          row._text:SetText(("%s  %d / %d"):format(name, have, required))
         else
-          local st = row._group and groupState[row._group] or nil
-          done = st and st.done or false
-          row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
+          row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
         end
+      end
 
-        ns.Util.SetFontStringGreyed(row._text, done)
+      ns.Util.SetFontStringGreyed(row._text, done)
 
-        if row._icon then
-          row._icon:SetTexture(GetItemIcon(itemID))
-          ns.Util.SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
-        end
+      if row._icon then
+        row._icon:SetTexture(GetItemIcon(itemID))
+        ns.Util.SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
+      end
 
-        if row._wpBtn and row._wpBtn._tex then
-          local hasAnyLink = (type(mat.wowProfessionsUrl) == "string" and mat.wowProfessionsUrl ~= "")
-            or (type(mat.links) == "table" and #mat.links > 0)
+      if row._wpBtn and row._wpBtn._tex then
+        local hasAnyLink =
+          (type(mat.wowProfessionsUrl) == "string" and mat.wowProfessionsUrl ~= "")
+          or (type(mat.links) == "table" and #mat.links > 0)
 
-          row._wpBtn:SetEnabled((not done) and hasAnyLink)
-          ns.Util.SetDesaturatedAndAlpha(row._wpBtn._tex, done or (not hasAnyLink), (done or (not hasAnyLink)) and 0.35 or 1)
-        end
+        row._wpBtn:SetEnabled((not done) and hasAnyLink)
+        ns.Util.SetDesaturatedAndAlpha(row._wpBtn._tex, done or (not hasAnyLink), (done or (not hasAnyLink)) and 0.35 or 1)
+      end
 
-        if row._whBtn and row._whBtn._tex then
-          row._whBtn:SetEnabled(not done)
-          ns.Util.SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
-        end
+      if row._whBtn and row._whBtn._tex then
+        row._whBtn:SetEnabled(not done)
+        ns.Util.SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
+      end
+
+    elseif row._matType == "anyMixHeader" and row._group and row._text then
+      local g = row._group
+      local st = anyMixState[g] or { have = 0, required = ComputeBufferedRequired(tonumber(g.required) or 0), done = false }
+      local label = g.label or "Choose any"
+
+      row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(label, st.have or 0, st.required or 0))
+      ns.Util.SetFontStringGreyed(row._text, st.done)
+
+    elseif row._matType == "choiceHeader" and row._group and row._text then
+      local done = choiceDoneByGroup[row._group] or false
+      row._text:SetText(row._group.label or "Choose one")
+      ns.Util.SetFontStringGreyed(row._text, done)
+
+    elseif row._matType == "choicePick" and row._group and row._text then
+      local done = choiceDoneByGroup[row._group] or false
+      ns.Util.SetFontStringGreyed(row._text, done)
+
+      -- Gold highlight for the selected choice (purely visual)
+      local sel = GetChoiceSelection(row._guideID, row._group.key)
+      if tonumber(row._choiceIndex) == tonumber(sel) then
+        row._text:SetTextColor(GetGoldRGB())
       end
     end
   end

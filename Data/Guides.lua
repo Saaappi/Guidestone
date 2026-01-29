@@ -161,11 +161,9 @@ local function NormalizeMaterialItem(entry, farmingUrls)
   end
 
   local required = tonumber(entry.required) or 0
-  if required < 0 then
-    required = 0
-  end
+  if required < 0 then required = 0 end
 
-  local out = {
+  return {
     type = "item",
     itemID = math.floor(itemID),
     required = required,
@@ -173,52 +171,103 @@ local function NormalizeMaterialItem(entry, farmingUrls)
     note = entry.note,
     links = NormalizeLinks(entry.links),
   }
+end
 
-  return out
+---@param guideID string
+---@param idx number
+---@param group table
+---@return string
+local function ComputeGroupKey(guideID, idx, group)
+  if type(group.key) == "string" and group.key ~= "" then
+    return group.key
+  end
+  return ("%s:matGroup:%d"):format(tostring(guideID or "Unknown"), tonumber(idx) or 0)
 end
 
 ---@param materials table|nil
 ---@param farmingUrls table|nil
+---@param guideID string
 ---@return table
-local function NormalizeMaterials(materials, farmingUrls)
+local function NormalizeMaterials(materials, farmingUrls, guideID)
   if type(materials) ~= "table" then
     return {}
   end
 
   local out = {}
 
-  for _, entry in ipairs(materials) do
+  for i, entry in ipairs(materials) do
     if type(entry) == "table" and tostring(entry.type) == "group" then
-      local required = tonumber(entry.required) or 0
-      if required < 0 then
-        required = 0
-      end
+      local mode = tostring(entry.mode or "anyMix")
+      local groupKey = ComputeGroupKey(guideID, i, entry)
 
-      local optionsOut = {}
-      if type(entry.options) == "table" then
-        for _, option in ipairs(entry.options) do
-          local normalizedOption = NormalizeMaterialItem(option, farmingUrls)
-          if normalizedOption then
-            -- Options don't have their own required; they satisfy the group total.
-            normalizedOption.required = nil
-            table.insert(optionsOut, normalizedOption)
+      if mode == "choiceSets" then
+        local choicesOut = {}
+
+        if type(entry.choices) == "table" then
+          for _, choice in ipairs(entry.choices) do
+            if type(choice) == "table" then
+              local itemsOut = {}
+              if type(choice.items) == "table" then
+                for _, it in ipairs(choice.items) do
+                  local normalizedIt = NormalizeMaterialItem(it, farmingUrls)
+                  if normalizedIt then
+                    itemsOut[#itemsOut + 1] = normalizedIt
+                  end
+                end
+              end
+
+              if #itemsOut > 0 then
+                choicesOut[#choicesOut + 1] = {
+                  label = choice.label,
+                  items = itemsOut,
+                }
+              end
+            end
           end
         end
-      end
 
-      if required > 0 and #optionsOut > 0 then
-        table.insert(out, {
-          type = "group",
-          label = entry.label,
-          required = required,
-          note = entry.note,
-          options = optionsOut,
-        })
+        if #choicesOut > 0 then
+          out[#out + 1] = {
+            type = "group",
+            mode = "choiceSets",
+            key = groupKey,
+            label = entry.label,
+            note = entry.note,
+            choices = choicesOut,
+          }
+        end
+      else
+        -- anyMix (default)
+        local required = tonumber(entry.required) or 0
+        if required < 0 then required = 0 end
+
+        local optionsOut = {}
+        if type(entry.options) == "table" then
+          for _, opt in ipairs(entry.options) do
+            local normalizedOpt = NormalizeMaterialItem(opt, farmingUrls)
+            if normalizedOpt then
+              normalizedOpt.required = nil -- options satisfy group required; not per-option required
+              optionsOut[#optionsOut + 1] = normalizedOpt
+            end
+          end
+        end
+
+        if required > 0 and #optionsOut > 0 then
+          out[#out + 1] = {
+            type = "group",
+            mode = "anyMix",
+            key = groupKey,
+            label = entry.label,
+            required = required,
+            note = entry.note,
+            options = optionsOut,
+          }
+        end
       end
     else
       local normalizedItem = NormalizeMaterialItem(entry, farmingUrls)
       if normalizedItem then
-        table.insert(out, normalizedItem)
+        out[#out + 1] = normalizedItem
       end
     end
   end
@@ -310,12 +359,15 @@ local function NormalizeGuide(guide)
   normalized.guideUrl = guide.guideUrl
 
   -- Materials: if explicitly provided, use it. Otherwise, auto-build from materials.
+  local materialsRaw
   if type(guide.materials) == "table" and #guide.materials > 0 then
-    normalized.materials = NormalizeMaterials(guide.materials, guide.farmingUrls)
+    materialsRaw = guide.materials
   else
     local totals = SumMaterialsFromSteps(normalized.steps)
-    normalized.materials = NormalizeMaterials(BuildMaterialsFromTotals(totals, guide.farmingUrls), guide.farmingUrls)
+    materialsRaw = BuildMaterialsFromTotals(totals, guide.farmingUrls)
   end
+
+  normalized.materials = NormalizeMaterials(materialsRaw, guide.farmingUrls, normalized.id)
 
   return normalized, nil
 end
