@@ -15,7 +15,7 @@ local ok, err = ns.Guides:RegisterGuide({
     { itemID = 2840,  required = 100, wowProfessionsUrl = "https://www.wow-professions.com/farming/copper-ore-farming" }, -- Copper Ore
     { -- Tigerseye / Malachite
       type = "group",
-      label = "Pick One",
+      label = "Pick:",
       required = 20,
       options = {
         { itemID = 818, wowProfessionsUrl = "" },
@@ -30,7 +30,7 @@ local ok, err = ns.Guides:RegisterGuide({
         { title = "Tin Ore", url = "https://www.wow-professions.com/farming/tin-ore-farming" }
       },
       note = "Smelted from Copper and Tin bars."
-    }
+    },
   },
 
   trainers = {
