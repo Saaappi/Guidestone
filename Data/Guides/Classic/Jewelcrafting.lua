@@ -1,9 +1,9 @@
 local _, ns = ...
 
 local ok, err = ns.Guides:RegisterGuide({
-  id = "vanilla_jewelcrafting",
-  title = "Vanilla Jewelcrafting 1-300",
-  expansionKey = "VANILLA",
+  id = "classic_jewelcrafting",
+  title = "Classic Jewelcrafting 1-300",
+  expansionKey = "CLASSIC",
   professionKey = "JEWELCRAFTING",
   professionName = "Jewelcrafting",
 
@@ -47,9 +47,15 @@ local ok, err = ns.Guides:RegisterGuide({
     { name = "Camberon",              uiMapID = 110, zone = "Silvermoon City",  x = 66.40, y = 16.40, faction = 2 },
   },
 
-  steps = {},
+  steps = {
+    {
+      fromSkill = 1,
+      toSkill = 30,
+      recipeName = "Delicate Copper Wire",
+      maxCrafts = 30,
+    },},
 })
 
 if not ok then
-  ns.Logger.Warn("Failed to register guide vanilla_jewelcrafting:", err)
+  ns.Logger.Warn("Failed to register guide classic_jewelcrafting:", err)
 end

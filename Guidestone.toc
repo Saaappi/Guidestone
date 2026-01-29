@@ -13,9 +13,9 @@ Core/Util.lua
 Data/Guides.lua
 
 # Guides (one file per expansion + profession)
-# Vanilla
-Data/Guides/Vanilla/Alchemy.lua
-Data/Guides/Vanilla/Jewelcrafting.lua
+# Classic
+Data/Guides/Classic/Alchemy.lua
+Data/Guides/Classic/Jewelcrafting.lua
 
 # TBC
 

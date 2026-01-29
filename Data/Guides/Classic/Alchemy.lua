@@ -1,9 +1,9 @@
 local _, ns = ...
 
 local ok, err = ns.Guides:RegisterGuide({
-  id = "vanilla_alchemy",
-  title = "Vanilla Alchemy 1-300",
-  expansionKey = "VANILLA",
+  id = "classic_alchemy",
+  title = "Classic Alchemy 1-300",
+  expansionKey = "CLASSIC",
   professionKey = "ALCHEMY",
   professionName = "Alchemy",
 
@@ -143,5 +143,5 @@ local ok, err = ns.Guides:RegisterGuide({
 })
 
 if not ok then
-  ns.Logger.Warn("Failed to register guide vanilla_alchemy:", err)
+  ns.Logger.Warn("Failed to register guide classic_alchemy:", err)
 end
