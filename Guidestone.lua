@@ -1,13 +1,5 @@
 local ADDON, ns = ...
 
---[[
-  TO DO:
-    - Add a cast bar to the lower right of the frame.
-    - Add support for Wowhead links to the multi-link popup?
-    - Fix the bug in bug.txt.
-    - Fix the texture for choiceSets so it's not a rectangle.
-]]
-
 local function EnsureDB()
   GuidestoneDB = GuidestoneDB or {}
   if GuidestoneDB.debug == nil then
