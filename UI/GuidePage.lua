@@ -407,12 +407,50 @@ function GuidePage:RenderGuide(guide)
   local materials = (ns.Guides and ns.Guides.GetMaterials) and ns.Guides:GetMaterials(guide) or (guide.materials or {})
   local prev = nil
 
-  for _, mat in ipairs(materials) do
+  local function OpenWoWProfessionsLinks(mat)
+    if not (ns.LinkPopup and ns.LinkPopup.Show) then
+      return
+    end
+
+    local links = {}
+
+    if mat.wowProfessionsUrl then
+      table.insert(links, { title = "WoW-Professions", url = mat.wowProfessionsUrl })
+    end
+
+    if type(mat.links) == "table" then
+      for _, link in ipairs(mat.links) do
+        if type(link) == "table" and type(link.url) == "string" and link.url ~= "" then
+          table.insert(links, { title = link.title, url = link.url })
+        end
+      end
+    end
+
+    if #links == 0 then
+      return
+    end
+
+    if #links == 1 then
+      ns.LinkPopup:Show(links[1].title or "Link", links[1].url)
+      return
+    end
+
+    if ns.LinkPopup.ShowLinks then
+      ns.LinkPopup:ShowLinks("Links", links)
+      return
+    end
+
+    ns.LinkPopup:Show(links[1].title or "Link", links[1].url)
+  end
+
+  ---@param mat table
+  ---@param rowType "item"|"groupHeader"|"groupOption"
+  ---@param indent number
+  ---@param group table|nil
+  local function AddMaterialRow(mat, rowType, indent, group)
     local row = CreateFrame("Frame", nil, self.materialsContainer)
     row:SetHeight(18)
 
-    -- Keep the main material line (icon/name/buttons) vertically stable
-    -- even when the row grows to account for notes.
     local line = CreateFrame("Frame", nil, row)
     line:SetPoint("TOPLEFT", 0, 0)
     line:SetPoint("TOPRIGHT", 0, 0)
@@ -428,45 +466,52 @@ function GuidePage:RenderGuide(guide)
     end
     prev = row
 
+    row._mat = mat
+    row._matType = rowType
+    row._group = group
+    row._indent = tonumber(indent) or 0
+    row._gutter = (rowType == "groupHeader") and 10 or 90
+
     local icon = line:CreateTexture(nil, "ARTWORK")
     icon:SetSize(16, 16)
-    icon:SetPoint("LEFT", 0, 0)
-    icon:SetTexture(GetItemIcon(mat.itemID))
+    icon:SetPoint("LEFT", row._indent, 0)
     row._icon = icon
 
-    local fs = MakeText(line, "GameFontHighlight")
+    local font = (rowType == "groupHeader") and "GameFontNormal" or "GameFontHighlight"
+    local fs = MakeText(line, font)
     fs:ClearAllPoints()
     fs:SetPoint("LEFT", icon, "RIGHT", 8, 0)
     fs:SetWordWrap(false)
     row._text = fs
-    row._mat = mat
 
-    -- WoW-Professions link button
-    local wp = MakeIconButtonWithStates(line, WOWPROF_ICON, "WoW-Professions")
-    wp:SetPoint("RIGHT", line, "RIGHT", -24, 0)
-    wp:SetScript("OnClick", function()
-      if ns.LinkPopup and ns.LinkPopup.Show and mat.wowProfessionsUrl then
-        ns.LinkPopup:Show("WoW-Professions", mat.wowProfessionsUrl)
+    if rowType ~= "groupHeader" then
+      icon:SetTexture(GetItemIcon(mat.itemID))
+
+      local wp = MakeIconButtonWithStates(line, WOWPROF_ICON, "WoW-Professions")
+      wp:SetPoint("RIGHT", line, "RIGHT", -24, 0)
+      wp:SetScript("OnClick", function()
+        OpenWoWProfessionsLinks(mat)
+      end)
+      row._wpBtn = wp
+
+      if row._text then
+        row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
       end
-    end)
-    row._wpBtn = wp
 
-    -- Constrain text width
-    if row._text then
-      row._text:SetPoint("RIGHT", wp, "LEFT", -8, 0)
+      local wh = MakeIconButtonWithStates(line, WOWHEAD_ICON, "Wowhead")
+      wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
+      wh:SetScript("OnClick", function()
+        if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
+          ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
+        end
+      end)
+      row._whBtn = wh
+    else
+      icon:Hide()
+      fs:SetPoint("LEFT", line, "LEFT", row._indent, 0)
+      fs:SetPoint("RIGHT", line, "RIGHT", 0, 0)
     end
 
-    -- Wowhead link button
-    local wh = MakeIconButtonWithStates(line, WOWHEAD_ICON, "Wowhead")
-    wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
-    wh:SetScript("OnClick", function()
-      if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
-        ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
-      end
-    end)
-    row._whBtn = wh
-
-    -- Material note, when present, should not affect main line alignment.
     if IsNonEmptyString(mat.note) then
       local note = MakeText(row, "GameFontHighlightSmall")
       note:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -2)
@@ -474,11 +519,25 @@ function GuidePage:RenderGuide(guide)
       note:SetText(mat.note)
       row._note = note
 
-      -- Expand the row to fit the note without shifting the main line.
       row:SetHeight(18 + 2 + math.ceil(note:GetStringHeight() or 0))
     end
 
     table.insert(self.materialRows, row)
+    return row
+  end
+
+  for _, mat in ipairs(materials) do
+    if type(mat) == "table" and tostring(mat.type) == "group" then
+      AddMaterialRow(mat, "groupHeader", 0, nil)
+
+      if type(mat.options) == "table" then
+        for _, option in ipairs(mat.options) do
+          AddMaterialRow(option, "groupOption", 18, mat)
+        end
+      end
+    else
+      AddMaterialRow(mat, "item", 0, nil)
+    end
   end
 
   -- Apply initial counts/grey-out state for materials
@@ -661,45 +720,87 @@ function GuidePage:RefreshMaterialsState(skipLayout)
     return
   end
 
+  -- Precompute group progress (sum of option counts) so headers/options can reference it.
+  local groupState = {}
+
+  for _, row in ipairs(self.materialRows) do
+    if row._matType == "groupOption" and row._group and row._mat then
+      local g = row._group
+      local st = groupState[g]
+      if not st then
+        st = { have = 0, required = ComputeBufferedRequired(tonumber(g.required) or 0) }
+        groupState[g] = st
+      end
+
+      local itemID = tonumber(row._mat.itemID)
+      if itemID and itemID > 0 then
+        st.have = st.have + (ns.Util.GetItemCount(itemID) or 0)
+      end
+    end
+  end
+
+  for _, st in pairs(groupState) do
+    st.done = st.required > 0 and st.have >= st.required
+  end
+
   for _, row in ipairs(self.materialRows) do
     if row._mat and row._text then
       local mat = row._mat
-      local itemID = mat.itemID
-      local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
-      local have = ns.Util.GetItemCount(itemID)
 
-      self:RequestItemData(itemID)
+      if row._matType == "groupHeader" then
+        local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
+        local st = groupState[mat] or { have = 0, required = required, done = false }
 
-      local name = GetItemName(itemID)
-      if not name or name == "" then
-        name = ("Item %d"):format(tonumber(itemID) or 0)
-      end
-      row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
+        local label = (type(mat.label) == "string" and mat.label ~= "" and mat.label) or "Choose any"
+        row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(label, st.have or 0, required))
+        ns.Util.SetFontStringGreyed(row._text, st.done)
 
-      local done = required > 0 and have >= required
-
-      -- Once the row is marked complete, avoid inline color codes so SetTextColor can desaturate
-      -- the entire string.
-      if done then
-        row._text:SetText(("%s  %d / %d"):format(name, have, required))
       else
-        row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
-      end
-      ns.Util.SetFontStringGreyed(row._text, done)
+        local itemID = mat.itemID
+        local have = ns.Util.GetItemCount(itemID)
 
-      if row._icon then
-        row._icon:SetTexture(GetItemIcon(itemID))
-        ns.Util.SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
-      end
+        self:RequestItemData(itemID)
 
-      if row._wpBtn and row._wpBtn._tex then
-        row._wpBtn:SetEnabled(not done)
-        ns.Util.SetDesaturatedAndAlpha(row._wpBtn._tex, done, done and 0.35 or 1)
-      end
+        local name = GetItemName(itemID)
+        if not name or name == "" then
+          name = ("Item %d"):format(tonumber(itemID) or 0)
+        end
 
-      if row._whBtn and row._whBtn._tex then
-        row._whBtn:SetEnabled(not done)
-        ns.Util.SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
+        local done = false
+
+        if row._matType == "item" then
+          local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
+          done = required > 0 and have >= required
+          if done then
+            row._text:SetText(("%s  %d / %d"):format(name, have, required))
+          else
+            row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
+          end
+        else
+          local st = row._group and groupState[row._group] or nil
+          done = st and st.done or false
+          row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
+        end
+
+        ns.Util.SetFontStringGreyed(row._text, done)
+
+        if row._icon then
+          row._icon:SetTexture(GetItemIcon(itemID))
+          ns.Util.SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
+        end
+
+        if row._wpBtn and row._wpBtn._tex then
+          local hasAnyLink = (type(mat.wowProfessionsUrl) == "string" and mat.wowProfessionsUrl ~= "")
+            or (type(mat.links) == "table" and #mat.links > 0)
+
+          row._wpBtn:SetEnabled((not done) and hasAnyLink)
+          ns.Util.SetDesaturatedAndAlpha(row._wpBtn._tex, done or (not hasAnyLink), (done or (not hasAnyLink)) and 0.35 or 1)
+        end
+
+        if row._whBtn and row._whBtn._tex then
+          row._whBtn:SetEnabled(not done)
+          ns.Util.SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
+        end
       end
     end
   end
@@ -856,7 +957,9 @@ function GuidePage:UpdateRowSizing()
   local matsWidth = self.materialsContainer:GetWidth() or 1
   for _, row in ipairs(self.materialRows) do
     if row:IsShown() and row._text then
-      local available = math.max(100, matsWidth - 90)
+      local gutter = tonumber(row._gutter) or 90
+      local indent = tonumber(row._indent) or 0
+      local available = math.max(100, matsWidth - gutter - indent)
       row._text:SetWidth(available)
       if row._note then
         row._note:SetWidth(available)

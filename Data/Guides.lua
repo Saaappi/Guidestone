@@ -125,6 +125,107 @@ local function NormalizeKey(key)
   return tostring(key)
 end
 
+---@param links table|nil
+---@return table[]|nil
+local function NormalizeLinks(links)
+  if type(links) ~= "table" then
+    return nil
+  end
+
+  local out = {}
+
+  for _, link in ipairs(links) do
+    if type(link) == "table" then
+      local title = type(link.title) == "string" and link.title ~= "" and link.title or nil
+      local url = type(link.url) == "string" and link.url ~= "" and link.url or nil
+      if url then
+        table.insert(out, { title = title, url = url })
+      end
+    end
+  end
+
+  return (#out > 0) and out or nil
+end
+
+---@param entry table
+---@param farmingUrls table|nil
+---@return table|nil
+local function NormalizeMaterialItem(entry, farmingUrls)
+  if type(entry) ~= "table" then
+    return nil
+  end
+
+  local itemID = tonumber(entry.itemID)
+  if not itemID or itemID <= 0 then
+    return nil
+  end
+
+  local required = tonumber(entry.required) or 0
+  if required < 0 then
+    required = 0
+  end
+
+  local out = {
+    type = "item",
+    itemID = math.floor(itemID),
+    required = required,
+    wowProfessionsUrl = entry.wowProfessionsUrl or (farmingUrls and farmingUrls[itemID]) or nil,
+    note = entry.note,
+    links = NormalizeLinks(entry.links),
+  }
+
+  return out
+end
+
+---@param materials table|nil
+---@param farmingUrls table|nil
+---@return table
+local function NormalizeMaterials(materials, farmingUrls)
+  if type(materials) ~= "table" then
+    return {}
+  end
+
+  local out = {}
+
+  for _, entry in ipairs(materials) do
+    if type(entry) == "table" and tostring(entry.type) == "group" then
+      local required = tonumber(entry.required) or 0
+      if required < 0 then
+        required = 0
+      end
+
+      local optionsOut = {}
+      if type(entry.options) == "table" then
+        for _, option in ipairs(entry.options) do
+          local normalizedOption = NormalizeMaterialItem(option, farmingUrls)
+          if normalizedOption then
+            -- Options don't have their own required; they satisfy the group total.
+            normalizedOption.required = nil
+            table.insert(optionsOut, normalizedOption)
+          end
+        end
+      end
+
+      if required > 0 and #optionsOut > 0 then
+        table.insert(out, {
+          type = "group",
+          label = entry.label,
+          required = required,
+          note = entry.note,
+          options = optionsOut,
+        })
+      end
+    else
+      local normalizedItem = NormalizeMaterialItem(entry, farmingUrls)
+      if normalizedItem then
+        table.insert(out, normalizedItem)
+      end
+    end
+  end
+
+  return out
+end
+
 local function IsPositiveInt(n)
   n = tonumber(n)
 
@@ -210,10 +311,10 @@ local function NormalizeGuide(guide)
 
   -- Materials: if explicitly provided, use it. Otherwise, auto-build from materials.
   if type(guide.materials) == "table" and #guide.materials > 0 then
-    normalized.materials = guide.materials
+    normalized.materials = NormalizeMaterials(guide.materials, guide.farmingUrls)
   else
     local totals = SumMaterialsFromSteps(normalized.steps)
-    normalized.materials = BuildMaterialsFromTotals(totals, guide.farmingUrls)
+    normalized.materials = NormalizeMaterials(BuildMaterialsFromTotals(totals, guide.farmingUrls), guide.farmingUrls)
   end
 
   return normalized, nil
