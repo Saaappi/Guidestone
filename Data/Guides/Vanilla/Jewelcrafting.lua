@@ -7,30 +7,30 @@ local ok, err = ns.Guides:RegisterGuide({
   professionKey = "JEWELCRAFTING",
   professionName = "Jewelcrafting",
 
-  skillLineID = 2485,
+  skillLineID = 2524,
 
   guideUrl = "https://www.wow-professions.com/guides/vanilla-jewelcrafting-leveling",
 
   materials = {
-    { itemID = 2840,  required = 100, wowProfessionsUrl = "https://www.wow-professions.com/farming/copper-ore-farming" },            -- Copper Ore
-    { itemID = 818,   required = 20,  wowProfessionsUrl = "" },                                                                      -- Tigerseye
-    { itemID = 2841,  required = 120, wowProfessionsUrl = "https://www.wow-professions.com/farming/tin-ore-farming" },               -- Tin Ore
-    { itemID = 785,   required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/mageroyal-farming" },             -- Mageroyal
-    { itemID = 2453,  required = 35,  wowProfessionsUrl = "https://www.wow-professions.com/farming/bruiseweed-farming" },            -- Bruiseweed
-    { itemID = 3820,  required = 50,  wowProfessionsUrl = "https://www.wow-professions.com/farming/stranglekelp-farming" },          -- Stranglekelp
-    { itemID = 3357,  required = 20,  wowProfessionsUrl = "https://www.wow-professions.com/farming/liferoot-farming" },              -- Liferoot
-    { itemID = 3356,  required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/kingsblood-farming" },            -- Kingsblood
-    { itemID = 3821,  required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/goldthorn-farming" },             -- Goldthorn
-    { itemID = 3355,  required = 10,  wowProfessionsUrl = "https://www.wow-professions.com/farming/wild-steelbloom-farming" },       -- Wild Steelbloom
-    { itemID = 8838,  required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/sungrass-farming" },              -- Sungrass
-    { itemID = 3358,  required = 40,  wowProfessionsUrl = "https://www.wow-professions.com/farming/khadgars-whisker-farming" },      -- Khadgar's Whisker
-    { itemID = 8839,  required = 10,  wowProfessionsUrl = "https://www.wow-professions.com/farming/blindweed-farming" },             -- Blindweed
-    { itemID = 8846,  required = 40,  wowProfessionsUrl = "https://www.wow-professions.com/farming/gromsblood-farming" },            -- Gromsblood
-    { itemID = 13466, required = 40,  wowProfessionsUrl = "https://www.wow-professions.com/farming/sorrowmoss-farming" },            -- Sorrowmoss
-    { itemID = 13463, required = 15,  wowProfessionsUrl = "https://www.wow-professions.com/farming/dreamfoil-farming" },             -- Dreamfoil
-    { itemID = 13464, required = 28,  wowProfessionsUrl = "https://www.wow-professions.com/farming/golden-sansam-farming" },         -- Golden Sansam
-    { itemID = 13465, required = 14,  wowProfessionsUrl = "https://www.wow-professions.com/farming/mountain-silversage-farming" },   -- Mountain Silversage
-    { itemID = 13467, required = 10,  wowProfessionsUrl = "https://www.wow-professions.com/farming/icecap-farming" },                -- Icecap
+    { itemID = 2840,  required = 100, wowProfessionsUrl = "https://www.wow-professions.com/farming/copper-ore-farming" }, -- Copper Ore
+    { -- Tigerseye / Malachite
+      type = "group",
+      label = "Pick One",
+      required = 20,
+      options = {
+        { itemID = 818, wowProfessionsUrl = "" },
+        { itemID = 774, wowProfessionsUrl = "" },
+      }
+    },
+    { -- Bronze Bar
+      itemID = 2841,
+      required = 120,
+      links = {
+        { title = "Copper Ore", url = "https://www.wow-professions.com/farming/copper-ore-farming" },
+        { title = "Tin Ore", url = "https://www.wow-professions.com/farming/tin-ore-farming" }
+      },
+      note = "Smelted from Copper and Tin bars."
+    }
   },
 
   trainers = {
