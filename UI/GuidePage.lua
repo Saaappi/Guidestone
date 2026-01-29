@@ -215,6 +215,56 @@ local function EnsureCraftButtonVisuals(craftBtn)
   end
 end
 
+---@param guideID string|nil
+---@param groupKey string|nil
+---@return number|nil
+local function GetChoiceSelection(guideID, groupKey)
+  if type(guideID) ~= "string" or guideID == "" then
+    return nil
+  end
+
+  if type(groupKey) ~= "string" or groupKey == "" then
+    return nil
+  end
+
+  local db = _G.GuidestoneDB
+  if type(db) ~= "table" then
+    return nil
+  end
+
+  db.choiceGroups = db.choiceGroups or {}
+  db.choiceGroups[guideID] = db.choiceGroups[guideID] or {}
+
+  local v = tonumber(db.choiceGroups[guideID][groupKey])
+  if v and v > 0 then
+    return math.floor(v)
+  end
+
+  return nil
+end
+
+---@param guideID string|nil
+---@param groupKey string|nil
+---@param choiceIndex number
+local function SetChoiceSelection(guideID, groupKey, choiceIndex)
+  if type(guideID) ~= "string" or guideID == "" then
+    return
+  end
+
+  if type(groupKey) ~= "string" or groupKey == "" then
+    return
+  end
+
+  local db = _G.GuidestoneDB
+  if type(db) ~= "table" then
+    return
+  end
+
+  db.choiceGroups = db.choiceGroups or {}
+  db.choiceGroups[guideID] = db.choiceGroups[guideID] or {}
+  db.choiceGroups[guideID][groupKey] = math.floor(tonumber(choiceIndex) or 1)
+end
+
 local function GetGoldRGB()
   if GOLD_FONT_COLOR and GOLD_FONT_COLOR.GetRGB then
     return GOLD_FONT_COLOR:GetRGB()

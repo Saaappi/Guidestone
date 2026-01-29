@@ -5,6 +5,9 @@ local function EnsureDB()
   if GuidestoneDB.debug == nil then
     GuidestoneDB.debug = false
   end
+
+  -- Persist per-guide choice-group selections.
+  GuidestoneDB.choiceGroups = GuidestoneDB.choiceGroups or {}
 end
 
 local function PrintPrefix(...)
