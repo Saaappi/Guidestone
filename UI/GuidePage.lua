@@ -794,6 +794,10 @@ function GuidePage:RenderGuide(guide)
     header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
     row._header = header
 
+    -- I'm hoping that anchoring the button to its parent, and then using numeric
+    -- offsets is sufficient to avoid relative-to regions.
+    local headerHeight = (header.GetStringHeight and header:GetStringHeight()) or 14
+
     local craftBtn = CreateFrame("Button", nil, row, "SecureActionButtonTemplate, ActionButtonTemplate")
     craftBtn:SetSize(32, 32)
     craftBtn:SetPoint("TOPLEFT", "BOTTOMLEFT", 2, -(headerHeight + 8))
