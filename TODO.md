@@ -5,3 +5,5 @@
 - Add support for Wowhead links to the multi-link popup?
 - Fix the bug in bug.txt.
 - Fix the texture for choiceSets so it's not a rectangle.
+- The player should only need to click the craft button for an item once to either craft to the "toSkill" level,
+  or until they run out of materials, whichever happens first.

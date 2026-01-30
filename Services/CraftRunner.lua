@@ -215,6 +215,9 @@ function CraftRunner:TryCraftNext()
   craftingPage:CreateInternal(self._recipeID, 1, recipeLevel)
 end
 
+---@param unit string
+---@param _ string
+---@param spellID number
 function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
   if not self._running then
     return
@@ -240,11 +243,6 @@ function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
       return
     end
   end
-
-  -- Allow the tradeskill UI to update before queueing the next craft.
-  C_Timer.After(0.05, function()
-    CraftRunner:TryCraftNext()
-  end)
 end
 
 function CraftRunner:OnTradeSkillListUpdate()

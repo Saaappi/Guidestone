@@ -190,7 +190,7 @@ local function EnsureCraftButtonVisuals(craftBtn)
     local pushed = craftBtn:GetPushedTexture()
     if not pushed then
       pushed = craftBtn:CreateTexture(nil, "BACKGROUND")
-      craftBtn:SetNormalTexture(pushed)
+      craftBtn:SetPushedTexture(pushed)
     end
     pushed:SetTexture("Interface\\Buttons\\UI-Quickslot-Depress")
     pushed:SetAllPoints()
@@ -776,7 +776,7 @@ function GuidePage:RenderGuide(guide)
     header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
     row._header = header
 
-    local craftBtn = CreateFrame("ItemButton", nil, row)
+    local craftBtn = CreateFrame("Button", nil, row, "SecureActionButtonTemplate, ActionButtonTemplate")
     craftBtn:SetSize(32, 32)
     craftBtn:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 2, -6)
     craftBtn:SetText(step.recipeName or "Craft")
