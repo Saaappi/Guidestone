@@ -150,7 +150,7 @@ function CraftRunner:Start(step, onDone)
 
   -- Ensure the recipe is selected in the Crafting page so CreateInternal can run.
   local skipRecipeInList = true
-  ProfessionsFrame.CraftingPage:SelectRecipe(recipeInfo, skipSelectInList)
+  ProfessionsFrame.CraftingPage:SelectRecipe(recipeInfo, skipRecipeInList)
 
   self:TryCraftNext()
 end
