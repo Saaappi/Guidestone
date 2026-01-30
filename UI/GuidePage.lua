@@ -425,6 +425,24 @@ function GuidePage:RenderGuide(guide)
     return
   end
 
+  -- Defer the render until combat ends to avoid taint/errors.
+  if InCombatLockdown() then
+    self._pendingRenderGuide = guide
+    if not self._combatWatcher then
+      local f = CreateFrame("Frame")
+      f:RegisterEvent("PLAYER_REGEN_DISABLED")
+      f:SetScript("OnEvent", function()
+        if GuidePage._pendingRenderGuide then
+          local pending = GuidePage._pendingRenderGuide
+          GuidePage._pendingRenderGuide = nil
+          GuidePage:RenderGuide(pending)
+        end
+      end)
+      self._combatWatcher = f
+    end
+    return
+  end
+
   ClearRows(self.materialRows)
   ClearRows(self.trainerRows)
   ClearRows(self.stepRows)
@@ -776,9 +794,16 @@ function GuidePage:RenderGuide(guide)
     header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
     row._header = header
 
+    -- Protected frames can't be anchored to regions. I'll use this intermediate frame to avoid
+    -- the error.
+    local headerAnchor = CreateFrame("Frame", nil, row)
+    headerAnchor:SetSize(1, 1)
+    headerAnchor:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, 0)
+    row._headerAnchor = headerAnchor
+
     local craftBtn = CreateFrame("Button", nil, row, "SecureActionButtonTemplate, ActionButtonTemplate")
     craftBtn:SetSize(32, 32)
-    craftBtn:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 2, -6)
+    craftBtn:SetPoint("TOPLEFT", headerAnchor, "BOTTOMLEFT", 2, -6)
     craftBtn:SetText(step.recipeName or "Craft")
     craftBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     EnsureCraftButtonVisuals(craftBtn)
