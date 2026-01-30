@@ -782,17 +782,42 @@ function GuidePage:RenderGuide(guide)
     craftBtn:SetText(step.recipeName or "Craft")
     craftBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     EnsureCraftButtonVisuals(craftBtn)
-    craftBtn:SetScript("OnClick", function()
-      if not (ns.CraftRunner and ns.CraftRunner.Start) then
+    craftBtn:SetScript("PreClick", function(btn)
+      if InCombatLockdown() then
+        -- Can't reconfigure attributes in combat.
+        btn:SetAttribute("type", nil)
         return
       end
 
-      ns.CraftRunner:Start(step, function()
-        -- Re-render to refresh visible state.
-        if GuidePage.currentGuide then
-          GuidePage:RenderGuide(GuidePage.currentGuide)
-        end
-      end)
+      local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
+      local blizzCreate = craftingPage and craftingPage.CreateButton
+      if not (craftingPage and blizzCreate) then
+        btn:SetAttribute("type", nil)
+        return
+      end
+
+      -- Prepare the runner state. No crafting.
+      if ns.CraftRunner and ns.CraftRunner.Start then
+        ns.CraftRunner:Start(step, function()
+          if GuidePage.currentGuide then
+            GuidePage:RenderGuide(GuidePage.currentGuide)
+          end
+        end, true) -- Passing a flag to skip the first craft.
+      end
+
+      -- Force the professions UI to craft only 1 (because Create() reads the spinner value).
+      if craftingPage.CreateMultipleInputBox and craftingPage.CreateMultipleInputBox.SetValue then
+        craftingPage.CreateMultipleInputBox:SetValue(1)
+      end
+
+      if craftingPage.GetCraftableCount and craftingPage:GetCraftableCount() < 1 then
+        btn:SetAttribute("type", nil) -- Do nothing since the player can't craft.
+        return
+      end
+
+      -- Establish the secure click.
+      btn:SetAttribute("type", "click")
+      btn:SetAttribute("clickbutton", blizzCreate)
     end)
     craftBtn:SetScript("OnEnter", function()
       GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")

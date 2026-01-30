@@ -103,7 +103,10 @@ function CraftRunner:ReachedTargetSkill()
   return GetCurrentSkillLevel() >= (self._targetSkill or 0)
 end
 
-function CraftRunner:Start(step, onDone)
+---@param step table
+---@param onDone function|nil
+---@param skipFirstCraft boolean|nil
+function CraftRunner:Start(step, onDone, skipFirstCraft)
   if self._running then
     self:Stop("restart")
   end
@@ -152,7 +155,10 @@ function CraftRunner:Start(step, onDone)
   local skipRecipeInList = true
   ProfessionsFrame.CraftingPage:SelectRecipe(recipeInfo, skipRecipeInList)
 
-  self:TryCraftNext()
+  -- It's imperative that CreateInternal is not called unless the addon is explicitly allowed to.
+  if not skipFirstCraft then
+    self:TryCraftNext()
+  end
 end
 
 function CraftRunner:Stop(reason)
