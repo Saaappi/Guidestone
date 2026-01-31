@@ -1091,7 +1091,10 @@ function GuidePage:RenderGuide(guide)
 
     if IsNonEmptyString(step.note) then
       local note = MakeText(row, "GameFontHighlightSmall")
-      note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", -(craftBtn:GetWidth() + 8), -4)
+      --note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", -(craftBtn:GetWidth() + 8), -4)
+      note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", 0, -4)
+      note:SetPoint("TOPRIGHT", craftReagents, "BOTTOMRIGHT", 0, -4)
+      note:SetWordWrap(true)
       note:SetText(step.note)
       row._note = note
     end
