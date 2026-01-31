@@ -17,7 +17,7 @@ CraftRunner._maxNoSkillupCasts = 8
 CraftRunner._recipeID = nil
 CraftRunner._recipeSpellID = nil
 
-local function GetCurrentSkillLevel()
+ns.GetCurrentSkillLevel = function()
   if Professions and Professions.GetProfessionInfo then
     local info = Professions.GetProfessionInfo()
     return (info and info.skillLevel) or 0
@@ -100,7 +100,7 @@ function CraftRunner:IsRunning()
 end
 
 function CraftRunner:ReachedTargetSkill()
-  return GetCurrentSkillLevel() >= (self._targetSkill or 0)
+  return ns.GetCurrentSkillLevel() >= (self._targetSkill or 0)
 end
 
 ---@param step table
@@ -142,7 +142,7 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
   self._onDone = onDone
 
   self._targetSkill = targetSkill
-  self._lastSkill = GetCurrentSkillLevel()
+  self._lastSkill = ns.GetCurrentSkillLevel()
   self._noSkillupCasts = 0
 
   self._recipeID = recipeID
@@ -238,7 +238,7 @@ function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
     return
   end
 
-  local currentSkill = GetCurrentSkillLevel()
+  local currentSkill = ns.GetCurrentSkillLevel()
   if currentSkill > (self._lastSkill or 0) then
     self._lastSkill = currentSkill
     self._noSkillupCasts = 0

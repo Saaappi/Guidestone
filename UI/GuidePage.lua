@@ -802,7 +802,7 @@ function GuidePage:RenderGuide(guide)
     craftBtn:SetSize(32, 32)
     craftBtn:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -(headerHeight + 8))
     craftBtn:SetText(step.recipeName or "Craft")
-    craftBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    craftBtn:RegisterForClicks("AnyUp")
     EnsureCraftButtonVisuals(craftBtn)
     craftBtn:SetScript("PreClick", function(btn)
       if InCombatLockdown() then
@@ -827,7 +827,7 @@ function GuidePage:RenderGuide(guide)
         end, true) -- Passing a flag to skip the first craft.
       end
 
-      local currentSkill = craftingPage.GetCurrentSkillLevel and craftingPage:GetCurrentSkillLevel() or nil
+      local currentSkill = ns.GetCurrentSkillLevel() or nil
 
       local remaining = 0
       if currentSkill and step.toSkill then
@@ -862,8 +862,8 @@ function GuidePage:RenderGuide(guide)
       end
 
       -- Establish the secure click.
-      btn:SetAttribute("type", "click")
-      btn:SetAttribute("clickbutton", blizzCreate)
+      btn:SetAttribute("type1", "click")
+      btn:SetAttribute("clickbutton1", blizzCreate)
     end)
     craftBtn:SetScript("OnEnter", function()
       GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
