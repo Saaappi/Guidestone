@@ -13,5 +13,6 @@ Add:
 - Crafted with <3 by LightskyGG text.
 
 Fix These:
+- Crafting seems to stop one skill level short. I crafted the Bronze Settings from 50-79 and still have 40 Bronze Bars in my inventory, so something is bugged.
 
 Clean the code for any unnecessary shit.
