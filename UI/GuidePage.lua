@@ -310,8 +310,10 @@ end
 
 ---@param guideID string|nil
 ---@param groupKey string|nil
----@return number|nil
-local function GetChoiceSelection(guideID, groupKey)
+---@param groupDef table|nil Optional choiceSets group definition (to resolve choiceID <-> index)
+---@return number|nil choiceIndex
+---@return string|nil choiceID
+local function GetChoiceSelection(guideID, groupKey, groupDef)
   if type(guideID) ~= "string" or guideID == "" then
     return nil
   end
@@ -328,18 +330,61 @@ local function GetChoiceSelection(guideID, groupKey)
   db.choiceGroups = db.choiceGroups or {}
   db.choiceGroups[guideID] = db.choiceGroups[guideID] or {}
 
-  local v = tonumber(db.choiceGroups[guideID][groupKey])
-  if v and v > 0 then
-    return math.floor(v)
+  local raw = db.choiceGroups[guideID][groupKey]
+
+  if type(raw) == "string" and raw ~= "" then
+    local asNum = tonumber(raw)
+    if asNum and asNum > 0 then
+      local idx = math.floor(asNum)
+      local id = nil
+      if type(groupDef) == "table" and type(groupDef.choices) == "table" then
+        local choices = groupDef.choices[idx]
+        if type(choices) == "table" and type(choices.id) == "string" and choices.id ~= "" then
+          id = choices.id
+        end
+      end
+      return idx, id
+    end
+
+    -- Resolve id -> index if we have the group definition.
+    local id = raw
+    if type(groupDef) == "table" and type(groupDef.choices) == "table" then
+      for i, choice in ipairs(groupDef.choices) do
+        if type(choice) == "table" and choice.id == id then
+          return i, id
+        end
+      end
+
+      -- Stored id no longer exists; treat as unselected.
+      return nil, nil
+    end
+
+    -- If I don't have groupDef, I can still return the id for callers who only
+    -- care about id.
+    return nil, id
   end
 
-  return nil
+  -- Legacy format: numeric index.
+  local v = tonumber(raw)
+  if v and v > 0 then
+    local idx = math.floor(v)
+    local id = nil
+    if type(groupDef) == "table" and type(groupDef.choices) == "table" then
+      local choices = groupDef.choices[idx]
+      if type(choices) == "table" and type(choices.id) == "string" and choices.id ~= "" then
+        id = choices.id
+      end
+    end
+    return idx, id
+  end
+
+  return nil, nil
 end
 
 ---@param guideID string|nil
 ---@param groupKey string|nil
----@param choiceIndex number
-local function SetChoiceSelection(guideID, groupKey, choiceIndex)
+---@param choiceValue number|string
+local function SetChoiceSelection(guideID, groupKey, choiceValue)
   if type(guideID) ~= "string" or guideID == "" then
     return
   end
@@ -355,7 +400,15 @@ local function SetChoiceSelection(guideID, groupKey, choiceIndex)
 
   db.choiceGroups = db.choiceGroups or {}
   db.choiceGroups[guideID] = db.choiceGroups[guideID] or {}
-  db.choiceGroups[guideID][groupKey] = math.floor(tonumber(choiceIndex) or 1)
+
+  -- Store stable ids whenever possible.
+  if type(choiceValue) == "string" and choiceValue ~= "" then
+    db.choiceGroups[guideID][groupKey] = choiceValue
+    return
+  end
+
+  -- Fallback legacy behavior: numeric selection.
+  db.choiceGroups[guideID][groupKey] = math.floor(tonumber(choiceValue) or 1)
 end
 
 local function GetGoldRGB()
