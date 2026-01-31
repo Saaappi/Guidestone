@@ -43,21 +43,23 @@ local ok, err = ns.Guides:RegisterGuide({
         { title = "Copper Ore", url = "https://www.wow-professions.com/farming/copper-ore-farming" },
         { title = "Tin Ore", url = "https://www.wow-professions.com/farming/tin-ore-farming" }
       },
-      note = "Smelted from Copper and Tin bars."
+      note = "Smelted from Copper and Tin ore."
     },
     { -- Shadowgem or Shadowgem/Small Lustrous Pearl
       type = "group",
       mode = "choiceSets",
       label = "Pick one:",
-      key = "classicJewelcrafting_Path2",
+      key = "classicJewelcrafting_80_100",
       choices = {
         {
+          id = "shadowgem",
           label = "Shadowgem",
           items = {
             { itemID = 1210, required = 60 }
           }
         },
         {
+          id = "shadowgem_lustrouspearl",
           label = "Shadowgem + Small Lustrous Pearl",
           items = {
             { itemID = 1210, required = 20 },
@@ -65,7 +67,7 @@ local ok, err = ns.Guides:RegisterGuide({
           }
         }
       }
-    }
+    },
   },
 
   trainers = {
@@ -103,6 +105,27 @@ local ok, err = ns.Guides:RegisterGuide({
       recipeName = "Malachite Pendant",
       maxCrafts = 20,
       requiresChoices = { classicJewelcrafting_30_50 = "malachite" }
+    },
+    {
+      fromSkill = 50,
+      toSkill = 80,
+      recipeName = "Bronze Setting",
+      maxCrafts = 50,
+      note = "Save these, you'll need them for the next craft."
+    },
+    {
+      fromSkill = 80,
+      toSkill = 100,
+      recipeName = "Gloom Band",
+      maxCrafts = 20,
+      requiresChoices = { classicJewelcrafting_80_100 = "shadowgem" }
+    },
+    {
+      fromSkill = 80,
+      toSkill = 100,
+      recipeName = "Simple Pearl Ring",
+      maxCrafts = 20,
+      requiresChoices = { classicJewelcrafting_80_100 = "shadowgem_lustrouspearl" }
     },
   },
 })

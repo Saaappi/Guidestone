@@ -332,7 +332,9 @@ local function GetChoiceSelection(guideID, groupKey, groupDef)
 
   local raw = db.choiceGroups[guideID][groupKey]
 
+  -- Stable ID format
   if type(raw) == "string" and raw ~= "" then
+    -- If it's a numeric string, treat it like a legacy index.
     local asNum = tonumber(raw)
     if asNum and asNum > 0 then
       local idx = math.floor(asNum)
@@ -347,11 +349,10 @@ local function GetChoiceSelection(guideID, groupKey, groupDef)
     end
 
     -- Resolve id -> index if we have the group definition.
-    local id = raw
     if type(groupDef) == "table" and type(groupDef.choices) == "table" then
       for i, choice in ipairs(groupDef.choices) do
-        if type(choice) == "table" and choice.id == id then
-          return i, id
+        if type(choice) == "table" and choice.id == raw then
+          return i, raw
         end
       end
 
@@ -361,7 +362,7 @@ local function GetChoiceSelection(guideID, groupKey, groupDef)
 
     -- If I don't have groupDef, I can still return the id for callers who only
     -- care about id.
-    return nil, id
+    return nil, raw
   end
 
   -- Legacy format: numeric index.
@@ -369,12 +370,17 @@ local function GetChoiceSelection(guideID, groupKey, groupDef)
   if v and v > 0 then
     local idx = math.floor(v)
     local id = nil
+
     if type(groupDef) == "table" and type(groupDef.choices) == "table" then
       local choices = groupDef.choices[idx]
       if type(choices) == "table" and type(choices.id) == "string" and choices.id ~= "" then
         id = choices.id
+
+        -- Rewrite numeric to stable ID once it's resolvable.
+        db.choiceGroups[guideID][groupKey] = id
       end
     end
+
     return idx, id
   end
 
@@ -857,7 +863,7 @@ function GuidePage:RenderGuide(guide)
       local mode = tostring(mat.mode or "anyMix")
 
       if mode == "choiceSets" then
-        local sel = GetChoiceSelection(guide.id, mat.key, mat)
+        local selIndex = GetChoiceSelection(guide.id, mat.key, mat)
         local header = AddHeaderRow(mat.label or "Choose one", mat.note, 0)
         header._matType = "choiceHeader"
         header._group = mat
@@ -882,7 +888,7 @@ function GuidePage:RenderGuide(guide)
             end
 
             pickRow._choiceBtn = btn
-            SetChoiceChevronExpanded(pickRow._choiceBtn, idx == sel)
+            SetChoiceChevronExpanded(pickRow._choiceBtn, idx == selIndex)
           end
 
           local function Choose()
@@ -901,7 +907,7 @@ function GuidePage:RenderGuide(guide)
             pickRow._choiceBtn:SetScript("OnClick", Choose)
           end
 
-          if idx == sel then
+          if idx == selIndex then
             for _, item in ipairs(choice.items or {}) do
               local itemRow = AddItemRow(item, 28)
               itemRow._matType = "choiceItem"

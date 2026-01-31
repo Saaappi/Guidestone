@@ -254,8 +254,14 @@ local function NormalizeMaterials(materials, farmingUrls, guideID)
                 end
               end
 
+              local choiceID = nil
+              if type(choice.id) == "string" and choice.id ~= "" then
+                choiceID = choice.id
+              end
+
               if #itemsOut > 0 then
                 choicesOut[#choicesOut + 1] = {
+                  id = choiceID,
                   label = choice.label,
                   items = itemsOut,
                 }
