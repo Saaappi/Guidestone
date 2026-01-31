@@ -193,7 +193,7 @@ local function MakeChoiceChevronButton(parent, tooltipText)
   pushed:SetAllPoints()
   pushed:SetAtlas("UI-HUD-ActionBar-PageDownArrow-Down", true)
   if pushed.SetRotation then
-    pushed:SetRotation(rotation * 2)
+    pushed:SetRotation(rotation)
   end
   b:SetPushedTexture(pushed)
   b._pushedTex = pushed
@@ -211,6 +211,25 @@ local function MakeChoiceChevronButton(parent, tooltipText)
   end
 
   return b
+end
+
+local function SetChoiceChevronExpanded(btn, isExpanded)
+  if not btn then
+    return
+  end
+
+  -- Atlas is the "down" arrow by default. Rotation:
+  -- 0 = down
+  -- 90deg = right
+  local rotation = isExpanded and 0 or (math.pi / 2)
+
+  local normal = btn._normalTex
+  local highlight = btn._highlightTex
+  local pushed = btn._pushedTex
+
+  if normal and normal.SetRotation then normal:SetRotation(rotation) end
+  if highlight and highlight.SetRotation then highlight:SetRotation(rotation) end
+  if pushed and pushed.SetRotation then pushed:SetRotation(rotation) end
 end
 
 local function ClearRows(rows)
@@ -716,6 +735,7 @@ function GuidePage:RenderGuide(guide)
             end
 
             pickRow._choiceBtn = btn
+            SetChoiceChevronExpanded(pickRow._choiceBtn, idx == sel)
           end
 
           local function Choose()
