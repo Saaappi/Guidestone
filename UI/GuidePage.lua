@@ -1041,7 +1041,7 @@ function GuidePage:RenderGuide(guide)
   ---@return boolean
   local function StepPassesChoiceFilters(step)
     if type(step) ~= "table" then
-      return
+      return false
     end
 
     local req = step.requiresChoices
