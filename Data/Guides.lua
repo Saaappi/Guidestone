@@ -1,49 +1,5 @@
 local _, ns = ...
 
-ns.Guides = ns.Guides or {}
-
-local Guides = ns.Guides
-
--- -----------------------------------------------------------------------------
--- Expansion registry
--- -----------------------------------------------------------------------------
--- Internal stable keys for UI grouping/sorting.
--- Matching still uses skillLineID (professionInfo.professionID)
-Guides.Expansions = Guides.Expansions or {
-  VANILLA       = { name = EXPANSION_NAME0, order = 10 },
-  TBC           = { name = EXPANSION_NAME1, order = 20 },
-  WRATH         = { name = EXPANSION_NAME2, order = 30 },
-  CATA          = { name = EXPANSION_NAME3, order = 40 },
-  MOP           = { name = EXPANSION_NAME4, order = 50 },
-  WOD           = { name = EXPANSION_NAME5, order = 60 },
-  LEGION        = { name = EXPANSION_NAME6, order = 70 },
-  BFA           = { name = EXPANSION_NAME7, order = 80 },
-  SHADOWLANDS   = { name = EXPANSION_NAME8, order = 90 },
-  DRAGONFLIGHT  = { name = EXPANSION_NAME9, order = 100 },
-  THEWARWITHIN  = { name = EXPANSION_NAME10, order = 110 },
-  MIDNIGHT      = { name = EXPANSION_NAME11, order = 120 },
-}
-
-function Guides:RegisterExpansion(expansionKey, displayName, order)
-  if type(expansionKey) ~= "string" or expansionKey == "" then
-    return
-  end
-
-  self.Expansions[expansionKey] = {
-    name = tostring(displayName or expansionKey),
-    order = tonumber(order) or 9999,
-  }
-end
-
-local function GetExpansionMeta(expansionKey)
-  local meta = Guides.Expansions and Guides.Expansions[expansionKey]
-  if meta then
-    return meta
-  end
-
-  return { name = tostring(expansionKey or "UNKNOWN"), order = 9999 }
-end
-
 -- -----------------------------------------------------------------------------
 -- Data model (expansion-wide)
 -- -----------------------------------------------------------------------------
@@ -94,6 +50,50 @@ end
 --    [123] = "https://www.wow-professions.com/farming/...",
 --  },
 -- }
+
+ns.Guides = ns.Guides or {}
+
+local Guides = ns.Guides
+
+-- -----------------------------------------------------------------------------
+-- Expansion registry
+-- -----------------------------------------------------------------------------
+-- Internal stable keys for UI grouping/sorting.
+-- Matching still uses skillLineID (professionInfo.professionID)
+Guides.Expansions = Guides.Expansions or {
+  VANILLA       = { name = EXPANSION_NAME0, order = 10 },
+  TBC           = { name = EXPANSION_NAME1, order = 20 },
+  WRATH         = { name = EXPANSION_NAME2, order = 30 },
+  CATA          = { name = EXPANSION_NAME3, order = 40 },
+  MOP           = { name = EXPANSION_NAME4, order = 50 },
+  WOD           = { name = EXPANSION_NAME5, order = 60 },
+  LEGION        = { name = EXPANSION_NAME6, order = 70 },
+  BFA           = { name = EXPANSION_NAME7, order = 80 },
+  SHADOWLANDS   = { name = EXPANSION_NAME8, order = 90 },
+  DRAGONFLIGHT  = { name = EXPANSION_NAME9, order = 100 },
+  THEWARWITHIN  = { name = EXPANSION_NAME10, order = 110 },
+  MIDNIGHT      = { name = EXPANSION_NAME11, order = 120 },
+}
+
+function Guides:RegisterExpansion(expansionKey, displayName, order)
+  if type(expansionKey) ~= "string" or expansionKey == "" then
+    return
+  end
+
+  self.Expansions[expansionKey] = {
+    name = tostring(displayName or expansionKey),
+    order = tonumber(order) or 9999,
+  }
+end
+
+local function GetExpansionMeta(expansionKey)
+  local meta = Guides.Expansions and Guides.Expansions[expansionKey]
+  if meta then
+    return meta
+  end
+
+  return { name = tostring(expansionKey or "UNKNOWN"), order = 9999 }
+end
 
 -- -----------------------------------------------------------------------------
 -- Internals
