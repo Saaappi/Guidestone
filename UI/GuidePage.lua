@@ -1040,6 +1040,23 @@ function GuidePage:RefreshMaterialsState(skipLayout)
     return
   end
 
+  local function GetHaveForMaterial(mat)
+    if not mat then
+      return 0, 0
+    end
+
+    local itemID = tonumber(mat.itemID)
+    if not itemID or itemID <= 0 then
+      return 0, 0
+    end
+
+    if ns.Util and ns.Util.GetBestItemCount then
+      return ns.Util.GetBestItemCount(itemID, mat.aliasItems)
+    end
+
+    return (ns.Util and ns.Util.GetItemCount and ns.Util.GetItemCount(itemID)) or 0, itemID
+  end
+
   -- anyMix: group progress by summing option counts
   local anyMixState = {}
 
@@ -1087,13 +1104,29 @@ function GuidePage:RefreshMaterialsState(skipLayout)
     if row._mat and row._text and (row._matType == "item" or row._matType == "anyMixOption" or row._matType == "choiceItem") then
       local mat = row._mat
       local itemID = mat.itemID
-      local have = ns.Util.GetItemCount(itemID)
+      local have, matchedItemID = GetHaveForMaterial(mat)
 
       self:RequestItemData(itemID)
+
+      -- If this material has aliases, request their item data too so names are resolved.
+      if type(mat.aliasItems) == "table" then
+        for _, aliasID in ipairs(mat.aliasItems) do
+          self:RequestItemData(aliasID)
+        end
+      end
 
       local name = GetItemName(itemID)
       if not name or name == "" then
         name = ("Item %d"):format(tonumber(itemID) or 0)
+      end
+
+      -- Show which alias item satisfied the requirement.
+      local aliasSuffix = ""
+      if matchedItemID and matchedItemID > 0 and matchedItemID ~= tonumber(itemID) and have and have > 0 then
+        local aliasName = GetItemName(matchedItemID)
+        if aliasName and aliasName ~= "" then
+          aliasSuffix = (" (as %s)"):format(aliasName)
+        end
       end
 
       local done = false

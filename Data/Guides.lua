@@ -147,6 +147,39 @@ local function NormalizeLinks(links)
   return (#out > 0) and out or nil
 end
 
+---@param aliasItems any
+---@return number[]|nil
+local function NormalizeAliasItems(aliasItems)
+  if aliasItems == nil then
+    return nil
+  end
+
+  -- Allow a single item.
+  if type(aliasItems) == "number" then
+    aliasItems = { aliasItems }
+  end
+
+  if type(aliasItems) ~= "table" then
+    return nil
+  end
+
+  local seen = {}
+  local out = {}
+
+  for _, v in ipairs(aliasItems) do
+    local id = tonumber(v)
+    if id and id > 0 then
+      id = math.floor(id)
+      if id > 0 and not seen[id] then
+        seen[id] = true
+        out[#out + 1] = id
+      end
+    end
+  end
+
+  return (#out > 0) and out or nil
+end
+
 ---@param entry table
 ---@param farmingUrls table|nil
 ---@return table|nil
@@ -169,6 +202,7 @@ local function NormalizeMaterialItem(entry, farmingUrls)
   return {
     type = "item",
     itemID = math.floor(itemID),
+    aliasItems = NormalizeAliasItems(entry.aliasItems or entry.aliasItemIDs or entry.alias),
     required = required,
     noBuffer = noBuffer,
     wowProfessionsUrl = entry.wowProfessionsUrl or (farmingUrls and farmingUrls[itemID]) or nil,

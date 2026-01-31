@@ -40,6 +40,38 @@ function ns.Util.GetItemCount(itemID)
   return 0
 end
 
+-- Returns the best available count for an item that may have aliases.
+-- This is useful for tools where an alternative item can satisfy the
+-- requirement.
+---@param itemID number|nil
+---@param aliasItems number[]|nil
+---@return number count
+---@return number matchedItemID
+function ns.Util.GetBestItemCount(itemID, aliasItems)
+  local primaryID = tonumber(itemID)
+  if not primaryID or primaryID <= 0 then
+    return 0, 0
+  end
+
+  local bestID = primaryID
+  local bestCount = ns.Util.GetItemCount(primaryID) or 0
+
+  if type(aliasItems) == "table" then
+    for _, v in ipairs(aliasItems) do
+      local id = tonumber(v)
+      if id and id > 0 then
+        local count = ns.Util.GetItemCount(id) or 0
+        if count > bestCount then
+          bestCount = count
+          bestID = id
+        end
+      end
+    end
+  end
+
+  return bestCount, bestID
+end
+
 function ns.Util.GetWowheadItemUrl(itemID)
   return ("https://www.wowhead.com/item=%d"):format(tonumber(itemID) or 0)
 end
