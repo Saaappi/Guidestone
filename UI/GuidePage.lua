@@ -706,6 +706,73 @@ function GuidePage:RenderGuide(guide)
     end)
     row._whBtn = wh
 
+    -- Hover region for item tooltip.
+    -- This avoids fighting with the icon button tooltips.
+    local hit = CreateFrame("Frame", nil, line)
+    hit:SetPoint("TOPLEFT", line, "TOPLEFT", row._indent, 0)
+    hit:SetPoint("BOTTOMRIGHT", wp, "BOTTOMRIGHT", -6, 0)
+    hit:EnableMouse(true)
+    row._hit = hit
+
+    local function GetSafeItemName(itemID)
+      local name = GetItemName(itemID)
+      if not name or name == "" then
+        return ("Item %d"):format(tonumber(itemID) or 0)
+      end
+      return name
+    end
+
+    hit:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(hit, "ANCHOR_RIGHT")
+
+      local itemID = tonumber(mat.itemID)
+      if itemID and itemID > 0 then
+        GameTooltip:SetItemByID(itemID)
+
+        -- Alias items section
+        if type(mat.aliasItems) == "table" and #mat.aliasItems > 0 then
+          GameTooltip:AddLine(" ")
+          GameTooltip:AddLine("Also satisfied by:")
+
+          local bestCount, matchedItemID = 0, 0
+          if ns.Util and ns.Util.GetBestItemCount then
+            bestCount, matchedItemID = ns.Util.GetBestItemCount(itemID, mat.aliasItems)
+          end
+
+          for _, aliasID in ipairs(mat.aliasItems) do
+            aliasID = tonumber(aliasID)
+            if aliasID and aliasID > 0 then
+              local aliasName = GetSafeItemName(aliasID)
+
+              local count = 0
+              if ns.Util and ns.Util.GetItemCount then
+                count = ns.Util.GetItemCount(aliasID) or 0
+              end
+
+              local prefix = ""
+              if matchedItemID == aliasID and bestCount and bestCount > 0 then
+                prefix = CreateAtlasMarkup("achievementcompare-GreenCheckmark") .. " "
+              end
+
+              if count > 0 then
+                GameTooltip:AddLine(("%s%s (have %d)"):format(prefix, aliasName, count))
+              else
+                GameTooltip:AddLine(prefix .. aliasName)
+              end
+            end
+          end
+        end
+      else
+        GameTooltip:SetText("Material")
+      end
+
+      GameTooltip:Show()
+    end)
+
+    hit:SetScript("OnLeave", function()
+      GameTooltip:Hide()
+    end)
+
     -- Material note, when present, should not affect main line alignment.
     if IsNonEmptyString(mat.note) then
       local note = MakeText(row, "GameFontHighlightSmall")
