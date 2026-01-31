@@ -152,6 +152,30 @@ local function MakeIconButtonWithStates(parent, icon, tooltipText, isAtlas)
   return b
 end
 
+-- Creates a small atlas chevron button.
+-- Used by choiceSets to avoid the textureless rectangle.
+---@param parent Frame
+---@param tooltipText string
+---@return Button
+local function MakeChoiceChevronButton(parent, tooltipText)
+  local b = CreateFrame("Button", nil, parent)
+  b:SetSize(14, 14)
+
+  local rotation = math.pi / 2
+
+  -- Normal
+  local normal = b:CreateTexture(nil, "ARTWORK")
+  normal:SetAllPoints()
+  normal:SetAtlas("UI-HUD-ActionBar-PageDownArrow-Up", true)
+  if normal.SetRotation then
+    normal:SetRotation(rotation)
+  end
+  b:SetNormalTexture(normal)
+  b._normalTex = normal
+
+  return b
+end
+
 local function ClearRows(rows)
   for _, row in ipairs(rows) do
     row:Hide()
@@ -647,16 +671,36 @@ function GuidePage:RenderGuide(guide)
           pickRow._choiceIndex = idx
           pickRow._guideID = guide.id
 
-          pickRow:EnableMouse(true)
-          pickRow:SetScript("OnMouseUp", function()
+          do
+            local btn = MakeChoiceChevronButton(pickRow._line, "Select")
+            btn:SetPoint("LEFT", pickRow._line, "LEFT", pickRow._indent, 0)
+
+            -- Shift the label to the right of the chevron.
+            if pickRow._text then
+              pickRow._text:ClearAllPoints()
+              pickRow._text:SetPoint("LEFT", btn, "RIGHT", 4, 0)
+              pickRow._text:SetPoint("RIGHT", 0, 0)
+            end
+
+            pickRow._choiceBtn = btn
+          end
+
+          local function Choose()
             SetChoiceSelection(guide.id, mat.key, idx)
-            -- Rebuild rows to show the selected choice's items.
+            -- Rebuild rows to show the selected choice items.
             self:RenderGuide(self.currentGuide)
-          end)
+          end
+
+          pickRow:EnableMouse(true)
+          pickRow:SetScript("OnMouseUp", Choose)
+
+          if pickRow._choiceBtn then
+            pickRow._choiceBtn:SetScript("OnClick", Choose)
+          end
 
           if idx == sel then
-            for _, it in ipairs(choice.items or {}) do
-              local itemRow = AddItemRow(it, 28)
+            for _, item in ipairs(choice.items or {}) do
+              local itemRow = AddItemRow(item, 28)
               itemRow._matType = "choiceItem"
               itemRow._group = mat
             end
