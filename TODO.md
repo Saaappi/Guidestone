@@ -6,3 +6,4 @@
 - Fix the texture for choiceSets so it's not a rectangle.
 - The player should only need to click the craft button for an item once to either craft to the "toSkill" level,
   or until they run out of materials, whichever happens first.
+- Add a property to materials that overwrites the buffer logic, so it doesn't add 20%.

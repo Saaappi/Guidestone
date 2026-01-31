@@ -862,8 +862,8 @@ function GuidePage:RenderGuide(guide)
       end
 
       -- Establish the secure click.
-      btn:SetAttribute("type1", "click")
-      btn:SetAttribute("clickbutton1", blizzCreate)
+      btn:SetAttribute("type", "click")
+      btn:SetAttribute("clickbutton", ProfessionsFrame.CraftingPage.CreateButton)
     end)
     craftBtn:SetScript("OnEnter", function()
       GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
