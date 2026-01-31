@@ -716,7 +716,7 @@ function GuidePage:RenderGuide(guide)
         header._group = mat
 
         for idx, choice in ipairs(mat.choices or {}) do
-          local pickText = (idx == sel and "● " or "○ ") .. (choice.label or ("Option " .. idx))
+          local pickText = choice.label or ("Option " .. idx)
           local pickRow = AddHeaderRow(pickText, nil, 14)
           pickRow._matType = "choicePick"
           pickRow._group = mat
