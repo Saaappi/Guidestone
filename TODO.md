@@ -12,7 +12,5 @@ Add:
 - Crafted with <3 by LightskyGG text.
 
 Fix These:
-- Notes under steps are overlapped by the craft icon.
-- If the player is at or above the toSkill level for a craft, the craft button on that row should be disabled.
 
 Clean the code for any unnecessary shit.
