@@ -96,6 +96,11 @@ local function ComputeBufferedRequired(required)
   return withBuffer
 end
 
+
+local function IsNonEmptyString(s)
+  return type(s) == "string" and s:gsub("%s+", "") ~= ""
+end
+
 -- Creates a small icon button with hover and pushed states.
 -- The icon can either be a file texture path or an atlas name.
 ---@param parent Frame
@@ -173,6 +178,38 @@ local function MakeChoiceChevronButton(parent, tooltipText)
   b:SetNormalTexture(normal)
   b._normalTex = normal
 
+  -- Hover
+  local hl = b:CreateTexture(nil, "HIGHLIGHT")
+  hl:SetAllPoints()
+  hl:SetAtlas("UI-HUD-ActionBar-PageDownArrow-Mouseover", true)
+  if hl.SetRotation then
+    hl:SetRotation(rotation)
+  end
+  b:SetHighlightTexture(hl)
+  b._highlightTex = hl
+
+  -- Pressed
+  local pushed = b:CreateTexture(nil, "HIGHLIGHT")
+  pushed:SetAllPoints()
+  pushed:SetAtlas("UI-HUD-ActionBar-PageDownArrow-Down", true)
+  if pushed.SetRotation then
+    pushed:SetRotation(rotation * 2)
+  end
+  b:SetPushedTexture(pushed)
+  b._pushedTex = pushed
+
+  if IsNonEmptyString(tooltipText) then
+    b:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+      GameTooltip:SetText(tooltipText)
+      GameTooltip:Show()
+    end)
+
+    b:SetScript("OnLeave", function()
+      GameTooltip:Hide()
+    end)
+  end
+
   return b
 end
 
@@ -182,10 +219,6 @@ local function ClearRows(rows)
   end
 
   wipe(rows)
-end
-
-local function IsNonEmptyString(s)
-  return type(s) == "string" and s:gsub("%s+", "") ~= ""
 end
 
 local function EnsureCraftButtonVisuals(craftBtn)
