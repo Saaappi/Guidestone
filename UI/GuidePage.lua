@@ -798,9 +798,9 @@ function GuidePage:RenderGuide(guide)
     -- offsets is sufficient to avoid relative-to regions.
     local headerHeight = (header.GetStringHeight and header:GetStringHeight()) or 14
 
-    local craftBtn = CreateFrame("Button", nil, row, "SecureActionButtonTemplate, ActionButtonTemplate")
+    local craftBtn = CreateFrame("Button", nil, row, "InsecureActionButtonTemplate, ActionButtonTemplate")
     craftBtn:SetSize(32, 32)
-    craftBtn:SetPoint("TOPLEFT", "BOTTOMLEFT", 2, -(headerHeight + 8))
+    craftBtn:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -(headerHeight + 8))
     craftBtn:SetText(step.recipeName or "Craft")
     craftBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     EnsureCraftButtonVisuals(craftBtn)
