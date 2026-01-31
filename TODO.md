@@ -16,3 +16,5 @@ Fix These:
 - Crafting seems to stop one skill level short. I crafted the Bronze Settings from 50-79 and still have 40 Bronze Bars in my inventory, so something is bugged.
 
 Clean the code for any unnecessary shit.
+Possible integration with ProfessionShoppingList?
+Possible integration with Mapzeroth?
