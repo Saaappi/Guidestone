@@ -163,10 +163,14 @@ local function NormalizeMaterialItem(entry, farmingUrls)
   local required = tonumber(entry.required) or 0
   if required < 0 then required = 0 end
 
+  local noBuffer = (entry.noBuffer == true) or (entry.applyBuffer == false) or (tostring(entry.bufferMode) == "none")
+  local bufferMultiplier = tonumber(entry.bufferMultiplier)
+
   return {
     type = "item",
     itemID = math.floor(itemID),
     required = required,
+    noBuffer = noBuffer,
     wowProfessionsUrl = entry.wowProfessionsUrl or (farmingUrls and farmingUrls[itemID]) or nil,
     note = entry.note,
     links = NormalizeLinks(entry.links),

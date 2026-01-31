@@ -81,14 +81,31 @@ local function GetItemIcon(itemID)
   return "Interface\\Icons\\INV_Misc_QuestionMark"
 end
 
-local function ComputeBufferedRequired(required)
+---@param required number
+---@param meta table|nil -- material or group table (can include noBuffer/bufferMultiplier)
+---@return number
+local function ComputeBufferedRequired(required, meta)
   required = tonumber(required) or 0
   if required <= 0 then
     return 0
   end
 
-  -- 20% buffer, rounded up to nearest multiple of 5.
-  local withBuffer = math.ceil(required * 1.2)
+  if type(meta) == "table" then
+    if meta.noBuffer or meta.applyBuffer == false or tostring(meta.bufferMode) == "none" then
+      return math.ceil(required)
+    end
+  end
+
+  local multiplier = 1.2
+  if type(meta) == "table" then
+    local mult = tonumber(meta.bufferMultiplier)
+    if mult and mult > 0 then
+      multiplier = mult
+    end
+  end
+
+  -- Includes a buffer, rounded up to nearest multiple of 5.
+  local withBuffer = math.ceil(required * multiplier)
   local rem = withBuffer % 5
   if rem ~= 0 then
     withBuffer = withBuffer + (5 - rem)
@@ -1035,7 +1052,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       local g = row._group
       local st = anyMixState[g]
       if not st then
-        st = { have = 0, required = ComputeBufferedRequired(tonumber(g.required) or 0) }
+        st = { have = 0, required = ComputeBufferedRequired(tonumber(g.required) or 0, row._mat) }
         anyMixState[g] = st
       end
 
@@ -1048,7 +1065,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
     if row._matType == "choiceItem" and row._group and row._mat then
       local g = row._group
       local itemID = tonumber(row._mat.itemID)
-      local required = ComputeBufferedRequired(tonumber(row._mat.required) or 0)
+      local required = ComputeBufferedRequired(tonumber(row._mat.required) or 0, row._mat)
       local have = itemID and (ns.Util.GetItemCount(itemID) or 0) or 0
       local done = (required <= 0) or (have >= required)
 
@@ -1086,7 +1103,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
         row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
         done = gDone
       else
-        local required = ComputeBufferedRequired(tonumber(mat.required) or 0)
+        local required = ComputeBufferedRequired(tonumber(mat.required) or 0, row._mat)
         done = required > 0 and have >= required
         if done then
           row._text:SetText(("%s  %d / %d"):format(name, have, required))
@@ -1118,7 +1135,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
 
     elseif row._matType == "anyMixHeader" and row._group and row._text then
       local g = row._group
-      local st = anyMixState[g] or { have = 0, required = ComputeBufferedRequired(tonumber(g.required) or 0), done = false }
+      local st = anyMixState[g] or { have = 0, required = ComputeBufferedRequired(tonumber(g.required) or 0, row._mat), done = false }
       local label = g.label or "Choose any"
 
       row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(label, st.have or 0, st.required or 0))

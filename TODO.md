@@ -4,6 +4,7 @@
 
 Add:
 - Materials need a property to override the 20% buffer.
+- Material aliases so items are counted off if the player has an item that also works. (ie. Gnomish Army Knife instead of a Skinning Knife)
 - Choice sets need to also support steps, as the player can choose one or more paths.
 - Cast bar on the lower right of the frame.
 - Dropdown menu in the upper right that allows the player to quickly jump between expansion guides for the open profession.
