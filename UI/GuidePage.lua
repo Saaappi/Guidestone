@@ -857,7 +857,7 @@ function GuidePage:RenderGuide(guide)
       local mode = tostring(mat.mode or "anyMix")
 
       if mode == "choiceSets" then
-        local sel = GetChoiceSelection(guide.id, mat.key)
+        local sel = GetChoiceSelection(guide.id, mat.key, mat)
         local header = AddHeaderRow(mat.label or "Choose one", mat.note, 0)
         header._matType = "choiceHeader"
         header._group = mat
@@ -886,7 +886,10 @@ function GuidePage:RenderGuide(guide)
           end
 
           local function Choose()
-            SetChoiceSelection(guide.id, mat.key, idx)
+            -- Prefer stable ids when provided; fall back to numeric index.
+            local choiceID = (type(choice) == "table" and type(choice.id) == "string" and choice.id ~= "") and choice.id or nil
+            SetChoiceSelection(guide.id, mat.key, choiceID or idx)
+
             -- Rebuild rows to show the selected choice items.
             self:RenderGuide(self.currentGuide)
           end
@@ -1017,163 +1020,211 @@ function GuidePage:RenderGuide(guide)
   end
 
   -- Steps
-  prev = nil
-  for _, step in ipairs(guide.steps or {}) do
-    local row = CreateFrame("Frame", nil, self.stepsContainer)
-    row:SetHeight(44)
-
-    if not prev then
-      row:SetPoint("TOPLEFT", 0, 0)
-      row:SetPoint("TOPRIGHT", 0, 0)
-    else
-      row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -10)
-      row:SetPoint("TOPRIGHT", prev, "BOTTOMRIGHT", 0, -10)
+  -- Pre-index any choiceSets groups by key so steps can reference them.
+  local choiceGroupsByKey = {}
+  for _, mat in ipairs(materials or {}) do
+    if type(mat) == "table" and tostring(mat.type) == "group" and tostring(mat.mode or "") == "choiceSets" then
+      local key = type(mat.key) == "string" and mat.key or nil
+      if key and key ~= "" then
+        choiceGroupsByKey[key] = material
+      end
     end
-    prev = row
-
-    row._step = step
-
-    local header = MakeText(row, "GameFontNormal", 600)
-    header:SetPoint("TOPLEFT", 0, 0)
-    header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
-    row._header = header
-
-    -- I'm hoping that anchoring the button to its parent, and then using numeric
-    -- offsets is sufficient to avoid relative-to regions.
-    local headerHeight = (header.GetStringHeight and header:GetStringHeight()) or 14
-
-    local craftBtn = CreateFrame("Button", nil, row, "InsecureActionButtonTemplate, ActionButtonTemplate")
-    craftBtn:SetSize(32, 32)
-    craftBtn:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -(headerHeight + 8))
-    craftBtn:SetText(step.recipeName or "Craft")
-    craftBtn:RegisterForClicks("AnyUp")
-    EnsureCraftButtonVisuals(craftBtn)
-    craftBtn:SetScript("PreClick", function(btn)
-      if InCombatLockdown() then
-        -- Can't reconfigure attributes in combat.
-        btn:SetAttribute("*type1", nil)
-        return
-      end
-
-      local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
-      local blizzCreate = craftingPage and craftingPage.CreateButton
-      if not (craftingPage and blizzCreate) then
-        btn:SetAttribute("*type1", nil)
-        return
-      end
-
-      local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
-      local toSkill = tonumber(step and step.toSkill)
-
-      -- If the player has reached or exceeded the target skill, do not allow them
-      -- to craft items below that level.
-      if toSkill and currentSkill and currentSkill >= toSkill then
-        btn:SetAttribute("*type1", nil)
-        btn:SetAttribute("*clickbutton1", nil)
-        return
-      end
-
-      -- Prepare the runner state. No crafting.
-      if ns.CraftRunner and ns.CraftRunner.Start then
-        ns.CraftRunner:Start(step, function()
-          if GuidePage.currentGuide then
-            GuidePage:RenderGuide(GuidePage.currentGuide)
-          end
-        end, true) -- Passing a flag to skip the first craft.
-      end
-
-      local remaining = 0
-      if currentSkill and step.toSkill then
-        remaining = step.toSkill - currentSkill
-      end
-
-      if remaining < 1 then
-        remaining = 1
-      end
-
-      local craftableCount = 1
-      if craftingPage.GetCraftableCount then
-        craftableCount = craftingPage:GetCraftableCount() or 1
-      end
-
-      local desiredCount = remaining
-      if craftableCount < desiredCount then
-        desiredCount = craftableCount
-      end
-      if desiredCount < 1 then
-        desiredCount = 1
-      end
-
-      -- Force the professions UI to craft only 1 (because Create() reads the spinner value).
-      if craftingPage.CreateMultipleInputBox and craftingPage.CreateMultipleInputBox.SetValue then
-        craftingPage.CreateMultipleInputBox:SetValue(desiredCount)
-      end
-
-      if craftingPage.GetCraftableCount and craftingPage:GetCraftableCount() < 1 then
-        btn:SetAttribute("*type1", nil) -- Do nothing since the player can't craft.
-        return
-      end
-
-      -- Establish the secure click.
-      btn:SetAttribute("*type1", "click")
-      btn:SetAttribute("*clickbutton1", blizzCreate)
-    end)
-
-    -- This is here because ActionButtonTemplate overwrites the OnClick.
-    -- Since I want to keep ActionButtonTemplate for its visuals/icon behavior,
-    -- I restore the OnClick for the insecure template to route it for the
-    -- secure button template.
-    craftBtn:SetScript("OnClick", function(self, button, down)
-      if InCombatLockdown() then
-        return
-      end
-      SecureActionButton_OnClick(self, button, down)
-    end)
-
-    craftBtn:SetScript("OnEnter", function()
-      GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
-      if row._outputItemID then
-        GameTooltip:SetItemByID(row._outputItemID)
-      elseif row._outputHyperlink then
-        GameTooltip:SetHyperlink(row._outputHyperlink)
-      else
-        GameTooltip:SetText(step.recipeName or "Craft")
-      end
-      GameTooltip:Show()
-    end)
-
-    craftBtn:SetScript("OnLeave", function()
-      GameTooltip:Hide()
-    end)
-    row._craftBtn = craftBtn
-
-    local craftName = MakeText(row, "GameFontNormal")
-    craftName:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 8, -2)
-    craftName:SetPoint("TOPRIGHT", -10, 0)
-    craftName:SetWordWrap(true)
-    row._craftName = craftName
-
-    local craftReagents = MakeText(row, "GameFontHighlightSmall")
-    craftReagents:SetPoint("TOPLEFT", craftName, "BOTTOMLEFT", 0, -2)
-    craftReagents:SetPoint("TOPRIGHT", craftName, "BOTTOMRIGHT", 0, -2)
-    craftReagents:SetWordWrap(true)
-    row._craftReagents = craftReagents
-
-    self:UpdateStepRow(row)
-
-    if IsNonEmptyString(step.note) then
-      local note = MakeText(row, "GameFontHighlightSmall")
-      note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", 0, -4)
-      note:SetPoint("TOPRIGHT", craftReagents, "BOTTOMRIGHT", 0, -4)
-      note:SetWordWrap(true)
-      note:SetText(step.note)
-      row._note = note
-    end
-
-    table.insert(self.stepRows, row)
   end
 
-  self:Layout()
+  ---@param step table|nil
+  ---@return boolean
+  local function StepPassesChoiceFilters(step)
+    if type(step) ~= "table" then
+      return
+    end
+
+    local req = step.requiresChoices
+    if type(req) ~= "table" then
+      return true
+    end
+
+    for groupKey, wanted in pairs(req) do
+      if type(groupKey) == "string" and groupKey ~= "" and wanted ~= nil then
+        local groupDef = choiceGroupsByKey[groupKey]
+        local selIndex, selID = GetChoiceSelection(guide.id, groupKey, groupDef)
+
+        -- If the player hasn't selected an option yet, don't hide anything.
+        if selIndex ~= nil or selID ~= nil then
+          if type(wanted) == "number" then
+            if tonumber(selIndex) ~= tonumber(wanted) then
+              return false
+            end
+          else
+            if tostring(selID or "") ~= tostring(wanted) then
+              return false
+            end
+          end
+        end
+      end
+    end
+
+    return true
+  end
+
+  prev = nil
+  for _, step in ipairs(guide.steps or {}) do
+    if StepPassesChoiceFilters(step) then
+      local row = CreateFrame("Frame", nil, self.stepsContainer)
+      row:SetHeight(44)
+
+      if not prev then
+        row:SetPoint("TOPLEFT", 0, 0)
+        row:SetPoint("TOPRIGHT", 0, 0)
+      else
+        row:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -10)
+        row:SetPoint("TOPRIGHT", prev, "BOTTOMRIGHT", 0, -10)
+      end
+      prev = row
+
+      row._step = step
+
+      local header = MakeText(row, "GameFontNormal", 600)
+      header:SetPoint("TOPLEFT", 0, 0)
+      header:SetText(("%d - %d"):format(tonumber(step.fromSkill) or 0, tonumber(step.toSkill) or 0))
+      row._header = header
+
+      -- I'm hoping that anchoring the button to its parent, and then using numeric
+      -- offsets is sufficient to avoid relative-to regions.
+      local headerHeight = (header.GetStringHeight and header:GetStringHeight()) or 14
+
+      local craftBtn = CreateFrame("Button", nil, row, "InsecureActionButtonTemplate, ActionButtonTemplate")
+      craftBtn:SetSize(32, 32)
+      craftBtn:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -(headerHeight + 8))
+      craftBtn:SetText(step.recipeName or "Craft")
+      craftBtn:RegisterForClicks("AnyUp")
+      EnsureCraftButtonVisuals(craftBtn)
+      craftBtn:SetScript("PreClick", function(btn)
+        if InCombatLockdown() then
+          -- Can't reconfigure attributes in combat.
+          btn:SetAttribute("*type1", nil)
+          return
+        end
+
+        local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
+        local blizzCreate = craftingPage and craftingPage.CreateButton
+        if not (craftingPage and blizzCreate) then
+          btn:SetAttribute("*type1", nil)
+          return
+        end
+
+        local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
+        local toSkill = tonumber(step and step.toSkill)
+
+        -- If the player has reached or exceeded the target skill, do not allow them
+        -- to craft items below that level.
+        if toSkill and currentSkill and currentSkill >= toSkill then
+          btn:SetAttribute("*type1", nil)
+          btn:SetAttribute("*clickbutton1", nil)
+          return
+        end
+
+        -- Prepare the runner state. No crafting.
+        if ns.CraftRunner and ns.CraftRunner.Start then
+          ns.CraftRunner:Start(step, function()
+            if GuidePage.currentGuide then
+              GuidePage:RenderGuide(GuidePage.currentGuide)
+            end
+          end, true) -- Passing a flag to skip the first craft.
+        end
+
+        local remaining = 0
+        if currentSkill and step.toSkill then
+          remaining = step.toSkill - currentSkill
+        end
+
+        if remaining < 1 then
+          remaining = 1
+        end
+
+        local craftableCount = 1
+        if craftingPage.GetCraftableCount then
+          craftableCount = craftingPage:GetCraftableCount() or 1
+        end
+
+        local desiredCount = remaining
+        if craftableCount < desiredCount then
+          desiredCount = craftableCount
+        end
+        if desiredCount < 1 then
+          desiredCount = 1
+        end
+
+        -- Force the professions UI to craft only 1 (because Create() reads the spinner value).
+        if craftingPage.CreateMultipleInputBox and craftingPage.CreateMultipleInputBox.SetValue then
+          craftingPage.CreateMultipleInputBox:SetValue(desiredCount)
+        end
+
+        if craftingPage.GetCraftableCount and craftingPage:GetCraftableCount() < 1 then
+          btn:SetAttribute("*type1", nil) -- Do nothing since the player can't craft.
+          return
+        end
+
+        -- Establish the secure click.
+        btn:SetAttribute("*type1", "click")
+        btn:SetAttribute("*clickbutton1", blizzCreate)
+      end)
+
+      -- This is here because ActionButtonTemplate overwrites the OnClick.
+      -- Since I want to keep ActionButtonTemplate for its visuals/icon behavior,
+      -- I restore the OnClick for the insecure template to route it for the
+      -- secure button template.
+      craftBtn:SetScript("OnClick", function(self, button, down)
+        if InCombatLockdown() then
+          return
+        end
+        SecureActionButton_OnClick(self, button, down)
+      end)
+
+      craftBtn:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
+        if row._outputItemID then
+          GameTooltip:SetItemByID(row._outputItemID)
+        elseif row._outputHyperlink then
+          GameTooltip:SetHyperlink(row._outputHyperlink)
+        else
+          GameTooltip:SetText(step.recipeName or "Craft")
+        end
+        GameTooltip:Show()
+      end)
+
+      craftBtn:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+      end)
+      row._craftBtn = craftBtn
+
+      local craftName = MakeText(row, "GameFontNormal")
+      craftName:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 8, -2)
+      craftName:SetPoint("TOPRIGHT", -10, 0)
+      craftName:SetWordWrap(true)
+      row._craftName = craftName
+
+      local craftReagents = MakeText(row, "GameFontHighlightSmall")
+      craftReagents:SetPoint("TOPLEFT", craftName, "BOTTOMLEFT", 0, -2)
+      craftReagents:SetPoint("TOPRIGHT", craftName, "BOTTOMRIGHT", 0, -2)
+      craftReagents:SetWordWrap(true)
+      row._craftReagents = craftReagents
+
+      self:UpdateStepRow(row)
+
+      if IsNonEmptyString(step.note) then
+        local note = MakeText(row, "GameFontHighlightSmall")
+        note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", 0, -4)
+        note:SetPoint("TOPRIGHT", craftReagents, "BOTTOMRIGHT", 0, -4)
+        note:SetWordWrap(true)
+        note:SetText(step.note)
+        row._note = note
+      end
+
+      table.insert(self.stepRows, row)
+
+      self:Layout()
+    end
+  end
 end
 
 function GuidePage:RefreshMaterialsState(skipLayout)
@@ -1325,7 +1376,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       ns.Util.SetFontStringGreyed(row._text, done)
 
       -- Gold highlight for the selected choice (purely visual)
-      local sel = GetChoiceSelection(row._guideID, row._group.key)
+      local sel = GetChoiceSelection(row._guideID, row._group.key, row._group)
       if tonumber(row._choiceIndex) == tonumber(sel) then
         row._text:SetTextColor(GetGoldRGB())
       end

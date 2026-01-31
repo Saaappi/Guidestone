@@ -18,15 +18,17 @@ local ok, err = ns.Guides:RegisterGuide({
       type = "group",
       mode = "choiceSets",
       label = "Pick one:",
-      key = "classicJewelcrafting_Path1",
+      key = "classicJewelcrafting_30_50",
       choices = {
         {
+          id = "tigerseye",
           label = "Tigerseye",
           items = {
             { itemID = 818, required = 20 }
           }
         },
         {
+          id = "malachite",
           label = "Malachite",
           items = {
             { itemID = 774, required = 20 }
@@ -92,13 +94,15 @@ local ok, err = ns.Guides:RegisterGuide({
       fromSkill = 30,
       toSkill = 50,
       recipeName = "Tigerseye Band",
-      maxCrafts = 20
+      maxCrafts = 20,
+      requiresChoices = { classicJewelcrafting_30_50 = "tigerseye" }
     },
     {
       fromSkill = 30,
       toSkill = 50,
       recipeName = "Malachite Pendant",
-      maxCrafts = 20
+      maxCrafts = 20,
+      requiresChoices = { classicJewelcrafting_30_50 = "malachite" }
     },
   },
 })
