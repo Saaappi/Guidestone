@@ -16,12 +16,23 @@ local ok, err = ns.Guides:RegisterGuide({
     { itemID = 2840,  required = 100, wowProfessionsUrl = "https://www.wow-professions.com/farming/copper-ore-farming" }, -- Copper Ore
     { -- Tigerseye / Malachite
       type = "group",
-      label = "Pick:",
-      required = 20,
-      options = {
-        { itemID = 818, wowProfessionsUrl = "" },
-        { itemID = 774, wowProfessionsUrl = "" },
-      }
+      mode = "choiceSets",
+      label = "Pick one:",
+      key = "classicJewelcrafting_Path1",
+      choices = {
+        {
+          label = "Tigerseye",
+          items = {
+            { itemID = 818, required = 20 }
+          }
+        },
+        {
+          label = "Malachite",
+          items = {
+            { itemID = 774, required = 20 }
+          }
+        }
+      },
     },
     { -- Bronze Bar
       itemID = 2841,
@@ -35,11 +46,11 @@ local ok, err = ns.Guides:RegisterGuide({
     { -- Shadowgem or Shadowgem/Small Lustrous Pearl
       type = "group",
       mode = "choiceSets",
-      label = "Pick:",
+      label = "Pick one:",
       key = "classicJewelcrafting_Path2",
       choices = {
         {
-          label = "All Shadowgem",
+          label = "Shadowgem",
           items = {
             { itemID = 1210, required = 60 }
           }
@@ -75,7 +86,21 @@ local ok, err = ns.Guides:RegisterGuide({
       toSkill = 30,
       recipeName = "Delicate Copper Wire",
       maxCrafts = 30,
-    },},
+      note = "Save these, you'll need them for the next craft."
+    },
+    {
+      fromSkill = 30,
+      toSkill = 50,
+      recipeName = "Tigerseye Band",
+      maxCrafts = 20
+    },
+    {
+      fromSkill = 30,
+      toSkill = 50,
+      recipeName = "Malachite Pendant",
+      maxCrafts = 20
+    },
+  },
 })
 
 if not ok then

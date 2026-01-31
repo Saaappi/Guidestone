@@ -807,14 +807,14 @@ function GuidePage:RenderGuide(guide)
     craftBtn:SetScript("PreClick", function(btn)
       if InCombatLockdown() then
         -- Can't reconfigure attributes in combat.
-        btn:SetAttribute("type", nil)
+        btn:SetAttribute("*type1", nil)
         return
       end
 
       local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
       local blizzCreate = craftingPage and craftingPage.CreateButton
       if not (craftingPage and blizzCreate) then
-        btn:SetAttribute("type", nil)
+        btn:SetAttribute("*type1", nil)
         return
       end
 
@@ -857,14 +857,26 @@ function GuidePage:RenderGuide(guide)
       end
 
       if craftingPage.GetCraftableCount and craftingPage:GetCraftableCount() < 1 then
-        btn:SetAttribute("type", nil) -- Do nothing since the player can't craft.
+        btn:SetAttribute("*type1", nil) -- Do nothing since the player can't craft.
         return
       end
 
       -- Establish the secure click.
-      btn:SetAttribute("type", "click")
-      btn:SetAttribute("clickbutton", ProfessionsFrame.CraftingPage.CreateButton)
+      btn:SetAttribute("*type1", "click")
+      btn:SetAttribute("*clickbutton1", blizzCreate)
     end)
+
+    -- This is here because ActionButtonTemplate overwrites the OnClick.
+    -- Since I want to keep ActionButtonTemplate for its visuals/icon behavior,
+    -- I restore the OnClick for the insecure template to route it for the
+    -- secure button template.
+    craftBtn:SetScript("OnClick", function(self, button, down)
+      if InCombatLockdown() then
+        return
+      end
+      SecureActionButton_OnClick(self, button, down)
+    end)
+
     craftBtn:SetScript("OnEnter", function()
       GameTooltip:SetOwner(craftBtn, "ANCHOR_RIGHT")
       if row._outputItemID then
@@ -876,6 +888,7 @@ function GuidePage:RenderGuide(guide)
       end
       GameTooltip:Show()
     end)
+
     craftBtn:SetScript("OnLeave", function()
       GameTooltip:Hide()
     end)

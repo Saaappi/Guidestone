@@ -4,6 +4,11 @@
   - Or should it be the required materials that changes, if at all?
 - Add support for Wowhead links to the multi-link popup?
 - Fix the texture for choiceSets so it's not a rectangle.
-- The player should only need to click the craft button for an item once to either craft to the "toSkill" level,
-  or until they run out of materials, whichever happens first.
-- Add a property to materials that overwrites the buffer logic, so it doesn't add 20%.
+
+Add:
+- Materials need a property to override the 20% buffer.
+- Choice sets need to also support steps, as the player can choose one or more paths.
+
+Fix These:
+- Notes under steps are overlapped by the craft icon.
+- The texture for choice sets under materials should use a chevron.
