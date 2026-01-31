@@ -442,6 +442,9 @@ function GuidePage:Create(parent)
 
   page:RegisterEvent("BAG_UPDATE_DELAYED")
   page:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+  page:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
+  page:RegisterEvent("SKILL_LINES_CHANGED")
+  page:RegisterEvent("CHAT_MSG_SKILL")
   page:SetScript("OnEvent", function(_, event, arg1)
     if event == "BAG_UPDATE_DELAYED" then
       if GuidePage.RefreshAllState then
@@ -462,6 +465,13 @@ function GuidePage:Create(parent)
           GuidePage:RefreshMaterialsState()
         end
       end
+    end
+
+    if event == "TRADE_SKILL_LIST_UPDATE" or event == "SKILL_LINES_CHANGED" or event == "CHAT_MSG_SKILL" then
+      if GuidePage.RefreshStepsState then
+        GuidePage:RefreshStepsState()
+      end
+      return
     end
   end)
 
@@ -999,6 +1009,17 @@ function GuidePage:RenderGuide(guide)
         return
       end
 
+      local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
+      local toSkill = tonumber(step and step.toSkill)
+
+      -- If the player has reached or exceeded the target skill, do not allow them
+      -- to craft items below that level.
+      if toSkill and currentSkill and currentSkill >= toSkill then
+        btn:SetAttribute("*type1", nil)
+        btn:SetAttribute("*clickbutton1", nil)
+        return
+      end
+
       -- Prepare the runner state. No crafting.
       if ns.CraftRunner and ns.CraftRunner.Start then
         ns.CraftRunner:Start(step, function()
@@ -1007,8 +1028,6 @@ function GuidePage:RenderGuide(guide)
           end
         end, true) -- Passing a flag to skip the first craft.
       end
-
-      local currentSkill = ns.GetCurrentSkillLevel() or nil
 
       local remaining = 0
       if currentSkill and step.toSkill then
@@ -1091,7 +1110,6 @@ function GuidePage:RenderGuide(guide)
 
     if IsNonEmptyString(step.note) then
       local note = MakeText(row, "GameFontHighlightSmall")
-      --note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", -(craftBtn:GetWidth() + 8), -4)
       note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", 0, -4)
       note:SetPoint("TOPRIGHT", craftReagents, "BOTTOMRIGHT", 0, -4)
       note:SetWordWrap(true)
@@ -1409,6 +1427,35 @@ function GuidePage:UpdateStepRow(row)
   if iconTex then
     iconTex:SetTexture(iconTexturePath)
   end
+
+  -- Disable the craft button once the player reaches or exceeds the target skill.
+  do
+    local btn = row._craftBtn
+    local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
+    local toSkill = tonumber(step and step.toSkill)
+
+    local reachedTarget = (toSkill and currentSkill and currentSkill >= toSkill) and true or false
+
+    if reachedTarget then
+      btn:Disable()
+      btn:SetAlpha(0.35)
+      if iconTex then
+        iconTex:SetDesaturated(true)
+      end
+
+      -- Extra precaution: clear secure routing out of combat
+      if not InCombatLockdown() then
+        btn:SetAttribute("*type1", nil)
+        btn:SetAttribute("*clickbutton1", nil)
+      end
+    else
+      btn:Enable()
+      btn:SetAlpha(1)
+      if iconTex then
+        iconTex:SetDesaturated(false)
+      end
+    end
+  end
 end
 
 function GuidePage:UpdateRowSizing()
@@ -1456,7 +1503,9 @@ function GuidePage:UpdateRowSizing()
   for _, row in ipairs(self.stepRows) do
     if row:IsShown() and row._craftBtn then
       if row._note then
-        row._note:SetWidth(math.max(200, stepsWidth - 10))
+        local craftBtnWidth = (row._craftBn and row._craftBtn:GetWidth()) or 32
+        local available = math.max(200, stepsWidth - craftBtnWidth - 8 - 10)
+        row._note:SetWidth(available)
       end
 
       local headerHeight = (row._header and row._header:GetStringHeight()) or 0
