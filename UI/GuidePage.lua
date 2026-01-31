@@ -1118,6 +1118,13 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       if tonumber(row._choiceIndex) == tonumber(sel) then
         row._text:SetTextColor(GetGoldRGB())
       end
+
+      if row._choiceBtn then
+        local alpha = done and 0.35 or 1
+        ns.Util.SetDesaturatedAndAlpha(row._choiceBtn._normalTex, done, alpha)
+        ns.Util.SetDesaturatedAndAlpha(row._choiceBtn.highlightTex, done, alpha)
+        ns.Util.SetDesaturatedAndAlpha(row._choiceBtn._pushedTex, done, alpha)
+      end
     end
   end
 
