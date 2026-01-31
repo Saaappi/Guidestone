@@ -827,9 +827,33 @@ function GuidePage:RenderGuide(guide)
         end, true) -- Passing a flag to skip the first craft.
       end
 
+      local currentSkill = craftingPage.GetCurrentSkillLevel and craftingPage:GetCurrentSkillLevel() or nil
+
+      local remaining = 0
+      if currentSkill and step.toSkill then
+        remaining = step.toSkill - currentSkill
+      end
+
+      if remaining < 1 then
+        remaining = 1
+      end
+
+      local craftableCount = 1
+      if craftingPage.GetCraftableCount then
+        craftableCount = craftingPage:GetCraftableCount() or 1
+      end
+
+      local desiredCount = remaining
+      if craftableCount < desiredCount then
+        desiredCount = craftableCount
+      end
+      if desiredCount < 1 then
+        desiredCount = 1
+      end
+
       -- Force the professions UI to craft only 1 (because Create() reads the spinner value).
       if craftingPage.CreateMultipleInputBox and craftingPage.CreateMultipleInputBox.SetValue then
-        craftingPage.CreateMultipleInputBox:SetValue(1)
+        craftingPage.CreateMultipleInputBox:SetValue(desiredCount)
       end
 
       if craftingPage.GetCraftableCount and craftingPage:GetCraftableCount() < 1 then
