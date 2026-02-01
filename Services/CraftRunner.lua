@@ -12,7 +12,7 @@ CraftRunner._onDone = nil
 CraftRunner._targetSkill = 0
 CraftRunner._lastSkill = 0
 CraftRunner._noSkillupCasts = 0
-CraftRunner._maxNoSkillupCasts = 8
+CraftRunner._maxNoSkillupCasts = 25
 
 CraftRunner._recipeID = nil
 CraftRunner._recipeSpellID = nil
@@ -144,6 +144,9 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
   self._targetSkill = targetSkill
   self._lastSkill = ns.GetCurrentSkillLevel()
   self._noSkillupCasts = 0
+
+  self._hadSuccessfulCraft = false
+  self._pendingTry = false
 
   self._recipeID = recipeID
   self._recipeSpellID = recipeInfo.spellID

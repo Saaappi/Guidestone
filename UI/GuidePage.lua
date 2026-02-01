@@ -1162,7 +1162,7 @@ function GuidePage:RenderGuide(guide)
 
         -- Force the professions UI to craft only 1 (because Create() reads the spinner value).
         if craftingPage.CreateMultipleInputBox and craftingPage.CreateMultipleInputBox.SetValue then
-          craftingPage.CreateMultipleInputBox:SetValue(desiredCount)
+          craftingPage.CreateMultipleInputBox:SetValue(desiredCount * 1.5)
         end
 
         if craftingPage.GetCraftableCount and craftingPage:GetCraftableCount() < 1 then
@@ -1203,8 +1203,40 @@ function GuidePage:RenderGuide(guide)
       end)
       row._craftBtn = craftBtn
 
+      -- Optional "trainer required" icon lives in the gutter between the craft button
+      -- and the craft name. I'll reserve this space always so reagents never shift when
+      -- the icon becomes visible.
+      local trainerIcon = CreateFrame("Frame", nil, row)
+      trainerIcon:SetSize(16, 16)
+      trainerIcon:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 8, -2)
+      trainerIcon:EnableMouse(true)
+      trainerIcon:SetFrameLevel((craftBtn:GetFrameLevel() or 0) + 1)
+
+      local trainerTex = trainerIcon:CreateTexture(nil, "ARTWORK")
+      trainerTex:SetAllPoints()
+      trainerTex:SetAtlas("LevelUp-Icon-Book", true)
+      trainerIcon._tex = trainerTex
+      trainerIcon:Hide()
+
+      trainerIcon:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Visit your trainer")
+
+        local r = self._row
+        local name = (r and r._craftName and r._craftName.GetText and r._craftName:GetText()) or "this recipe"
+        GameTooltip:AddLine(("You don't know %s yet. Visit a trainer to learn it."):format(name), 1, 1, 1, true)
+        GameTooltip:Show()
+      end)
+
+      trainerIcon:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+      end)
+
+      trainerIcon._row = row
+      row._trainerIcon = trainerIcon
+
       local craftName = MakeText(row, "GameFontNormal")
-      craftName:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 8, -2)
+      craftName:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 28, -2)
       craftName:SetPoint("TOPRIGHT", -10, 0)
       craftName:SetWordWrap(true)
       row._craftName = craftName
@@ -1438,8 +1470,9 @@ function GuidePage:UpdateStepRow(row)
     row._recipeID = recipeID
   end
 
+  local recipeInfo
   if recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
-    local recipeInfo = C_TradeSkillUI.GetRecipeInfo(recipeID)
+    recipeInfo = C_TradeSkillUI.GetRecipeInfo(recipeID)
     if recipeInfo and type(recipeInfo.name) == "string" and recipeInfo.name ~= "" then
       displayName = recipeInfo.name
     end
@@ -1564,6 +1597,23 @@ function GuidePage:UpdateStepRow(row)
       if iconTex then
         iconTex:SetDesaturated(false)
       end
+    end
+  end
+
+  -- Show "trainer required" icon once the player is at or above this step's skill band,
+  -- but the recipe hasn't been learned yet.
+  do
+    local icon = row._trainerIcon
+    if icon then
+      local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
+      local fromSkill = tonumber(step and step.fromSkill)
+
+      local needsTrainer = false
+      if currentSkill and fromSkill and currentSkill >= fromSkill and recipeInfo and not recipeInfo.learned then
+        needsTrainer = true
+      end
+
+      icon:SetShown(needsTrainer)
     end
   end
 end
