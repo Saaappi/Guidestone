@@ -769,6 +769,7 @@ function GuidePage:Create(parent)
   credit:SetJustifyH("CENTER")
   credit:SetPoint("TOP", page, "TOP", 0, -30)
   credit:SetText(("Crafted with |T%s:14:14:0:0|t by LightskyGG"):format(HEART_ICON))
+  credit:SetAlpha(0.75)
   self._creditText = credit
 
   page.GetDesiredPageWidth = function()
