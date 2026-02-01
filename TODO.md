@@ -9,6 +9,9 @@ Add:
 
 Fix These:
 
+Before Release:
 Clean the code for any unnecessary shit.
+
+Considerations:
 Possible integration with ProfessionShoppingList?
 Possible integration with Mapzeroth?
