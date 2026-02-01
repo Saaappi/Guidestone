@@ -10,6 +10,22 @@ local WOWPROF_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\WoWProfessions.
 local WOWHEAD_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Wowhead.png"
 local TOMTOM_ICON  = "Interface\\AddOns\\" .. ADDON .. "\\Media\\TomTom.png"
 
+local PROF_BG_ATLAS_BY_ID = {
+  [171] = "Professions-Recipe-Background-Alchemy",
+  [164] = "Professions-Recipe-Background-Blacksmithing",
+  [333] = "Professions-Recipe-Background-Enchanting",
+  [202] = "Professions-Recipe-Background-Engineering",
+  [182] = "Professions-Recipe-Background-Herbalism",
+  [773] = "Professions-Recipe-Background-Inscription",
+  [755] = "Professions-Recipe-Background-Jewelcrafting",
+  [165] = "Professions-Recipe-Background-Leatherworking",
+  [186] = "Professions-Recipe-Background-Mining",
+  [393] = "Professions-Recipe-Background-Skinning",
+  [197] = "Professions-Recipe-Background-Tailoring",
+  [185] = "Professions-Recipe-Background-Cooking",
+  [356] = "Professions-Recipe-Background-Fishing"
+}
+
 GuidePage.frame = nil
 GuidePage.scrollFrame = nil
 GuidePage.scrollChild = nil
@@ -20,6 +36,147 @@ GuidePage.stepRows = GuidePage.stepRows or {}
 GuidePage.trainerRows = GuidePage.trainerRows or {}
 
 GuidePage._pendingItemLoads = GuidePage._pendingItemLoads or {}
+
+---@param atlas string|nil
+---@return boolean
+local function AtlasExists(atlas)
+  if type(atlas) ~= "string" or atlas == "" then
+    return false
+  end
+
+  -- Retail: verify atlas exists. If API isn't present, assume true
+  if C_Texture and C_Texture.GetAtlasInfo then
+    local ok, info = pcall(C_Texture.GetAtlasInfo, atlas)
+    return ok and info ~= nil
+  end
+
+  return true
+end
+
+---@param professionName string|nil
+---@return string|nil
+local function CanonicalizeProfessionName(professionName)
+  if type(professionName) ~= "string" or professionName == "" then
+    return nil
+  end
+
+  -- Remove spaces and punctuation, if present.
+  local cleaned = professionName:gsub("[%s%p]", "")
+  if cleaned == "" then
+    return nil
+  end
+
+  -- Uppercase the first letter.
+  return cleaned:sub(1, 1):upper() .. cleaned:sub(2)
+end
+
+---@param professionInfo table|nil
+---@return string|nil
+local function GetProfessionBackgroundAtlas(professionInfo)
+  if type(professionInfo) ~= "table" then
+    return nil
+  end
+
+  local professionID = tonumber(professionInfo.professionID)
+  local byID = professionID and PROF_BG_ATLAS_BY_ID[professionID] or nil
+  if AtlasExists(byID) then
+    return byID
+  end
+
+  local canon = CanonicalizeProfessionName(professionInfo.professionName)
+  if canon then
+    local guess = "Professions-Recipe-Background-" .. canon
+    if AtlasExists(guess) then
+      return guess
+    end
+  end
+
+  return nil
+end
+
+---@param tex Texture|nil
+---@param atlas string|nil
+---@return boolean
+local function TrySetAtlas(tex, atlas)
+  if not tex or type(atlas) ~= "string" or atlas == "" then
+    return false
+  end
+
+  if not tex.SetAtlas then
+    return false
+  end
+
+  local ok = pcall(tex.SetAtlas, tex, atlas, true)
+  if not ok then
+    return false
+  end
+
+  -- Some clients/patches won't have GetAtlas; treat SetAtlas success as success.
+  if tex.GetAtlas then
+    local current = tex:GetAtlas()
+    if current ~= atlas then
+      -- Still might be set but normalized; treat mismatch as "unknown"
+      -- and allow other fallbacks to run.
+      return false
+    end
+  end
+
+  return true
+end
+
+---@return string|nil
+local function FindProfessionBackgroundAtlasFromCraftingUI()
+  if not (ProfessionsFrame and ProfessionsFrame.CraftingPage) then
+    return nil
+  end
+
+  local craftingPage = ProfessionsFrame.CraftingPage
+  local form = craftingPage.SchematicForm or craftingPage.DetailsFrame or craftingPage
+  if not (form and form.GetRegions) then
+    return nil
+  end
+
+  -- Scan regions for a texture whose atlas name looks like a professions recipe background.
+  local regions = { form:GetRegions() }
+  for i = 1, #regions do
+    local r = regions[i]
+    if r and r.GetObjectType and r:GetObjectType() == "Texture" and r.GetAtlas then
+      local atlas = r:GetAtlas()
+      if type(atlas) == "string" and atlas:find("^Professions%-Recipe%-Background") then
+        return atlas
+      end
+    end
+  end
+
+  return nil
+end
+
+---@param professionInfo table|nil
+---@return nil
+function GuidePage:SetProfessionBackground(professionInfo)
+  local tex = self._bgTex
+  if not tex then
+    return
+  end
+
+  -- 1) Preferred: our own mapping / canonical guess.
+  local atlas = GetProfessionBackgroundAtlas(professionInfo)
+  if TrySetAtlas(tex, atlas) then
+    tex:Show()
+    return
+  end
+
+  -- 2) Fallback: sniff Blizzard's crafting UI for the active profession background atlas.
+  local sniffed = FindProfessionBackgroundAtlasFromCraftingUI()
+  if TrySetAtlas(tex, sniffed) then
+    tex:Show()
+    return
+  end
+
+  -- 3) Nothing found: hide the profession texture, but keep the tint visible.
+  tex:Hide()
+end
+
 
 local function MakeHeader(parent, text)
   local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -589,6 +746,23 @@ function GuidePage:Create(parent)
   page:Hide()
   self.frame = page
 
+  -- Profession-themed background (behind everything).
+  -- We also keep a subtle tint behind it so the guide never looks "unstyled"
+  -- even if we can't resolve the profession atlas.
+  local tint = page:CreateTexture(nil, "BACKGROUND")
+  tint:SetAllPoints(page)
+  tint:SetTexture("Interface\\Buttons\\WHITE8x8")
+  tint:SetVertexColor(0, 0, 0)
+  tint:SetAlpha(0.15)
+  tint:Show()
+  self._bgTint = tint
+
+  local bg = page:CreateTexture(nil, "BORDER")
+  bg:SetAllPoints(page)
+  bg:SetAlpha(0.35)
+  bg:Hide()
+  self._bgTex = bg
+
   page.GetDesiredPageWidth = function()
     -- Match Blizzard profession tab widths so ProfessionsFrame:SetTab can resize safely.
     if ProfessionsUtil and ProfessionsUtil.IsCraftingMinimized and ProfessionsUtil.IsCraftingMinimized() then
@@ -694,6 +868,11 @@ end
 function GuidePage:LoadForProfession(professionInfo)
   if not (self.frame and self.frame:IsShown()) then
     -- Still allow data to be prepared even if the tab is not currently visible
+  end
+
+  -- Update profession background whenever the profession changes.
+  if self.SetProfessionBackground then
+    self:SetProfessionBackground(professionInfo)
   end
 
   local guide = ns.Guides and ns.Guides.GetBestGuide and ns.Guides:GetBestGuide(professionInfo) or nil
