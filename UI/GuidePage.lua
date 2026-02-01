@@ -174,6 +174,104 @@ local function MakeIconButtonWithStates(parent, icon, tooltipText, isAtlas)
   return b
 end
 
+---@param entries table|nil
+---@return table|nil
+local function ResolveFactionEntry(entries)
+  local playerFaction = ns.Util.GetPlayerFactionFlag and ns.Util.GetPlayerFactionFlag() or 0
+
+  if type(entries) ~= "table" then
+    return nil
+  end
+
+  -- Single table format.
+  if entries.uiMapID or entries.name then
+    return entries
+  end
+
+  -- Array format.
+  for _, v in ipairs(entries) do
+    local f = tonumber(v and v.faction) or 0
+    if f == 0 or f == playerFaction then
+      return v
+    end
+  end
+
+  return entries[1]
+end
+
+---@param row Frame
+---@param craftBtn Button
+---@return Button
+local function CreateLearnSourceIcon(row, craftBtn)
+  local b = CreateFrame("Button", nil, row)
+  b:SetSize(16, 16)
+  b:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 8, -2)
+  b:SetFrameLevel((craftBtn:GetFrameLevel() or 0) + 1)
+  b:RegisterForClicks("LeftButtonUp")
+
+  local t = b:CreateTexture(nil, "ARTWORK")
+  t:SetAllPoints()
+  b._tex = t
+
+  local hl = b:CreateTexture(nil, "HIGHLIGHT")
+  hl:SetAllPoints()
+  hl:SetBlendMode("ADD")
+  hl:SetAlpha(0.35)
+  b._hl = hl
+
+  b:Hide()
+
+  b:SetScript("OnEnter", function()
+    GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+
+    local r = self._row
+    local name = (r and r._craftName and r._craftName.GetText and r._craftName:GetText()) or "this recipe"
+
+    if self._kind == "vendor" then
+      GameTooltip:SetText("Visit a vendor")
+      GameTooltip:AddLine(("You don't know %s yet. Visit a vendor to purchase it."):format(name))
+
+      local v = self._vendor
+      if v and IsNonEmptyString(v.name) then
+        GameTooltip:AddLine(("Vendor: %s"):format(v.name), 0.85, 0.85, 0.85, true)
+      end
+
+      if v and v.uiMapID and v.x and v.y then
+        local clickHint = (ns.Util and ns.Util.IsTomTomEnabled and ns.Util.IsTomTomEnabled())
+          and "Set TomTom Waypoint"
+          or "Set Waypoint"
+        GameTooltip:AddLine(clickHint, 0.25, 1, 0.25, true)
+      end
+    else
+      GameTooltip:SetText("Visit your trainer")
+      GameTooltip:AddLine(("You don't know %s yet. Visit a trainer to learn it."):format(name), 1, 1, 1, true)
+    end
+
+    GameTooltip:Show()
+  end)
+
+  b:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
+  b:SetScript("OnClick", function()
+    if self._kind ~= "vendor" then
+      return
+    end
+
+    local v = self._vendor
+    if not (v and v.uiMapID and v.x and v.y) then
+      return
+    end
+
+    if ns.Util and ns.Util.AddWaypoint then
+      ns.Util.AddWaypoint(v.uiMapID, v.x, v.y, v.name or "Vendor")
+    end
+  end)
+
+  return b
+end
+
 -- Creates a small atlas chevron button.
 -- Used by choiceSets to avoid the textureless rectangle.
 ---@param parent Frame
@@ -939,7 +1037,7 @@ function GuidePage:RenderGuide(guide)
   -- Trainers
   local trainers = guide.trainers or {}
   local playerFaction = ns.Util.GetPlayerFactionFlag and ns.Util.GetPlayerFactionFlag() or 0
-  local isTomTomEnabled = ns.Util.IsTomTomAvailable and ns.Util.IsTomTomAvailable() or false
+  local isTomTomEnabled = ns.Util.IsTomTomEnabled and ns.Util.IsTomTomEnabled() or false
 
   prev = nil
   local anyTrainer = false
@@ -1222,34 +1320,9 @@ function GuidePage:RenderGuide(guide)
       -- Optional "trainer required" icon lives in the gutter between the craft button
       -- and the craft name. I'll reserve this space always so reagents never shift when
       -- the icon becomes visible.
-      local trainerIcon = CreateFrame("Frame", nil, row)
-      trainerIcon:SetSize(16, 16)
-      trainerIcon:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 8, -2)
-      trainerIcon:EnableMouse(true)
-      trainerIcon:SetFrameLevel((craftBtn:GetFrameLevel() or 0) + 1)
-
-      local trainerTex = trainerIcon:CreateTexture(nil, "ARTWORK")
-      trainerTex:SetAllPoints()
-      trainerTex:SetAtlas("LevelUp-Icon-Book", true)
-      trainerIcon._tex = trainerTex
-      trainerIcon:Hide()
-
-      trainerIcon:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Visit your trainer")
-
-        local r = self._row
-        local name = (r and r._craftName and r._craftName.GetText and r._craftName:GetText()) or "this recipe"
-        GameTooltip:AddLine(("You don't know %s yet. Visit a trainer to learn it."):format(name), 1, 1, 1, true)
-        GameTooltip:Show()
-      end)
-
-      trainerIcon:SetScript("OnLeave", function()
-        GameTooltip:Hide()
-      end)
-
-      trainerIcon._row = row
-      row._trainerIcon = trainerIcon
+      local learnIcon = CreateLearnSourceIcon(row, craftBtn)
+      learnIcon._row = row
+      row._learnIcon = learnIcon
 
       local craftName = MakeText(row, "GameFontNormal")
       craftName:SetPoint("TOPLEFT", craftBtn, "TOPRIGHT", 28, -2)
@@ -1619,17 +1692,58 @@ function GuidePage:UpdateStepRow(row)
   -- Show "trainer required" icon once the player is at or above this step's skill band,
   -- but the recipe hasn't been learned yet.
   do
-    local icon = row._trainerIcon
+    local icon = row._learnIcon
     if icon then
       local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
       local fromSkill = tonumber(step and step.fromSkill)
 
-      local needsTrainer = false
+      local shouldShowLearnIcon = false
       if currentSkill and fromSkill and currentSkill >= fromSkill and recipeInfo and not recipeInfo.learned then
-        needsTrainer = true
+        shouldShowLearnIcon = true
       end
 
-      icon:SetShown(needsTrainer)
+      if not shouldShowLearnIcon then
+        icon:Hide()
+      else
+        -- Default to trainer unless the step explicitly says otherwise.
+        local learn = step and step.learn
+        local learnType = nil
+        local vendorEntries = nil
+
+        if type(learn) == "table" then
+          learnType = tostring(learn.type or "")
+          vendorEntries = learn.vendor or learn.vendors
+        else
+          learnType = tostring(step and step.learnSource or "")
+          vendorEntries = step and (step.vendor or step.vendors) or nil
+        end
+
+        if learnType == "" then
+          learnType = "trainer"
+        end
+
+        if learnType == "vendor" then
+          icon._kind = "vendor"
+          icon._vendor = ResolveFactionEntry(vendorEntries)
+          if icon._tex then
+            icon._tex:SetAtlas("Levelup-Icon-Bag", true)
+          end
+          if icon._hl then
+            icon._hl:SetAtlas("Levelup-Icon-Bag", true)
+          end
+          icon:Show()
+        else
+          icon._kind = "trainer"
+          icon._vendor = nil
+          if icon._tex then
+            icon._tex:SetAtlas("LevelUp-Icon-Book", true)
+          end
+          if icon._hl then
+            icon._hl:SetAtlas("LevelUp-Icon-Book", true)
+          end
+          icon:Show()
+        end
+      end
     end
   end
 end

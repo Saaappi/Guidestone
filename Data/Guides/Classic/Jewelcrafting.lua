@@ -186,7 +186,16 @@ local ok, err = ns.Guides:RegisterGuide({
       toSkill = 150,
       recipeName = "Amulet of the Moon",
       maxCrafts = 30,
-      requiresChoices = { classicJewelcrafting_120_150 = "lesserMoonstone" }
+      requiresChoices = { classicJewelcrafting_120_150 = "lesserMoonstone" },
+      learn = {
+        type = "vendor",
+        vendors =  {
+          { name = "Mythrin'dir", uiMapID = 0, x = 0, y = 0, faction = 1 },
+          { name = "Arred", uiMapID = 0, x = 0, y = 0, faction = 1 },
+          { name = "Daniel Bartlett", uiMapID = 0, x = 0, y = 0, faction = 2 },
+          { name = "Gelanthis", uiMapID = 0, x = 0, y = 0, faction = 2 },
+        }
+      }
     },
     {
       fromSkill = 150,
