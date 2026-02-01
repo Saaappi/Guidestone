@@ -178,7 +178,15 @@ local ok, err = ns.Guides:RegisterGuide({
       fromSkill = 120,
       toSkill = 150,
       recipeName = "Pendant of the Agate Shield",
-      maxCrafts = 30
+      maxCrafts = 30,
+      requiresChoices = { classicJewelcrafting_120_150 = "mossAgate" }
+    },
+    {
+      fromSkill = 120,
+      toSkill = 150,
+      recipeName = "Amulet of the Moon",
+      maxCrafts = 30,
+      requiresChoices = { classicJewelcrafting_120_150 = "lesserMoonstone" }
     },
     {
       fromSkill = 150,
