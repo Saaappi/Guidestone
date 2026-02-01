@@ -1162,7 +1162,7 @@ function GuidePage:RenderGuide(guide)
 
         -- Force the professions UI to craft only 1 (because Create() reads the spinner value).
         if craftingPage.CreateMultipleInputBox and craftingPage.CreateMultipleInputBox.SetValue then
-          craftingPage.CreateMultipleInputBox:SetValue(desiredCount * 1.5)
+          craftingPage.CreateMultipleInputBox:SetValue(desiredCount)
         end
 
         if craftingPage.GetCraftableCount and craftingPage:GetCraftableCount() < 1 then
