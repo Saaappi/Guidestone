@@ -290,7 +290,7 @@ local function CreateLearnSourceIcon(row, craftBtn)
     -- Multiple vendors: show a context menu instead.
     if MenuUtil and MenuUtil.CreateContextMenu then
       MenuUtil.CreateContextMenu(self, function(_, root)
-        root:SetTitle("Choose a vendor:")
+        root:CreateTitle("Choose a vendor:")
 
         for i = 1, #vendors do
           local vendor = vendors[i]
