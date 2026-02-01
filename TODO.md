@@ -4,7 +4,6 @@ Add:
 - Have the addon auto learn skills from trainers if it's related to one of the player's professions.
 - Add support for Wowhead links to the multi-link popup?
 - Localization
-- Crafted with <3 by LightskyGG text.
 
 Fix These:
 

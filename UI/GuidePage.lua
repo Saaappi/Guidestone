@@ -9,6 +9,7 @@ local GuidePage = ns.GuidePage
 local WOWPROF_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\WoWProfessions.png"
 local WOWHEAD_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Wowhead.png"
 local TOMTOM_ICON  = "Interface\\AddOns\\" .. ADDON .. "\\Media\\TomTom.png"
+local HEART_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Heart.png"
 
 local PROF_BG_ATLAS_BY_ID = {
   [171] = "Professions-Recipe-Background-Alchemy",
@@ -762,6 +763,13 @@ function GuidePage:Create(parent)
   bg:SetAlpha(0.35)
   bg:Hide()
   self._bgTex = bg
+
+  -- Pinned credit line
+  local credit = page:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  credit:SetJustifyH("CENTER")
+  credit:SetPoint("TOP", page, "TOP", 0, -30)
+  credit:SetText(("Crafted with |T%s:14:14:0:0|t by LightskyGG"):format(HEART_ICON))
+  self._creditText = credit
 
   page.GetDesiredPageWidth = function()
     -- Match Blizzard profession tab widths so ProfessionsFrame:SetTab can resize safely.
