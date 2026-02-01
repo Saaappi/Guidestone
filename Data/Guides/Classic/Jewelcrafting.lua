@@ -68,6 +68,41 @@ local ok, err = ns.Guides:RegisterGuide({
         }
       }
     },
+    { itemID = 2838,  required = 80 }, -- Heavy Stone
+    { -- Moss Agate / Lesser Moonstone
+      type = "group",
+      mode = "choiceSets",
+      label = "Pick one:",
+      key = "classicJewelcrafting_120_150",
+      choices = {
+        {
+          id = "mossAgate",
+          label = "Moss Agate",
+          items = {
+            { itemID = 1206, required = 30 }
+          }
+        },
+        {
+          id = "lesserMoonstone",
+          label = "Lesser Moonstone",
+          items = {
+            { itemID = 1705, required = 60 }
+          }
+        }
+      }
+    },
+    { itemID = 3860,  required = 140, wowProfessionsUrl = "https://www.wow-professions.com/farming/mithril-ore-farming" }, -- Mithril Bar
+    { itemID = 7912,  required = 80 }, -- Solid Stone
+    { itemID = 3864,  required = 25 }, -- Citrine
+    { itemID = 6037,  required = 15 }, -- Truesilver Bar
+    { itemID = 7909,  required = 5 }, -- Aquamarine
+    { itemID = 12359,  required = 50, wowProfessionsUrl = "https://www.wow-professions.com/farming/thorium-ore-farming" }, -- Thorium Bar
+    { itemID = 7910,  required = 10 }, -- Star Ruby
+    { itemID = 12799,  required = 20 }, -- Large Opal
+    { itemID = 12800,  required = 7 }, -- Azerothian Diamond
+    { itemID = 12361,  required = 3 }, -- Blue Sapphire
+    { itemID = 12808,  required = 3 }, -- Essence of Undeath
+    { itemID = 12364,  required = 20 }, -- Huge Emerald
   },
 
   trainers = {
@@ -144,6 +179,73 @@ local ok, err = ns.Guides:RegisterGuide({
       toSkill = 150,
       recipeName = "Pendant of the Agate Shield",
       maxCrafts = 30
+    },
+    {
+      fromSkill = 150,
+      toSkill = 180,
+      recipeName = "Mithril Filigree",
+      maxCrafts = 45
+    },
+    {
+      fromSkill = 180,
+      toSkill = 185,
+      recipeName = "Solid Stone Statue",
+      maxCrafts = 8
+    },
+    {
+      fromSkill = 185,
+      toSkill = 200,
+      recipeName = "Engraved Truesilver Ring",
+      maxCrafts = 15
+    },
+    {
+      fromSkill = 200,
+      toSkill = 220,
+      recipeName = "Citrine Ring of Rapid Healing",
+      maxCrafts = 25
+    },
+    {
+      fromSkill = 220,
+      toSkill = 225,
+      recipeName = "Aquamarine Pendant of the Warrior",
+      maxCrafts = 5
+    },
+    {
+      fromSkill = 225,
+      toSkill = 250,
+      recipeName = "Thorium Setting",
+      maxCrafts = 50,
+      note = "Save these, you'll need them for future crafts. Craft more as you need them."
+    },
+    {
+      fromSkill = 250,
+      toSkill = 260,
+      recipeName = "Ruby Pendant of Fire",
+      maxCrafts = 10
+    },
+    {
+      fromSkill = 260,
+      toSkill = 280,
+      recipeName = "Simple Opal Ring",
+      maxCrafts = 20
+    },
+    {
+      fromSkill = 280,
+      toSkill = 287,
+      recipeName = "Diamond Focus Ring",
+      maxCrafts = 7
+    },
+    {
+      fromSkill = 287,
+      toSkill = 290,
+      recipeName = "Sapphire Pendant of Winter Night",
+      maxCrafts = 3
+    },
+    {
+      fromSkill = 290,
+      toSkill = 300,
+      recipeName = "Emerald Lion Ring",
+      maxCrafts = 10
     },
   },
 })
