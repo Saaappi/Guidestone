@@ -229,6 +229,18 @@ local function CreateLearnSourceIcon(row, craftBtn)
 
   b:Hide()
 
+  b:SetScript("OnMouseDown", function(self)
+    if self._tex then
+      self._tex:SetVertexColor(0.65, 0.65, 0.65, 1)
+    end
+  end)
+
+  b:SetScript("OnMouseUp", function(self)
+    if self._tex then
+      self._tex:SetVertexColor(1, 1, 1, 1)
+    end
+  end)
+
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 
