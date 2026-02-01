@@ -16,6 +16,7 @@ CraftRunner._maxNoSkillupCasts = 25
 
 CraftRunner._recipeID = nil
 CraftRunner._recipeSpellID = nil
+CraftRunner._repeatCancelAttempted = false
 
 ns.GetCurrentSkillLevel = function()
   if Professions and Professions.GetProfessionInfo then
@@ -70,6 +71,7 @@ local function EnsureFrame()
   f:Hide()
 
   f:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+  f:RegisterEvent("SKILL_LINES_CHANGED")
   f:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
   f:RegisterEvent("TRADE_SKILL_CLOSE")
   f:RegisterEvent("GARRISON_TRADESKILL_NPC_CLOSED")
@@ -77,6 +79,11 @@ local function EnsureFrame()
   f:SetScript("OnEvent", function(_, event, ...)
     if event == "UNIT_SPELLCAST_SUCCEEDED" then
       CraftRunner:OnSpellcastSucceeded(...)
+      return
+    end
+
+    if event == "SKILL_LINES_CHANGED" then
+      CraftRunner:OnSkillLinesChanged()
       return
     end
 
@@ -101,6 +108,41 @@ end
 
 function CraftRunner:ReachedTargetSkill()
   return ns.GetCurrentSkillLevel() >= (self._targetSkill or 0)
+end
+
+---@return nil
+function CraftRunner:TryStopRecipeRepeat()
+  if self._repeatCancelAttempted then
+    return
+  end
+
+  if not (C_TradeSkillUI and C_TradeSkillUI.StopRecipeRepeat) then
+    self._repeatCancelAttempted = true
+    return
+  end
+
+  -- Best effort. This is intentionally unconditional.
+  C_TradeSkillUI.StopRecipeRepeat()
+  self._repeatCancelAttempted = true
+end
+
+---@return nil
+function CraftRunner:OnSkillLinesChanged()
+  if not self._running then
+    return
+  end
+
+  local currentSkill = ns.GetCurrentSkillLevel()
+  if currentSkill > (self._lastSkill or 0) then
+    self._lastSkill = currentSkill
+    self._noSkillupCasts = 0
+  end
+
+  if self:ReachedTargetSkill() then
+    self:TryStopRecipeRepeat()
+    self:Stop("target_skill_reached")
+    return
+  end
 end
 
 ---@param step table
@@ -145,8 +187,7 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
   self._lastSkill = ns.GetCurrentSkillLevel()
   self._noSkillupCasts = 0
 
-  self._hadSuccessfulCraft = false
-  self._pendingTry = false
+  self._repeatCancelAttempted = false
 
   self._recipeID = recipeID
   self._recipeSpellID = recipeInfo.spellID
@@ -168,6 +209,9 @@ function CraftRunner:Stop(reason)
   if not self._running then
     return
   end
+
+  -- If a batch craft is in-flight, cancel the remainder so the player doesn't
+  -- overshoot the target skill (or waste materials).
 
   local cb = self._onDone
   local step = self._step
@@ -236,9 +280,14 @@ function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
     return
   end
 
-  -- If I can match a spellID, do so to avoid counting unrelated casts.
+  -- Prefer matching the recipe spellID to avoid counting unrelated casts.
+  -- However, some clients may report a generic tradeskill spellID during
+  -- batch crafting, so if we're actively repeating, allow it through.
   if self._recipeSpellID and spellID ~= self._recipeSpellID then
-    return
+    local repeating = (C_TradeSkillUI and C_TradeSkillUI.IsRecipeRepeating and C_TradeInfo.IsRecipeRepeating()) or false
+    if not repeating then
+      return
+    end
   end
 
   local currentSkill = ns.GetCurrentSkillLevel()
@@ -260,6 +309,7 @@ function CraftRunner:OnTradeSkillListUpdate()
   end
 
   if self:ReachedTargetSkill() then
+    self:TryStopRecipeRepeat()
     self:Stop("target_skill_reached")
     return
   end

@@ -6,6 +6,15 @@ local function EnsureDB()
     GuidestoneDB.debug = false
   end
 
+  -- When a craft step needs multiple crafts to reach a target skill,
+  -- yellow/green recipes wont' guarantee a skill-up per craft. We normally
+  -- queue "craft all" and rely on C_TradeSkillUI.StopRecipeRepeat() to stop
+  -- exactly at the target. If StopRecipeRepeat isn't available, I'll fall
+  -- back to this multiplier.
+  if GuidestoneDB.craftBufferWait == nil then
+    GuidestoneDB.craftBufferWait = 1.5
+  end
+
   -- Persist per-guide choice-group selections.
   GuidestoneDB.choiceGroups = GuidestoneDB.choiceGroups or {}
 end

@@ -1140,7 +1140,7 @@ function GuidePage:RenderGuide(guide)
 
         local remaining = 0
         if currentSkill and step.toSkill then
-          remaining = step.toSkill - currentSkill
+          remaining = (tonumber(step.toSkill) or 0) - currentSkill
         end
 
         if remaining < 1 then
@@ -1152,10 +1152,26 @@ function GuidePage:RenderGuide(guide)
           craftableCount = craftingPage:GetCraftableCount() or 1
         end
 
+        -- Key behavior:
+        --  * I intentionally queue more than "remaining" because yellow/green recipes
+        --    don't guarantee a skill-up per craft.
+        --  * I stop exactly at the target skill by calling C_TradeSkillUI.StopRecipeRepeat()
+        --    from CraftRunner as soon as the target is reached.
         local desiredCount = remaining
-        if craftableCount < desiredCount then
-          desiredCount = craftableCount
+
+        -- If StopRecipeRepeat isn't available, fall back to a conservative buffer multiplier
+        -- to reduce the odds of landing short while also avoiding uncontrolled "craft all".
+        if not (C_TradeSkillUI and C_TradeSkillUI.StopRecipeRepeat) then
+          local bufferMult = (GuidestoneDB and tonumber(GuidestoneDB.craftBufferMult)) or 1.5
+          desiredCount = math.ceil(remaining * bufferMult)
+          if desiredCount < remaining then
+            desiredCount = remaining
+          end
+          if desiredCount > craftableCount then
+            desiredCount = craftableCount
+          end
         end
+
         if desiredCount < 1 then
           desiredCount = 1
         end
