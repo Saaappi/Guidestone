@@ -3,8 +3,6 @@
   - Or should it be the required materials that changes, if at all?
 
 Add:
-- If the player is at or above the skill level of a craft in the guide, but they don't know the craft, then an icon should go to the left of the craft's name (a book atlas) with a tooltip to indicate they need to visit a trainer.
-  - The reagents text should NOT move when the book atlas is present.
 - Cast bar on the lower right of the frame.
 - Dropdown menu in the upper right that allows the player to quickly jump between expansion guides for the open profession.
 - Add support for Wowhead links to the multi-link popup?

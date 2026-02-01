@@ -127,6 +127,12 @@ local ok, err = ns.Guides:RegisterGuide({
       maxCrafts = 20,
       requiresChoices = { classicJewelcrafting_80_100 = "shadowgem_lustrouspearl" }
     },
+    {
+      fromSkill = 100,
+      toSkill = 110,
+      recipeName = "Ring of Twilight Shadows",
+      maxCrafts = 10
+    },
   },
 })
 
