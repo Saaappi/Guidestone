@@ -176,27 +176,35 @@ end
 
 ---@param entries table|nil
 ---@return table|nil
-local function ResolveFactionEntry(entries)
-  local playerFaction = ns.Util.GetPlayerFactionFlag and ns.Util.GetPlayerFactionFlag() or 0
+local function GetAvailableVendorEntries(entries)
+  local results = {}
 
   if type(entries) ~= "table" then
-    return nil
+    return results
   end
 
-  -- Single table format.
+  local playerFaction = ns.Util.GetPlayerFactionFlag and ns.Util.GetPlayerFactionFlag() or 0
+
+  -- Single table form.
   if entries.uiMapID or entries.name then
-    return entries
+    local f = tonumber(entries.faction) or 0
+    if f == 0 or f == playerFaction then
+      results[1] = entries
+    end
+    return results
   end
 
-  -- Array format.
+  -- Array form.
   for _, v in ipairs(entries) do
-    local f = tonumber(v and v.faction) or 0
-    if f == 0 or f == playerFaction then
-      return v
+    if type(v) == "table" then
+      local f = tonumber(v.faction) or 0
+      if f == 0 or f == playerFaction then
+        results[#results + 1] = v
+      end
     end
   end
 
-  return entries[1]
+  return results
 end
 
 ---@param row Frame
@@ -232,7 +240,17 @@ local function CreateLearnSourceIcon(row, craftBtn)
       GameTooltip:AddLine(("You don't know %s yet. Visit a vendor to purchase it."):format(name), 1, 1, 1, true)
 
       local v = self._vendor
-      if v and v.uiMapID and v.x and v.y then
+      local vendors = self._vendors
+      if vendors and #vendors > 0 then
+        GameTooltip:AddLine("\nVendor(s):", 0.85, 0.85, 0.85)
+        for i = 1, #vendors do
+          local vendor = vendors[i]
+          local label = IsNonEmptyString(vendor.name) and vendor.name or ("Vendor " .. i)
+          GameTooltip:AddLine(("- %s"):format(label), 0.85, 0.85, 0.85, true)
+        end
+      end
+
+      if vendors and #vendors > 0 then
         local clickHint = (ns.Util and ns.Util.IsTomTomEnabled and ns.Util.IsTomTomEnabled())
           and "Set TomTom Waypoint"
           or "Set Waypoint"
@@ -255,13 +273,43 @@ local function CreateLearnSourceIcon(row, craftBtn)
       return
     end
 
-    local v = self._vendor
-    if not (v and v.uiMapID and v.x and v.y) then
+    local vendors = self._vendors
+    if (not vendors and #vendors > 0) then
       return
     end
 
-    if ns.Util and ns.Util.AddWaypoint then
-      ns.Util.AddWaypoint(v.uiMapID, v.x, v.y, v.name or "Vendor")
+    -- One vendor? JUST DO IT!
+    if #vendors == 1 then
+      local vendor = vendors[1]
+      if vendor and vendor.uiMapID and vendor.x and vendor.y and ns.Util and ns.Util.AddWaypoint then
+        ns.Util.AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+      end
+      return
+    end
+
+    -- Multiple vendors: show a context menu instead.
+    if MenuUtil and MenuUtil.CreateContextMenu then
+      MenuUtil.CreateContextMenu(self, function(_, root)
+        root:SetTitle("Choose a vendor:")
+
+        for i = 1, #vendors do
+          local vendor = vendors[i]
+          local label = IsNonEmptyString(vendor.name) and vendor.name or ("Vendor " .. i)
+
+          root:CreateButton(label, function()
+            if vendor and vendor.uiMapID and vendor.x and vendor.y and ns.Util and ns.Util.AddWaypoint then
+              ns.Util.AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+            end
+          end)
+        end
+      end)
+      return
+    end
+
+    -- Fallback if MenuUtil isn't available for some reason.
+    local vendor = vendors[1]
+    if vendor and vendor.uiMapID and vendor.x and vendor.y and ns.Util and ns.Util.AddWaypoint then
+      ns.Util.AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
     end
   end)
 
@@ -1720,7 +1768,7 @@ function GuidePage:UpdateStepRow(row)
 
         if learnType == "vendor" then
           icon._kind = "vendor"
-          icon._vendor = ResolveFactionEntry(vendorEntries)
+          icon._vendors = GetAvailableVendorEntries(vendorEntries)
           if icon._tex then
             icon._tex:SetAtlas("Levelup-Icon-Bag", true)
           end
@@ -1730,7 +1778,7 @@ function GuidePage:UpdateStepRow(row)
           icon:Show()
         else
           icon._kind = "trainer"
-          icon._vendor = nil
+          icon._vendors = nil
           if icon._tex then
             icon._tex:SetAtlas("LevelUp-Icon-Book", true)
           end
