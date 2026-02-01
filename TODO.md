@@ -5,6 +5,7 @@
 Add:
 - Cast bar on the lower right of the frame.
 - Dropdown menu in the upper right that allows the player to quickly jump between expansion guides for the open profession.
+- Add a vendor icon next to recipes that are bought from vendors. It should have a tooltip indicating the player must visit a vendor to purchase it. Clicking it should plot a waypoint or super-tracked waypoint. "Levelup-Icon-Bag"
 - Add support for Wowhead links to the multi-link popup?
 - Localization
 - Background texture on the frame that represents the open profession.

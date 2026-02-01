@@ -133,6 +133,18 @@ local ok, err = ns.Guides:RegisterGuide({
       recipeName = "Ring of Twilight Shadows",
       maxCrafts = 10
     },
+    {
+      fromSkill = 110,
+      toSkill = 120,
+      recipeName = "Heavy Stone Statue",
+      maxCrafts = 10
+    },
+    {
+      fromSkill = 120,
+      toSkill = 150,
+      recipeName = "Pendant of the Agate Shield",
+      maxCrafts = 30
+    },
   },
 })
 
