@@ -221,29 +221,25 @@ local function CreateLearnSourceIcon(row, craftBtn)
 
   b:Hide()
 
-  b:SetScript("OnEnter", function()
-    GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+  b:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 
     local r = self._row
     local name = (r and r._craftName and r._craftName.GetText and r._craftName:GetText()) or "this recipe"
 
     if self._kind == "vendor" then
-      GameTooltip:SetText("Visit a vendor")
-      GameTooltip:AddLine(("You don't know %s yet. Visit a vendor to purchase it."):format(name))
+      GameTooltip:SetText("Vendor")
+      GameTooltip:AddLine(("You don't know %s yet. Visit a vendor to purchase it."):format(name), 1, 1, 1, true)
 
       local v = self._vendor
-      if v and IsNonEmptyString(v.name) then
-        GameTooltip:AddLine(("Vendor: %s"):format(v.name), 0.85, 0.85, 0.85, true)
-      end
-
       if v and v.uiMapID and v.x and v.y then
         local clickHint = (ns.Util and ns.Util.IsTomTomEnabled and ns.Util.IsTomTomEnabled())
           and "Set TomTom Waypoint"
           or "Set Waypoint"
-        GameTooltip:AddLine(clickHint, 0.25, 1, 0.25, true)
+        GameTooltip:AddLine("\n"..clickHint, 0.25, 1, 0.25, true)
       end
     else
-      GameTooltip:SetText("Visit your trainer")
+      GameTooltip:SetText("Trainer")
       GameTooltip:AddLine(("You don't know %s yet. Visit a trainer to learn it."):format(name), 1, 1, 1, true)
     end
 
@@ -254,7 +250,7 @@ local function CreateLearnSourceIcon(row, craftBtn)
     GameTooltip:Hide()
   end)
 
-  b:SetScript("OnClick", function()
+  b:SetScript("OnClick", function(self)
     if self._kind ~= "vendor" then
       return
     end
