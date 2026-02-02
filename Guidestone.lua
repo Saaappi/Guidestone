@@ -21,6 +21,10 @@ local function EnsureDB()
   -- Persist per-guide choice-group selections.
   GuidestoneDB.choiceGroups = GuidestoneDB.choiceGroups or {}
 
+  -- Persist the last selected profession expansion (child skill line) per base profession.
+  -- Key = parentProfessionID (stable), Value = professionID (child skill line for selected expansion).
+  GuidestoneDB.lastProfessionChildSkillLineByParentID = GuidestoneDB.lastProfessionChildSkillLineByParentID or {}
+
   -- ---------------------------------------------------------------------------
   -- Trainer learner defaults
   -- ---------------------------------------------------------------------------
@@ -52,6 +56,7 @@ local function PrintPrefix(...)
   print("|cff9AD6FFGuidestone|r", ...)
 end
 
+---@return nil
 local function DumpProfessionInfo()
   if not (Professions and Professions.GetProfessionInfo) then
     PrintPrefix("Professions API not available.")
@@ -66,9 +71,29 @@ local function DumpProfessionInfo()
 
   PrintPrefix("Profession dump:")
   PrintPrefix("professionName:", info.professionName or "nil")
-  PrintPrefix("professionID:", info.professionID or "nil")
+  PrintPrefix("professionID (child):", info.professionID or "nil")
+  PrintPrefix("parentProfessionName:", info.parentProfessionName or "nil")
+  PrintPrefix("parentProfessionID (base):", info.parentProfessionID or "nil")
   PrintPrefix("skillLevel:", info.skillLevel or "nil")
   PrintPrefix("maxSkillLevel:", info.maxSkillLevel or "nil")
+
+  if C_TradeSkillUI and C_TradeSkillUI.GetChildProfessionInfos then
+    local children = C_TradeSkillUI.GetChildProfessionInfos()
+    if type(children) == "table" then
+      PrintPrefix("Child profession infos:")
+      for i = 1, #children do
+        local c = children[i]
+        PrintPrefix("-", c.expansionName or "?", "id:", c.professionID or "nil")
+      end
+    end
+  end
+
+  if GuidestoneDB and type(GuidestoneDB.lastProfessionChildSkillLineByParentID) == "table" then
+    local key = tonumber(info.parentProfessionID) or tonumber(info.professionID)
+    if key then
+      PrintPrefix("Saved child for base", key, "=>", GuidestoneDB.lastProfessionChildSkillLineByParentID[key] or "nil")
+    end
+  end
 end
 
 SLASH_GUIDESTONE1 = "/guidestone"
@@ -94,11 +119,16 @@ end
 local initialized = false
 
 local function TryInitProfessionsTab()
-  if initialized then
+  if not _G.ProfessionsFrame then
     return
   end
 
-  if not _G.ProfessionsFrame then
+  -- Install profession expansion memory even if the guide tab is already initialized.
+  if ns.ProfessionMemory and ns.ProfessionMemory.TryInstall then
+    ns.ProfessionMemory:TryInstall()
+  end
+
+  if initialized then
     return
   end
 
@@ -255,6 +285,11 @@ f:SetScript("OnEvent", function(_, event, arg1)
       -- Register addon settings.
       if ns.Settings and ns.Settings.Init then
         ns.Settings:Init(GuidestoneDB)
+      end
+
+      -- Initialize profession skill line memory.
+      if ns.ProfessionMemory and ns.ProfessionMemory.Init then
+        ns.ProfessionMemory:Init(GuidestoneDB)
       end
 
       -- Initialize trainer auto-learning service.
