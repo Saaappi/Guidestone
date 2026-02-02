@@ -1,7 +1,10 @@
 local ADDON, ns = ...
 
 local function EnsureDB()
-  GuidestoneDB = GuidestoneDB or {}
+  if type(GuidestoneDB) ~= "table" then
+    GuidestoneDB = {}
+  end
+
   if GuidestoneDB.debug == nil then
     GuidestoneDB.debug = false
   end
@@ -17,6 +20,32 @@ local function EnsureDB()
 
   -- Persist per-guide choice-group selections.
   GuidestoneDB.choiceGroups = GuidestoneDB.choiceGroups or {}
+
+  -- ---------------------------------------------------------------------------
+  -- Trainer learner defaults
+  -- ---------------------------------------------------------------------------
+
+  -- Shows a "Train Needed" button on the trainer UI when the addon detects
+  -- recipes required by the active guide.
+  if GuidestoneDB.trainerEnableButton == nil then
+    GuidestoneDB.trainerEnableButton = true
+  end
+
+  -- If enabled, the addon will automatically purchase trainer services that
+  -- amtch the active guide's needed recipes when the trainer window opens.
+  if GuidestoneDB.trainerAutoLearn == nil then
+    GuidestoneDB.trainerAutoLearn = false
+  end
+
+  -- Skill lookahead for selecting needed steps.
+  if GuidestoneDB.trainerLookahead == nil then
+    GuidestoneDB.trainerLookahead = 25
+  end
+
+  -- Spending cap in copper. (0 = no cap)
+  if GuidestoneDB.trainerMaxSpendCopper == nil then
+    GuidestoneDB.trainerMaxSpendCopper = 0
+  end
 end
 
 local function PrintPrefix(...)
@@ -222,6 +251,16 @@ f:SetScript("OnEvent", function(_, event, arg1)
   if event == "ADDON_LOADED" then
     if arg1 == ADDON then
       EnsureDB()
+
+      -- Register addon settings.
+      if ns.Settings and ns.Settings.Init then
+        ns.Settings:Init(GuidestoneDB)
+      end
+
+      -- Initialize trainer auto-learning service.
+      if ns.TrainerLearner and ns.TrainerLearner.Init then
+        ns.TrainerLearner:Init()
+      end
     elseif arg1 == "Blizzard_Professions" then
       TryInitProfessionsTab()
     end

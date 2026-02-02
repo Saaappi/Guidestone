@@ -1,258 +1,364 @@
-local _, ns = ...
-
-local Logger = ns.Logger
+local ADDON, ns = ...
 
 ns.TrainerLearner = ns.TrainerLearner or {}
 local TrainerLearner = ns.TrainerLearner
 
--- Cache globals (perf + avoids accidental globals)
-local CreateFrame = CreateFrame
-local GetTime = GetTime
-local InCombatLockdown = InCombatLockdown
-
-local GetProfessions = GetProfessions
-local GetProfessionInfo = GetProfessionInfo
-
-local GetNumTrainerServices = GetNumTrainerServices
-local GetTrainerServiceInfo = GetTrainerServiceInfo
-local GetTrainerServiceSkillLine = GetTrainerServiceSkillLine
-local BuyTrainerService = BuyTrainerService
-local GetTrainerServiceTypeFilter = GetTrainerServiceTypeFilter
-local SetTrainerServiceTypeFilter = SetTrainerServiceTypeFilter
-local GetTrainerServiceSkillReq = GetTrainerServiceSkillReq
-
-local ExpandTrainerSkillLine = ExpandTrainerSkillLine
+local CreateFrame = _G.CreateFrame
+local InCombatLockdown = _G.InCombatLockdown
+local GetNumTrainerServices = _G.GetNumTrainerServices
+local GetTrainerServiceInfo = _G.GetTrainerServiceInfo
+local SelectTrainerService = _G.SelectTrainerService
+local BuyTrainerService = _G.BuyTrainerService
+local C_Spell = _G.C_Spell
+local C_Timer = _G.C_Timer
+local Settings = _G.Settings
 
 TrainerLearner._frame = TrainerLearner._frame or nil
-TrainerLearner._active = false
-TrainerLearner._attempts = 0
-TrainerLearner._maxAttempts = 60
-TrainerLearner._lastRun = 0
-TrainerLearner._playerProfSet = nil
-TrainerLearner._trainerProf = nil
+TrainerLearner._button = TrainerLearner._button or nil
+TrainerLearner._matches = TrainerLearner._matches or {}
+TrainerLearner._totalCost = 0
 
----@param num number
----@return nil
-local function DebugDumpTrainerRows(num)
-  if not (Logger and Logger.Debug) then
-    return
-  end
+-- ---------------------------------------------------------------------------
+-- Helpers
+-- ---------------------------------------------------------------------------
 
-  -- Only dump once per trainer session.
-  if TrainerLearner._didDump then
-    return
-  end
-  TrainerLearner._didDump = true
-
-  local maxRows = math.min(num, 12)
-  for i = 1, maxRows do
-    local name, rank, category = GetTrainerServiceInfo(i)
-    local skillLine = GetTrainerServiceSkillLine and GetTrainerServiceSkillLine(i) or nil
-    local reqSkill = GetTrainerServiceSkillReq and GetTrainerServiceSkillReq(i) or nil
-    Logger:Debug("TrainerLearner: row", i,
-      "cat", tostring(category),
-      "skillLine", tostring(skillLine),
-      "reqSkill", tostring(reqSkill),
-      "name", tostring(name))
-  end
-end
-
----@return table<string, boolean>
-local function GetPlayerProfessionNameSet()
-  local set = {}
-
-  if not (GetProfessions and GetProfessionInfo) then
-    return set
-  end
-
-  local p1, p2, p3, p4, p5, p6 = GetProfessions()
-  local profs = { p1, p2, p3, p4, p5, p6 }
-
-  for i = 1, #profs do
-    local profIndex = profs[i]
-    if profIndex then
-      local name = GetProfessionInfo(profIndex)
-      if type(name) == "string" and name ~= "" then
-        set[name] = true
-      end
-    end
-  end
-
-  return set
-end
-
----@return nil
-local function EnsureTrainerShowsAvailable()
-  if not (GetTrainerServiceTypeFilter and SetTrainerServiceTypeFilter) then
-    return
-  end
-
-  -- If the user has "Available" toggled off, we will never see anything learnable.
-  local ok, enabled = pcall(GetTrainerServiceTypeFilter, "available")
-  if not ok then
-    return
-  end
-
-  if enabled then
-    return
-  end
-
-  -- Correct signature: (type, enable [, exclusive]) — enable is boolean. :contentReference[oaicite:4]{index=4}
-  pcall(SetTrainerServiceTypeFilter, "available", true)
-end
-
----@param num number
----@return nil
-local function ExpandAllTrainerHeaders(num)
-  if not (ExpandTrainerSkillLine and GetTrainerServiceInfo) then
-    return
-  end
-
-  -- Expand headers first so skills are visible.
-  for i = 1, num do
-    local name, rank, category, expanded = GetTrainerServiceInfo(i)
-    if category == "header" and not expanded then
-      -- Defensive: only call on headers.
-      ExpandTrainerSkillLine(i)
-    end
-  end
-end
-
----@param playerProfSet table<string, boolean>
----@param num number
----@return string|nil trainerProfession
-local function DetectTrainerProfession(playerProfSet, num)
-  if type(playerProfSet) ~= "table" then
+---@param name string|nil
+---@return string|nil normalized
+local function NormalizeName(name)
+  if type(name) ~= "string" then
     return nil
   end
+  name = name:lower():gsub("%s+", ""):gsub("^%s+", ""):gsub("%s+$", "")
+  if name == "" then
+    return nil
+  end
+  return name
+end
 
-  local found = nil
+---@return table|nil
+function TrainerLearner:GetActiveGuide()
+  if ns.GuidePage and ns.GuidePage.currentGuide then
+    return ns.GuidePage.currentGuide
+  end
+  return nil
+end
 
-  -- Fast path: skill line name per row. :contentReference[oaicite:5]{index=5}
-  if GetTrainerServiceSkillLine then
-    for i = 1, num do
-      local skillLine = GetTrainerServiceSkillLine(i)
-      if type(skillLine) == "string" and skillLine ~= "" and playerProfSet[skillLine] then
-        if found and found ~= skillLine then
-          return nil -- ambiguous
-        end
-        found = skillLine
-      end
-    end
-    if found then
-      return found
+---@return number
+function TrainerLearner:GetCurrentSkill()
+  if ns.GetCurrentSkillLevel then
+    return tonumber(ns.GetCurrentSkillLevel()) or 0
+  end
+  return 0
+end
+
+---@return number
+function TrainerLearner:GetLookahead()
+  return (GuidestoneDB and tonumber(GuidestoneDB.trainerLookahead)) or 25
+end
+
+---@return number
+function TrainerLearner:GetMaxSpendCopper()
+  return (GuidestoneDB and tonumber(GuidestoneDB.trainerMaxSpendCopper)) or 0
+end
+
+---@return boolean
+function TrainerLearner:IsAutoLearnEnabled()
+  return (GuidestoneDB and GuidestoneDB.trainerAutoLearn == true)
+end
+
+---@return boolean
+function TrainerLearner:IsButtonEnabled()
+  return (GuidestoneDB and GuidestoneDB.trainerEnableButton == true)
+end
+
+---@param msg string
+---@return nil
+function TrainerLearner:Debug(msg)
+  if ns.Logger and ns.Logger.Debug then
+    ns.Logger:Debug(msg)
+  end
+end
+
+---@param msg string
+---@return nil
+function TrainerLearner:Info(msg)
+  if ns.Logger and ns.Logger.Info then
+    ns.Logger:Info(msg)
+  else
+    print("|cff9AD6FFGuidestone|r", msg)
+  end
+end
+
+---@param msg string
+---@return nil
+function TrainerLearner:Warn(msg)
+  if ns.Logger and ns.Logger.Warn then
+    ns.Logger:Warn(msg)
+  else
+    print("|cff9AD6FFGuidestone|r", "|cffFFB020WARN|r", msg)
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- Needed recipes computation
+-- ---------------------------------------------------------------------------
+
+---@param step table
+---@return string learnType
+local function GetstepLearnType(step)
+  if type(step) ~= "table" then
+    return "trainer"
+  end
+
+  local learn = step.learn
+  if type(learn) == "table" then
+    local t = tostring(learn.type or ""):lower()
+    if t ~= "" then
+      return t
     end
   end
 
-  -- Fallback: required skill name per row. :contentReference[oaicite:6]{index=6}
-  if GetTrainerServiceSkillReq then
-    for i = 1, num do
-      local skillName = GetTrainerServiceSkillReq(i)
-      if type(skillName) == "string" and skillName ~= "" and playerProfSet[skillName] then
-        if found and found ~= skillName then
-          return nil -- ambiguous
+  local source = tostring(step.learnSource or ""):lower()
+  if source ~= "" then
+    return source
+  end
+
+  return "trainer"
+end
+
+---@param guide table
+---@param currentSkill number
+---@param lookahead number
+---@return table<string, boolean> neededByName
+function TrainerLearner:BuildNeededTrainerSet(guide, currentSkill, lookahead)
+  local needed = {}
+
+  if type(guide) ~= "table" or type(guide.steps) ~= "table" then
+    return needed
+  end
+
+  local maxSkill = currentSkill + (tonumber(lookahead) or 0)
+
+  for _, step in ipairs(guide.steps) do
+    if type(step) == "table" then
+      local learnType = GetstepLearnType(step)
+      if learnType == "trainer" then
+        local fromSkill = tonumber(step.fromSkill) or 0
+        local toSkill = tonumber(step.toSkill) or 999999
+
+        -- Only include relevant near-future steps; avoid buying for steps far ahead.
+        if fromSkill <= currentSkill and currentSkill < toSkill then
+          local spellName
+          local spellID = tonumber(step.recipeSpellID)
+          if spellID and spellID > 0 and C_Spell.GetSpellInfo then
+            spellName = C_Spell.GetSpellInfo(spellID)
+          end
+
+          if not spellName then
+            spellName = step.recipeName
+          end
+
+          local normalized = NormalizeName(spellName)
+          if normalized then
+            needed[normalized] = true
+          end
         end
-        found = skillName
       end
     end
   end
+  return needed
+end
 
-  return found
+-- ---------------------------------------------------------------------------
+-- Trainer scanning / purchasing
+-- ---------------------------------------------------------------------------
+
+---@return boolean
+function TrainerLearner:IsTrainerAPIAvailable()
+  return type(GetNumTrainerServices) == "function"
+    and type(GetTrainerServiceInfo) == "function"
+    and type(BuyTrainerService) == "function"
 end
 
 ---@return nil
-function TrainerLearner:Reset()
-  self._active = false
-  self._attempts = 0
-  self._lastRun = 0
-  self._playerProfSet = nil
-  self._trainerProf = nil
-end
+function TrainerLearner:ScanTrainer()
+  self._matches = {}
+  self._totalCost = 0
 
----@return nil
-function TrainerLearner:RunPass()
-  if not self._active then
+  if not self:IsTrainerAPIAvailable() then
     return
   end
 
-  if InCombatLockdown and InCombatLockdown() then
-    self:Reset()
+  local guide = self:GetActiveGuide()
+  if not guide then
     return
   end
 
-  -- Throttle: TRAINER_UPDATE can spam.
-  local now = (GetTime and GetTime()) or 0
-  if now > 0 and (now - (self._lastRun or 0)) < 0.10 then
-    return
-  end
-  self._lastRun = now
-
-  if not (GetNumTrainerServices and GetTrainerServiceInfo and BuyTrainerService) then
-    self:Reset()
-    return
-  end
+  local currentSkill = self:GetCurrentSkill()
+  local needed = self:BuildNeededTrainerSet(guide, currentSkill, self:GetLookahead())
 
   local num = tonumber(GetNumTrainerServices()) or 0
   if num <= 0 then
-    -- Trainer list not ready yet; stay active and wait for TRAINER_UPDATE.
     return
   end
 
-  EnsureTrainerShowsAvailable()
-  DebugDumpTrainerRows(num)
-
-  -- Build cached player professions once per session.
-  if not self._playerProfSet then
-    self._playerProfSet = GetPlayerProfessionNameSet()
-  end
-
-  -- Make sure headers are expanded so skills become visible.
-  ExpandAllTrainerHeaders(num)
-
-  -- Detect trainer profession once; cache it.
-  if not self._trainerProf then
-    self._trainerProf = DetectTrainerProfession(self._playerProfSet, num)
-    if Logger and Logger.Debug then
-      Logger:Debug("TrainerLearner: detected trainer profession:", self._trainerProf or "nil")
-    end
-  end
-
-  -- Requirement: only learn if trainer is related to a profession the player already has.
-  if not self._trainerProf then
-    self:Reset()
-    return
-  end
-
-  -- Buy ONE available skill per pass; rely on TRAINER_UPDATE for the next pass.
   for i = 1, num do
-    local skillLine = GetTrainerServiceSkillLine and GetTrainerServiceSkillLine(i) or nil
-    if skillLine == self._trainerProf then
-      local name, rank, category = GetTrainerServiceInfo(i)
-      if category == "available" then
-        BuyTrainerService(i)
+    local name, rank, category = GetTrainerServiceInfo(i)
+    if not name then
+      break
+    end
 
-        self._attempts = (self._attempts or 0) + 1
-        if self._attempts >= (self._maxAttempts or 60) then
-          self:Reset()
-          return
+    if category == "available" then
+      local normalized = NormalizeName(name)
+      if normalized and needed[normalized] then
+        local cost = 0
+        if type(GetTrainerServiceCost) == "function" then
+          cost = tonumber(GetTrainerServiceCost(i)) or 0
         end
 
-        if Logger and Logger.Debug then
-          Logger:Debug("TrainerLearner: bought", name or "?", "index", i, "attempt", self._attempts)
-        end
-
-        return
+        self._matches[#self._matches + 1] = {
+          index = i,
+          name = name,
+          cost = cost
+        }
+        self._totalCost = self._totalCost + cost
       end
     end
   end
-
-  -- No more available skills for this profession.
-  self:Reset()
 end
 
-local function EnsureFrame()
-  if TrainerLearner._frame then
-    return TrainerLearner._frame
+---@return Frame|nil
+function TrainerLearner:GetTrainerParent()
+  -- Retail uses ClassTrainerFrame; Classic uses TrainerFrame.
+  return _G.ClassTrainerFrame or _G.TrainerFrame
+end
+
+---@return nil
+function TrainerLearner:EnsureButton()
+  if self._buton then
+    return
+  end
+
+  local parent = self:GetTrainerParent()
+  if not parent or not CreateFrame then
+    return
+  end
+
+  local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+  btn:SetSize(150, 22)
+  btn:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -45, -30)
+  btn:SetText("Train Needed")
+  btn:Hide()
+
+  btn:SetScript("OnClick", function()
+    self:TrainNeeded()
+  end)
+
+  btn:SetScript("OnEnter", function()
+    if not _G.GameTooltip then
+      return
+    end
+
+    GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+    GameTooltip:SetText(ADDON)
+    if #self._matches == 0 then
+      GameTooltip:AddLine("No guide-required recipes available.", 0.8, 0.8, 0.8, true)
+    else
+      GameTooltip:AddLine(("Will train %d recipe(s)."):format(#self._matches), 0.9, 0.9, 0.9)
+      GameTooltip:AddLine(("Total cost: %s"):format(C_CurrencyInfo.GetCoinTextureString and C_CurrencyInfo.GetCoinTextureString(self._totalCost) or tostring(self._totalCost)), 0.9, 0.9, 0.9)
+    end
+    GameTooltip:Show()
+  end)
+
+  btn:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
+  self._button = btn
+end
+
+---@return nil
+function TrainerLearner:UpdateButton()
+  if not self._button then
+    return
+  end
+
+  if not self:IsButtonEnabled() then
+    self._button:Hide()
+    return
+  end
+
+  if #self._matches <= 0 then
+    self._button:Hide()
+    return
+  end
+
+  self._button:SetText(("Train Needed (%d)"):format(#self._matches))
+  self._button:Show()
+end
+
+---@return nil
+function TrainerLearner:RefreshTrainerState()
+  self:EnsureButton()
+  self:ScanTrainer()
+  self:UpdateButton()
+end
+
+---@return nil
+function TrainerLearner:TrainNeeded()
+  if InCombatLockdown and InCombatLockdown() then
+    self:Warn("Cannot train while in combat.")
+    return
+  end
+
+  if #self._matches <= 0 then
+    return
+  end
+
+  local maxSpend = self:GetMaxSpendCopper()
+  if maxSpend > 0 and self._totalCost > maxSpend then
+    self:Warn(("Trainer purchase blocked because total cost exceeds your cap."))
+    return
+  end
+
+  -- Indices can shift as the player trains. Buy from the highest index down to
+  -- reduce the risk.
+  table.sort(self._matches, function(a, b)
+    return (a.index or 0) > (b.index or 0)
+  end)
+
+  local trained = 0
+  for _, entry in ipairs(self._matches) do
+    local idx = tonumber(entry.index)
+    if idx and idx > 0 then
+      if type(SelectTrainerService) == "function" then
+        pcall(SelectTrainerService, idx)
+      end
+      pcall(BuyTrainerService, idx)
+      trained = trained + 1
+    end
+  end
+
+  if trained > 0 then
+    self:Info(("Trained %d guide-required recipe(s)."):format(trained))
+  end
+
+  -- Trainer list updates asynchronously.
+  if C_Timer and C_Timer.After then
+    C_Timer.After(0.2, function()
+      self:RefreshTrainerState()
+    end)
+  end
+end
+
+-- ---------------------------------------------------------------------------
+-- Event wiring
+-- ---------------------------------------------------------------------------
+
+---@return Frame
+function TrainerLearner:EnsureFrame()
+  if self._frame then
+    return self._frame
   end
 
   local f = CreateFrame("Frame")
@@ -263,45 +369,40 @@ local function EnsureFrame()
   f:RegisterEvent("TRAINER_CLOSED")
 
   f:SetScript("OnEvent", function(_, event)
-    if event == "TRAINER_CLOSED" then
-      TrainerLearner:Reset()
-      return
-    end
-
     if event == "TRAINER_SHOW" then
-      TrainerLearner._active = true
-      TrainerLearner._attempts = 0
-      TrainerLearner._lastRun = 0
-      TrainerLearner._playerProfSet = nil
-      TrainerLearner._trainerProf = nil
+      self:RefreshTrainerState()
 
-      if Logger and Logger.Debug then
-        Logger:Debug("TrainerLearner: TRAINER_SHOW")
+      if self:IsAutoLearnEnabled() then
+        self:TrainNeeded()
       end
-
-      TrainerLearner._didDump = false
-      EnsureTrainerShowsAvailable()
-
-      TrainerLearner:RunPass()
       return
     end
 
     if event == "TRAINER_UPDATE" then
-      if not TrainerLearner._active then
-        return
+      self:RefreshTrainerState()
+      return
+    end
+
+    if event == "TRAINER_CLOSED" then
+      if self._button then
+        self._button:Hide()
       end
 
-      if Logger and Logger.Debug then
-        Logger:Debug("TrainerLearner: TRAINER_UPDATE")
-      end
-
-      TrainerLearner:RunPass()
+      self._matches = {}
+      self._totalCost = 0
       return
     end
   end)
 
-  TrainerLearner._frame = f
+  self._frame = f
   return f
 end
 
-EnsureFrame()
+---@return nil
+function TrainerLearner:Init()
+  if not self:IsTrainerAPIAvailable() then
+    return
+  end
+
+  self:EnsureFrame():Show()
+end

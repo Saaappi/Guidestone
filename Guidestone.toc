@@ -39,9 +39,10 @@ Data/Guides/Classic/Jewelcrafting.lua
 
 # Midnight
 
-Services/TrainerLearner.lua
 Services/CraftRunner.lua
+Services/TrainerLearner.lua
 
+UI/Settings.lua
 UI/LinkPopup.lua
 UI/GuidePage.lua
 
