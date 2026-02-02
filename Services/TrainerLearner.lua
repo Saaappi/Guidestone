@@ -28,11 +28,46 @@ local function NormalizeName(name)
   if type(name) ~= "string" then
     return nil
   end
-  name = name:lower():gsub("%s+", ""):gsub("^%s+", ""):gsub("%s+$", "")
+
+  -- Normalize for matching: lowercase + remove all whitespace
+  name = name:lower()
+  name = name:gsub("%s+", "")
+  name = name:gsub("^%s+", ""):gsub("%s+$", "")
+
   if name == "" then
     return nil
   end
   return name
+end
+
+---@param spellID number|nil
+---@return string|nil
+local function GetSpellNameByID(spellID)
+  spellID = tonumber(spellID)
+  if not spellID or spellID <= 0 then
+    return nil
+  end
+
+  -- Retail: C_Spell.GetSpellInfo returns a table
+  if C_Spell and C_Spell.GetSpellInfo then
+    local info = C_Spell.GetSpellInfo(spellID)
+    if type(info) == "table" and type(info.name) == "string" and info.name ~= "" then
+      return info.name
+    end
+    if type(info) == "string" and info ~= "" then
+      return info
+    end
+  end
+
+  -- Classic/other: GetSpellInfo returns name
+  if _G.GetSpellInfo then
+    local name = _G.GetSpellInfo(spellID)
+    if type(name) == "string" and name ~= "" then
+      return name
+    end
+  end
+
+  return nil
 end
 
 ---@return table|nil
@@ -105,7 +140,7 @@ end
 
 ---@param step table
 ---@return string learnType
-local function GetstepLearnType(step)
+local function GetStepLearnType(step)
   if type(step) ~= "table" then
     return "trainer"
   end
@@ -141,26 +176,22 @@ function TrainerLearner:BuildNeededTrainerSet(guide, currentSkill, lookahead)
 
   for _, step in ipairs(guide.steps) do
     if type(step) == "table" then
-      local learnType = GetstepLearnType(step)
+      local learnType = GetStepLearnType(step)
       if learnType == "trainer" then
         local fromSkill = tonumber(step.fromSkill) or 0
         local toSkill = tonumber(step.toSkill) or 999999
 
-        -- Only include relevant near-future steps; avoid buying for steps far ahead.
-        if fromSkill <= currentSkill and currentSkill < toSkill then
+        -- Include steps up to the lookahead window (don’t force fromSkill <= currentSkill)
+        if fromSkill <= maxSkill and currentSkill < toSkill then
           local spellName
           local spellID = tonumber(step.recipeSpellID)
-          if spellID and spellID > 0 and C_Spell.GetSpellInfo then
-            spellName = C_Spell.GetSpellInfo(spellID)
+
+          if spellID and spellID > 0 then
+            spellName = GetSpellNameByID(spellID)
           end
 
           if not spellName then
             spellName = step.recipeName
-          end
-
-          local normalized = NormalizeName(spellName)
-          if normalized then
-            needed[normalized] = true
           end
         end
       end
@@ -235,12 +266,18 @@ end
 
 ---@return nil
 function TrainerLearner:EnsureButton()
-  if self._buton then
+  if self._button then
     return
   end
 
   local parent = self:GetTrainerParent()
   if not parent or not CreateFrame then
+    -- Trainer UI can be created after TRAINER_SHOW fires; retry shortly.
+    if C_Timer and C_Timer.After then
+      C_Timer.After(0.1, function()
+        self:RefreshTrainerState()
+      end)
+    end
     return
   end
 
