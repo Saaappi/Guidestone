@@ -17,6 +17,7 @@ TrainerLearner._frame = TrainerLearner._frame or nil
 TrainerLearner._button = TrainerLearner._button or nil
 TrainerLearner._matches = TrainerLearner._matches or {}
 TrainerLearner._totalCost = 0
+TrainerLearner._autoLearnPending = TrainerLearner._autoLearnPending or false
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -74,6 +75,13 @@ end
 function TrainerLearner:GetActiveGuide()
   if ns.GuidePage and ns.GuidePage.currentGuide then
     return ns.GuidePage.currentGuide
+  end
+
+  -- Fallback: the user may be at a trainer with the Professions UI closed.
+  -- In that case, use the last guide selected in the profession UI.
+  local lastSkillLineID = GuidestoneDB and tonumber(GuidestoneDB.lastGuideSkillLineID) or nil
+  if lastSkillLineID and ns.Guides and ns.Guides.GetBySkillLineID then
+    return ns.Guides:GetBySkillLineID(lastSkillLineID)
   end
   return nil
 end
@@ -193,6 +201,11 @@ function TrainerLearner:BuildNeededTrainerSet(guide, currentSkill, lookahead)
           if not spellName then
             spellName = step.recipeName
           end
+
+          local normalized = NormalizeName(spellName)
+          if normalized then
+            needed[normalized] = true
+          end
         end
       end
     end
@@ -260,8 +273,17 @@ end
 
 ---@return Frame|nil
 function TrainerLearner:GetTrainerParent()
-  -- Retail uses ClassTrainerFrame; Classic uses TrainerFrame.
-  return _G.ClassTrainerFrame or _G.TrainerFrame
+  local trainerFrame = _G.TrainerFrame
+  local classTrainerFrame = _G.ClassTrainerFrame
+
+  if trainerFrame and trainerFrame.IsShown and trainerFrame:IsShown() then
+    return trainerFrame
+  end
+  if classTrainerFrame and classTrainerFrame.IsShown and classTrainerFrame:IsShown() then
+    return classTrainerFrame
+  end
+
+  return trainerFrame or classTrainerFrame
 end
 
 ---@return nil
@@ -281,9 +303,9 @@ function TrainerLearner:EnsureButton()
     return
   end
 
-  local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+  local btn = CreateFrame("Button", nil, ClassTrainerTrainButton, "UIPanelButtonTemplate")
   btn:SetSize(150, 22)
-  btn:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -45, -30)
+  btn:SetPoint("TOPRIGHT", ClassTrainerTrainButton, "TOPLEFT", -5, 0)
   btn:SetText("Train Needed")
   btn:Hide()
 
@@ -407,16 +429,36 @@ function TrainerLearner:EnsureFrame()
 
   f:SetScript("OnEvent", function(_, event)
     if event == "TRAINER_SHOW" then
+      -- Mark pending first; trainer services often populate after SHOW.
+      self._autoLearnPending = self:IsAutoLearnEnabled()
+
       self:RefreshTrainerState()
 
-      if self:IsAutoLearnEnabled() then
-        self:TrainNeeded()
+      -- Defer a tick to catch late population of trainer services.
+      if self._autoLearnPending and C_Timer and C_Timer.After then
+        C_Timer.After(0.10, function()
+          if not self._autoLearnPending then
+            return
+          end
+
+          self:RefreshTrainerState()
+
+          if #self._matches > 0 then
+            self._autoLearnPending = false
+            self:TrainNeeded()
+          end
+        end)
       end
+
       return
     end
 
     if event == "TRAINER_UPDATE" then
       self:RefreshTrainerState()
+      if self._autoLearnPending and #self._matches > 0 then
+        self._autoLearnPending = false
+        self:TrainNeeded()
+      end
       return
     end
 
@@ -427,6 +469,7 @@ function TrainerLearner:EnsureFrame()
 
       self._matches = {}
       self._totalCost = 0
+      self._autoLearnPending = false
       return
     end
   end)

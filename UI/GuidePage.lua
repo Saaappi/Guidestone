@@ -887,6 +887,12 @@ function GuidePage:LoadForProfession(professionInfo)
   local guide = ns.Guides and ns.Guides.GetBestGuide and ns.Guides:GetBestGuide(professionInfo) or nil
   self.currentGuide = guide
 
+  -- Remember the last active guide so other services can function even when the
+  -- professions UI isn't open.
+  if GuidestoneDB then
+    GuidestoneDB.lastGuideSkillLineID = guide and guide.skillLineID or nil
+  end
+
   self:RenderGuide(guide)
 end
 
