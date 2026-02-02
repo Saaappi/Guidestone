@@ -8,6 +8,7 @@ local InCombatLockdown = _G.InCombatLockdown
 local GetNumTrainerServices = _G.GetNumTrainerServices
 local GetTrainerServiceInfo = _G.GetTrainerServiceInfo
 local SelectTrainerService = _G.SelectTrainerService
+local GetTrainerSelectionIndex = _G.GetTrainerSelectionIndex
 local GetTrainerServiceItemLink = _G.GetTrainerServiceItemLink
 local GetTrainerServiceCost = _G.GetTrainerServiceCost
 local BuyTrainerService = _G.BuyTrainerService
@@ -72,6 +73,38 @@ local function GetSpellNameByID(spellID)
   end
 
   return nil
+end
+
+---@param index number
+---@return string|nil
+function TrainerLearner:GetTrainerServiceLinkSafe(index)
+  if type(GetTrainerServiceItemLink) ~= "function" then
+    return nil
+  end
+
+  -- Some clients only populate the link for the *selected* trainer service.
+  local link = GetTrainerServiceItemLink(index) or GetTrainerServiceItemLink()
+  if link then
+    return link
+  end
+
+  if type(SelectTrainerService) ~= "function" then
+    return nil
+  end
+
+  local prevIndex = nil
+  if type(GetTrainerSelectionIndex) == "function" then
+    prevIndex = GetTrainerSelectionIndex()
+  end
+
+  SelectTrainerService(index)
+  link = GetTrainerServiceItemLink(index) or GetTrainerServiceItemLink()
+
+  if prevIndex and prevIndex ~= index then
+    SelectTrainerService(prevIndex)
+  end
+
+  return link
 end
 
 ---@param skillLineID number|nil
@@ -340,14 +373,14 @@ function TrainerLearner:ScanTrainer()
       break
     end
 
-    local name, _, category = GetTrainerServiceInfo(i)
+    local name, category = GetTrainerServiceInfo(i)
     if category == "available" and type(name) == "string" and name ~= "" then
       local itemID = itemCache[i]
       local spellID = spellCache[i]
 
       -- 0 sentinel means "cached nil"
-      if itemID == nil and spellID == nil and type(GetTrainerServiceItemLink) == "function" then
-        local link = GetTrainerServiceItemLink(i)
+      if itemID == nil and spellID == nil then
+        local link = self:GetTrainerServiceLinkSafe(i)
         itemID, spellID = ExtractTrainerIDsFromLink(link)
         itemCache[i] = itemID or 0
         spellCache[i] = spellID or 0
