@@ -82,8 +82,7 @@ function TrainerLearner:GetTrainerServiceLinkSafe(index)
     return nil
   end
 
-  -- Some clients only populate the link for the *selected* trainer service.
-  local link = GetTrainerServiceItemLink(index) or GetTrainerServiceItemLink()
+  local link = GetTrainerServiceItemLink(index)
   if link then
     return link
   end
@@ -98,7 +97,7 @@ function TrainerLearner:GetTrainerServiceLinkSafe(index)
   end
 
   SelectTrainerService(index)
-  link = GetTrainerServiceItemLink(index) or GetTrainerServiceItemLink()
+  link = GetTrainerServiceItemLink(index)
 
   if prevIndex and prevIndex ~= index then
     SelectTrainerService(prevIndex)
