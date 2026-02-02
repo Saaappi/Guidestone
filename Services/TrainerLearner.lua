@@ -32,8 +32,7 @@ local function NormalizeName(name)
 
   -- Normalize for matching: lowercase + remove all whitespace
   name = name:lower()
-  name = name:gsub("%s+", "")
-  name = name:gsub("^%s+", ""):gsub("%s+$", "")
+  name = name:gsub("[^%w]", "")
 
   if name == "" then
     return nil
@@ -71,6 +70,27 @@ local function GetSpellNameByID(spellID)
   return nil
 end
 
+---@param skillLineID number|nil
+---@return number
+local function GetSkillLevelBySkillLineID(skillLineID)
+  skillLineID = tonumber(skillLineID)
+  if not skillLineID or skillLineID <= 0 then
+    return 0
+  end
+
+  if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+    local info = C_TradeSkillUI.GetProfessionInfoBySkillLineID(skillLineID)
+    if type(info) == "table" then
+      local skillLevel = tonumber(info.skillLevel or info.skillRank or info.rank or info.level)
+      if skillLevel then
+        return skillLevel
+      end
+    end
+
+    return 0
+  end
+end
+
 ---@return table|nil
 function TrainerLearner:GetActiveGuide()
   if ns.GuidePage and ns.GuidePage.currentGuide then
@@ -86,12 +106,11 @@ function TrainerLearner:GetActiveGuide()
   return nil
 end
 
+---@param guide table|nil
 ---@return number
-function TrainerLearner:GetCurrentSkill()
-  if ns.GetCurrentSkillLevel then
-    return tonumber(ns.GetCurrentSkillLevel()) or 0
-  end
-  return 0
+function TrainerLearner:GetCurrentSkill(guide)
+  local skillLineID = (type(guide) == "table") and tonumber(guide.skillLineID) or nil
+  return GetSkillLevelBySkillLineID(skillLineID)
 end
 
 ---@return number
@@ -238,23 +257,47 @@ function TrainerLearner:ScanTrainer()
     return
   end
 
-  local currentSkill = self:GetCurrentSkill()
+  local currentSkill = self:GetCurrentSkill(guide)
   local needed = self:BuildNeededTrainerSet(guide, currentSkill, self:GetLookahead())
+
+  local neededCount = 0
+  for _ in pairs(needed) do
+    neededCount = neededCount + 1
+  end
+
+  self:Debug(("Trainer scan: guide=%s skillLineID=%s currentSkill=%s lookahead=%d needed=%d"):format(
+    tostring(guide.id),
+    tostring(guide.skillLineID),
+    currentSkill,
+    self:GetLookahead(),
+    neededCount
+  ))
 
   local num = tonumber(GetNumTrainerServices()) or 0
   if num <= 0 then
     return
   end
+  self:Debug(("Trainer services: num=%d"):format(num))
 
+  local logged = 0
   for i = 1, num do
     local name, rank, category = GetTrainerServiceInfo(i)
-    if not name then
-      break
-    end
 
-    if category == "available" then
+    if category == "available" and type(name) == "string" and name ~= "" then
       local normalized = NormalizeName(name)
-      if normalized and needed[normalized] then
+      local isNeeded = normalized and needed[normalized] or false
+
+      if logged < 10 then
+        logged = logged + 1
+        self:Debug(("Trainer[%d] %s | norm=%s | needed=%s"):format(
+          i,
+          name,
+          tostring(normalized),
+          isNeeded and "YES" or "no"
+        ))
+      end
+
+      if isNeeded then
         local cost = 0
         if type(GetTrainerServiceCost) == "function" then
           cost = tonumber(GetTrainerServiceCost(i)) or 0
@@ -269,6 +312,8 @@ function TrainerLearner:ScanTrainer()
       end
     end
   end
+
+  self:Debug(("Trainer matches: %d (totalCost=%d)"):format(#self._matches, self._totalCost))
 end
 
 ---@return Frame|nil
