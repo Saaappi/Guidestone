@@ -98,6 +98,18 @@ function ns.Util.SetFontStringGreyed(fs, greyed)
   end
 end
 
+---@param t table
+---@return nil
+function ns.Util.WipeTable(t)
+  if type(t) ~= "table" then
+    return
+  end
+
+  for k in pairs(t) do
+    t[k] = nil
+  end
+end
+
 -- -----------------------------------------------------------------------------
 -- Waypoints / Navigation
 -- -----------------------------------------------------------------------------

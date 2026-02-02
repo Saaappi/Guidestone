@@ -53,12 +53,14 @@ local ok, err = ns.Guides:RegisterGuide({
       fromSkill = 1,
       toSkill = 60,
       recipeName = "Minor Healing Potion",
+      recipeItemID = 118,
       maxCrafts = 60,
     },
     {
       fromSkill = 60,
       toSkill = 100,
       recipeName = "Lesser Healing Potion",
+      recipeItemID = 858,
       maxCrafts = 60,
     },
     {

@@ -8,6 +8,8 @@ local InCombatLockdown = _G.InCombatLockdown
 local GetNumTrainerServices = _G.GetNumTrainerServices
 local GetTrainerServiceInfo = _G.GetTrainerServiceInfo
 local SelectTrainerService = _G.SelectTrainerService
+local GetTrainerServiceItemLink = _G.GetTrainerServiceItemLink
+local GetTrainerServiceCost = _G.GetTrainerServiceCost
 local BuyTrainerService = _G.BuyTrainerService
 local C_Spell = _G.C_Spell
 local C_Timer = _G.C_Timer
@@ -18,6 +20,8 @@ TrainerLearner._button = TrainerLearner._button or nil
 TrainerLearner._matches = TrainerLearner._matches or {}
 TrainerLearner._totalCost = 0
 TrainerLearner._autoLearnPending = TrainerLearner._autoLearnPending or false
+TrainerLearner._serviceItemIdCache = TrainerLearner._serviceItemIdCache or {}
+TrainerLearner._serviceSpellIdCache = TrainerLearner._serviceSpellIdCache or {}
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -106,6 +110,32 @@ function TrainerLearner:GetActiveGuide()
   return nil
 end
 
+---@param link string|nil
+---@return number|nil itemID
+---@return number|nil spellID
+local function ExtractTrainerIDsFromLink(link)
+  if type(link) ~= "string" or link == "" then
+    return nil, nil
+  end
+
+  local itemStr = link:match("Hitem:(%d+)")
+  if itemStr then
+    return tonumber(itemStr), nil
+  end
+
+  local spellStr = link:match("Hspell:(%d+)")
+  if spellStr then
+    return nil, tonumber(spellStr)
+  end
+
+  local enchantStr = link:match("Henchant:(%d+)")
+  if enchantStr then
+    return nil, tonumber(enchantStr)
+  end
+
+  return nil, nil
+end
+
 ---@param guide table|nil
 ---@return number
 function TrainerLearner:GetCurrentSkill(guide)
@@ -191,45 +221,64 @@ end
 ---@param guide table
 ---@param currentSkill number
 ---@param lookahead number
+---@return table<number, boolean> neededItemIDs
+---@return table<number, boolean> neededSpellIDs
 ---@return table<string, boolean> neededByName
-function TrainerLearner:BuildNeededTrainerSet(guide, currentSkill, lookahead)
-  local needed = {}
+---@return number neededCount
+function TrainerLearner:BuildNeededTrainerSets(guide, currentSkill, lookahead)
+  local neededItemIDs = self._neededItemIDs or {}
+  local neededSpellIDs = self._neededSpellIDs or {}
+  local neededByName = self._neededByName or {}
+
+  ns.Util.WipeTable(neededItemIDs)
+  ns.Util.WipeTable(neededSpellIDs)
+  ns.Util.WipeTable(neededByName)
 
   if type(guide) ~= "table" or type(guide.steps) ~= "table" then
-    return needed
+    self._neededItemIDs = neededItemIDs
+    self._neededSpellIDs = neededSpellIDs
+    self._neededByName = neededByName
+    return neededItemIDs, neededSpellIDs, neededByName, 0
   end
 
   local maxSkill = currentSkill + (tonumber(lookahead) or 0)
+  local neededCount = 0
 
   for _, step in ipairs(guide.steps) do
-    if type(step) == "table" then
-      local learnType = GetStepLearnType(step)
-      if learnType == "trainer" then
-        local fromSkill = tonumber(step.fromSkill) or 0
-        local toSkill = tonumber(step.toSkill) or 999999
+    if type(step) == "table" and GetStepLearnType(step) == "trainer" then
+      local fromSkill = tonumber(step.fromSkill) or 0
+      local toSkill = tonumber(step.toSkill) or 999999
 
-        -- Include steps up to the lookahead window (don’t force fromSkill <= currentSkill)
-        if fromSkill <= maxSkill and currentSkill < toSkill then
-          local spellName
-          local spellID = tonumber(step.recipeSpellID)
+      if fromSkill <= maxSkill and currentSkill < toSkill then
+        local itemID = tonumber(step.recipeItemID)
+        if itemID and itemID > 0 and not neededItemIDs[itemID] then
+          neededItemIDs[itemID] = true
+          neededCount = neededCount + 1
+        end
 
-          if spellID and spellID > 0 then
-            spellName = GetSpellNameByID(spellID)
-          end
+        local spellID = tonumber(step.recipeSpellID)
+        if spellID and spellID > 0 and not neededSpellIDs[spellID] then
+          neededSpellIDs[spellID] = true
+          neededCount = neededCount + 1
+        end
 
-          if not spellName then
-            spellName = step.recipeName
-          end
-
-          local normalized = NormalizeName(spellName)
-          if normalized then
-            needed[normalized] = true
+        -- Back-compat: if no IDs yet, keep the old name matching.
+        if not itemID and not spellID then
+          local normalized = NormalizeName(step.recipeName)
+          if normalized and not neededByName[normalized] then
+            neededByName[normalized] = true
+            neededCount = neededCount + 1
           end
         end
       end
     end
   end
-  return needed
+
+  self._neededItemIDs = neededItemIDs
+  self._neededSpellIDs = neededSpellIDs
+  self._neededByName = neededByName
+
+  return neededItemIDs, neededSpellIDs, neededByName, neededCount
 end
 
 -- ---------------------------------------------------------------------------
@@ -245,7 +294,8 @@ end
 
 ---@return nil
 function TrainerLearner:ScanTrainer()
-  self._matches = {}
+  self._matches = self._matches or {}
+  ns.Util.WipeTable(self._matches)
   self._totalCost = 0
 
   if not self:IsTrainerAPIAvailable() then
@@ -258,19 +308,18 @@ function TrainerLearner:ScanTrainer()
   end
 
   local currentSkill = self:GetCurrentSkill(guide)
-  local needed = self:BuildNeededTrainerSet(guide, currentSkill, self:GetLookahead())
+  local neededItemIDs, neededSpellIDs, neededByName, neededCount =
+    self:BuildNeededTrainerSets(guide, currentSkill, self:GetLookahead())
 
-  local neededCount = 0
-  for _ in pairs(needed) do
-    neededCount = neededCount + 1
+  if neededCount <= 0 then
+    self:Debug(("Trainer scan: guide=%s skillLineID=%s currentSkill=%s lookahead=%d needed=0"):format(
+      tostring(guide.id), tostring(guide.skillLineID), currentSkill, self:GetLookahead()
+    ))
+    return
   end
 
   self:Debug(("Trainer scan: guide=%s skillLineID=%s currentSkill=%s lookahead=%d needed=%d"):format(
-    tostring(guide.id),
-    tostring(guide.skillLineID),
-    currentSkill,
-    self:GetLookahead(),
-    neededCount
+    tostring(guide.id), tostring(guide.skillLineID), currentSkill, self:GetLookahead(), neededCount
   ))
 
   local num = tonumber(GetNumTrainerServices()) or 0
@@ -279,21 +328,57 @@ function TrainerLearner:ScanTrainer()
   end
   self:Debug(("Trainer services: num=%d"):format(num))
 
+  local remaining = neededCount
+  local itemCache = self._serviceItemIdCache or {}
+  local spellCache = self._serviceSpellIdCache or {}
+  self._serviceItemIdCache = itemCache
+  self._serviceSpellIdCache = spellCache
+
   local logged = 0
   for i = 1, num do
-    local name, rank, category = GetTrainerServiceInfo(i)
+    if remaining <= 0 then
+      break
+    end
 
+    local name, _, category = GetTrainerServiceInfo(i)
     if category == "available" and type(name) == "string" and name ~= "" then
-      local normalized = NormalizeName(name)
-      local isNeeded = normalized and needed[normalized] or false
+      local itemID = itemCache[i]
+      local spellID = spellCache[i]
+
+      -- 0 sentinel means "cached nil"
+      if itemID == nil and spellID == nil and type(GetTrainerServiceItemLink) == "function" then
+        local link = GetTrainerServiceItemLink(i)
+        itemID, spellID = ExtractTrainerIDsFromLink(link)
+        itemCache[i] = itemID or 0
+        spellCache[i] = spellID or 0
+      else
+        if itemID == 0 then itemID = nil end
+        if spellID == 0 then spellID = nil end
+      end
+
+      local isNeeded = false
+      if itemID and neededItemIDs[itemID] then
+        isNeeded = true
+        neededItemIDs[itemID] = nil
+        remaining = remaining - 1
+      elseif spellID and neededSpellIDs[spellID] then
+        isNeeded = true
+        neededSpellIDs[spellID] = nil
+        remaining = remaining - 1
+      else
+        -- Back-compat fallback (not locale-safe, but helps while migrating guides)
+        local normalized = NormalizeName(name)
+        if normalized and neededByName[normalized] then
+          isNeeded = true
+          neededByName[normalized] = nil
+          remaining = remaining - 1
+        end
+      end
 
       if logged < 10 then
         logged = logged + 1
-        self:Debug(("Trainer[%d] %s | norm=%s | needed=%s"):format(
-          i,
-          name,
-          tostring(normalized),
-          isNeeded and "YES" or "no"
+        self:Debug(("Trainer[%d] %s | itemID=%s spellID=%s | needed=%s"):format(
+          i, name, tostring(itemID), tostring(spellID), isNeeded and "YES" or "no"
         ))
       end
 
@@ -303,11 +388,7 @@ function TrainerLearner:ScanTrainer()
           cost = tonumber(GetTrainerServiceCost(i)) or 0
         end
 
-        self._matches[#self._matches + 1] = {
-          index = i,
-          name = name,
-          cost = cost
-        }
+        self._matches[#self._matches + 1] = { index = i, name = name, cost = cost, itemID = itemID, spellID = spellID }
         self._totalCost = self._totalCost + cost
       end
     end
@@ -443,6 +524,9 @@ function TrainerLearner:TrainNeeded()
     end
   end
 
+  ns.Util.WipeTable(self._serviceItemIdCache)
+  ns.Util.WipeTable(self._serviceSpellIdCache)
+
   if trained > 0 then
     self:Info(("Trained %d guide-required recipe(s)."):format(trained))
   end
@@ -476,6 +560,9 @@ function TrainerLearner:EnsureFrame()
     if event == "TRAINER_SHOW" then
       -- Mark pending first; trainer services often populate after SHOW.
       self._autoLearnPending = self:IsAutoLearnEnabled()
+
+      ns.Util.WipeTable(self._serviceItemIdCache)
+      ns.Util.WipeTable(self._serviceSpellIdCache)
 
       self:RefreshTrainerState()
 
@@ -515,6 +602,9 @@ function TrainerLearner:EnsureFrame()
       self._matches = {}
       self._totalCost = 0
       self._autoLearnPending = false
+
+      ns.Util.WipeTable(self._serviceItemIdCache)
+      ns.Util.WipeTable(self._serviceSpellIdCache)
       return
     end
   end)
