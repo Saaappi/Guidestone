@@ -3,6 +3,8 @@ local ADDON, ns = ...
 ns.GuidePage = ns.GuidePage or {}
 
 local Item = _G.Item
+local IsAddOnLoaded = _G.C_AddOns.IsAddOnLoaded
+local LoadAddOn = _G.C_AddOns.LoadAddOn
 
 local GuidePage = ns.GuidePage
 
@@ -737,6 +739,81 @@ local function GetGoldRGB()
   return 1, 0.82, 0
 end
 
+-- ---------------------------------------------------------------------------
+-- Expansion dropdown (Leveling Guide tab)
+-- ---------------------------------------------------------------------------
+
+---@param professionInfo table|nil
+---@return number|nil
+local function GetBaseProfessionID(professionInfo)
+  if type(professionInfo) ~= "table" then
+    return nil
+  end
+
+  local parentID = tonumber(professionInfo.parentProfessionID)
+  if parentID and parentID > 0 then
+    return parentID
+  end
+
+  local childID = tonumber(professionInfo.professionID)
+  if childID and childID > 0 then
+    return childID
+  end
+
+  return nil
+end
+
+---@return table<string, table>
+local function GetKnownChildInfosByExpansionName()
+  local map = {}
+
+  if not (C_TradeSkillUI and C_TradeSkillUI.GetChildProfessionInfos) then
+    return map
+  end
+
+  local children = C_TradeSkillUI.GetChildProfessionInfos()
+  if type(children) ~= "table" then
+    return map
+  end
+
+  for i = 1, #children do
+    local info = children[i]
+    local name = info and info.expansionName
+    if type(name) == "string" and name ~= "" then
+      map[name] = info
+    end
+  end
+
+  return map
+end
+
+---@return string[]
+local function GetSortedExpansionKeys()
+  local keys = {}
+  local expansions = ns.Guides and ns.Guides.Expansions
+
+  if type(expansions) ~= "table" then
+    return keys
+  end
+
+  for k in pairs(expansions) do
+    keys[#keys + 1] = k
+  end
+
+  table.sort(keys, function(a, b)
+    local ma = expansions[a] or {}
+    local mb = expansions[b] or {}
+    local oa = tonumber(ma.order) or 9999
+    local ob = tonumber(mb.order) or 9999
+    if oa == ob then
+      return tostring(ma.name or a) < tostring(mb.name or b)
+    end
+    return oa < ob
+  end)
+
+  return keys
+end
+
 function GuidePage:Create(parent)
   if self.frame then
     return self.frame
@@ -802,6 +879,120 @@ function GuidePage:Create(parent)
   title:SetPoint("TOPLEFT", 18, -8)
   title:SetPoint("TOPRIGHT", -18, -8)
   self.titleText = title
+
+  -- Expansion selector
+  do
+    local dropdown = CreateFrame("DropdownButton", nil, page, "WowStyle1DropdownTemplate")
+    dropdown:SetSize(170, 25)
+    dropdown:SetPoint("TOPRIGHT", page, "TOPRIGHT", -52, -40)
+    dropdown:SetDefaultText("Select Expansion")
+
+    -- Keep a consistent height and avoid truncation surprises.
+    if dropdown.Text and dropdown.Text.SetMaxLines then
+      dropdown.Text:SetMaxLines(1)
+    end
+
+    dropdown:SetupMenu(function(_, rootDescription)
+      rootDescription:SetTag("MENU_GUIDESTONE_EXPANSION")
+
+      local activeInfo = (Professions and Professions.GetProfessionInfo) and Professions.GetProfessionInfo() or nil
+      local activeChildID = tonumber(activeInfo and activeInfo.professionID) or nil
+
+      local titleText = (activeInfo and activeInfo.parentProfessionName) or (activeInfo and activeInfo.professionName) or "Profession"
+      rootDescription:CreateTitle(titleText)
+
+      local expansions = ns.Guides and ns.Guides.Expansions or nil
+      local byName = GetKnownChildInfosByExpansionName()
+      local sortedKeys = GetSortedExpansionKeys()
+
+      ---@param professionInfo table
+      local function IsSelected(professionInfo)
+        return tonumber(professionInfo and professionInfo.professionInfo) == activeChildID
+      end
+
+      ---@param professionInfo table
+      local function SetSelected(professionInfo)
+        if type (professionInfo) ~= "table" then
+          return
+        end
+
+        -- Select the expansion tier in the base UI.
+        if EventRegistry and EventRegistry.TriggerEvent then
+          EventRegistry:TriggerEvent("Professions.SelectSkillLine", professionInfo)
+        elseif ns.ProfessionMemory and ns.ProfessionMemory.SelectChildSkillLine then
+          ns.ProfessionMemory:SelectChildSkillLine(tonumber(professionInfo.professionID))
+        end
+
+        -- Save the user's skill line choice when using the dropdown. All about that
+        -- consisten user experience.
+        local baseID = GetBaseProfessionID(activeInfo)
+        local childID = tonumber(professionInfo.professionID)
+
+        if baseID and childID and ns.ProfessionMemory and ns.ProfessionMemory.SetPending then
+          ns.ProfessionMemory:SetPending(baseID, childID)
+        elseif baseID and childID and GuidestoneDB and type(GuidestoneDB.lastProfessionChildSkillLineByParentID) == "table" then
+          GuidestoneDB.lastProfessionChildSkillLineByParentID[baseID] = childID
+        end
+      end
+
+      for i = 1, #sortedKeys do
+        local expansionKey = sortedKeys[i]
+        local meta = expansions and expansions[expansionKey] or nil
+        local name = meta and meta.name or tostring(expansionKey)
+        local childInfo = byName[name]
+
+        if childInfo then
+          local radio = rootDescription:CreateRadio(name, IsSelected, SetSelected, childInfo)
+          radio:AddInitializer(function(frame)
+            local fs = frame.fontString
+            if fs and fs.SetFontObject then
+              fs:SetFontObject("GameFontHighlightOutline")
+            end
+
+            -- Right-aligned skill text (i.e. 1/100)
+            local fs2 = frame._gsSkillText
+            if not fs2 and frame.AttachFontString then
+              fs2 = frame:AttachFontString()
+              fs2:SetHeight(20)
+              fs2:SetPoint("RIGHT")
+              fs2:SetFontObject("GameFontHighlightOutline")
+              frame._gsSkillText = fs2
+            end
+            if fs2 then
+              fs2:SetTextToFit(string.format("%d/%d", tonumber(childInfo.skillLevel) or 0, tonumber(childInfo.maxSkillLevel) or 0))
+            end
+          end)
+        else
+          -- Expansion exists, but the player doesn't have a learned profession skill line for it.
+          -- Show the expansion but disabled.
+          local dummy = { expansionName = name, professionID = 0 }
+          local radio = rootDescription:CreateRadio(name, function() return false end, function() end, dummy)
+          radio:SetEnabled(false)
+          radio:AddInitializer(function(frame)local fs = frame.fontString
+            if fs and fs.SetFontObject then
+              fs:SetFontObject("GameFontDisable")
+            end
+
+            local fs2 = frame._gsSkillText
+            if not fs2 and frame.AttachFontString then
+              fs2 = frame:AttachFontString()
+              fs2:SetHeight(20)
+              fs2:SetPoint("RIGHT")
+              fs2:SetFontObject("GameFontDisable")
+              frame._gsSkillText = fs2
+            end
+            if fs2 then
+              fs2:SetText("--")
+            end
+          end)
+        end
+      end
+
+      rootDescription:SetMinimumWidth(260)
+    end)
+
+    self.expansionDropdown = dropdown
+  end
 
   -- Materials header and container
   local materialsHeader = MakeHeader(child, "Materials Required")
@@ -877,6 +1068,18 @@ end
 function GuidePage:LoadForProfession(professionInfo)
   if not (self.frame and self.frame:IsShown()) then
     -- Still allow data to be prepared even if the tab is not currently visible
+  end
+
+  -- Keep the dropdown in sync with the active profession.
+  if self.expansionDropdown and self.expansionDropdown.SetDefaultText then
+    local expansionName = (type(professionInfo) == "table" and professionInfo.expansionName) or nil
+    if type(expansionName) == "string" and expansionName ~= "" then
+      self.expansionDropdown:SetDefaultText(expansionName)
+      self.expansionDropdown:Enable()
+    else
+      self.expansionDropdown:SetDefaultText("Select Expansion")
+      self.expansionDropdown:Disable()
+    end
   end
 
   -- Update profession background whenever the profession changes.
