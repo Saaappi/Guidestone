@@ -1,5 +1,4 @@
 Add:
-- Remember the last expansion the player chose for the open profession, and then reopen that expansion on load.
 - Dropdown menu in the upper right that allows the player to quickly jump between expansion guides for the open profession.
 - Add support for Wowhead links to the multi-link popup?
 - Add shift-click support from the materials list for pasting into the AH search bar

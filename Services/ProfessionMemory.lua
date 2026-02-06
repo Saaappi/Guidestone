@@ -77,6 +77,38 @@ local function GetActiveProfessionInfo()
   return nil
 end
 
+---@return table|nil
+local function GetRankBarDropdownButton()
+  if not ProfessionsFrame then
+    return nil
+  end
+
+  local craftingPage = ProfessionsFrame.CraftingPage
+  local dropdown = craftingPage and craftingPage.RankBar and craftingPage.RankBar.ExpansionDropdownButton or nil
+  if dropdown then
+    return dropdown
+  end
+
+  local ordersPage = ProfessionsFrame.OrdersPage
+  dropdown = ordersPage and ordersPage.RankBar and ordersPage.RankBar.ExpansionDropdownButton or nil
+  if dropdown then
+    return dropdown
+  end
+
+  return nil
+end
+
+---@return boolean
+local function IsUserSelectingExpansion()
+  local dropdown = GetRankBarDropdownButton()
+  if not (dropdown and dropdown.IsMenuOpen) then
+    return false
+  end
+
+  -- When the player picks an expansion, the dropdown menu is open.
+  return dropdown:IsMenuOpen() == true
+end
+
 -- ---------------------------------------------------------------------------
 -- DB
 -- ---------------------------------------------------------------------------
@@ -287,6 +319,10 @@ function ProfessionMemory:TryInstall()
   -- This event is triggered by the RankBar dropdown (user picking an expansion tier).
   -- Treat this as the authoritative "user selected a tier" signal.
   EventRegistry:RegisterCallback("Professions.SelectSkillLine", function(_, professionInfo)
+    if not IsUserSelectingExpansion() then
+      return
+    end
+
     ProfessionMemory:RememberUserSelection(professionInfo)
   end, ProfessionMemory)
 
