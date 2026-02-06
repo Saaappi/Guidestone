@@ -1,6 +1,6 @@
 Add:
-- Add support for Wowhead links to the multi-link popup?
 - Add shift-click support from the materials list for pasting into the AH search bar
+- Add support for Wowhead links to the multi-link popup?
 - Localization
 
 Fix These:
