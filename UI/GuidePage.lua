@@ -882,9 +882,9 @@ function GuidePage:Create(parent)
 
   -- Expansion selector
   do
-    local dropdown = CreateFrame("DropdownButton", nil, page, "WowStyle1DropdownTemplate")
+    local dropdown = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
     dropdown:SetSize(170, 25)
-    dropdown:SetPoint("TOPRIGHT", page, "TOPRIGHT", -52, -40)
+    dropdown:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -18, -10)
     dropdown:SetDefaultText("Select Expansion")
 
     -- Keep a consistent height and avoid truncation surprises.
