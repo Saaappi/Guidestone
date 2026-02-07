@@ -253,6 +253,12 @@ local function TryInitProfessionsTab()
       RefreshGuideIfVisible(professionInfo)
     end, page)
 
+    -- Fired when the player selects an expansion tier from Blizzard's RankBar dropdown.
+    -- I use this to also keep the dropdown text and guide content synchronized.
+    EventRegistry:RegisterCallback("Professions.SelectSkillLine", function(_, professionInfo)
+      RefreshGuideIfVisible(professionInfo)
+    end)
+
     page.professionSelectedCallbackRegistered = true
   end
 
