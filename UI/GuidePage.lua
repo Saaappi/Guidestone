@@ -1114,15 +1114,25 @@ function GuidePage:LoadForProfession(professionInfo)
     -- Still allow data to be prepared even if the tab is not currently visible
   end
 
+  -- Callers may pass child info (from SelectSkillLine) or nil.
+  local activeInfo = type(professionInfo) == "table" and professionInfo or nil
+  if not activeInfo and Professions and Professions.GetProfessionInfo then
+    activeInfo = Professions.GetProfessionInfo()
+  end
+
   -- Keep the dropdown in sync with the active profession.
   if self.expansionDropdown and self.expansionDropdown.SetDefaultText then
-    local expansionName = (type(professionInfo) == "table" and professionInfo.expansionName) or nil
+    local expansionName = ResolveExpansionName(activeInfo)
     if type(expansionName) == "string" and expansionName ~= "" then
       self.expansionDropdown:SetDefaultText(expansionName)
       self.expansionDropdown:Enable()
     else
       self.expansionDropdown:SetDefaultText("Select Expansion")
-      self.expansionDropdown:Disable()
+      if activeInfo then
+        self.expansionDropdown:Enable()
+      else
+        self.expansionDropdown:Disable()
+      end
     end
   end
 
