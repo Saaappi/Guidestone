@@ -956,6 +956,48 @@ function GuidePage:Create(parent)
 
       ---@param professionInfo table
       local function SetSelected(professionInfo)
+        if type(professionInfo) ~= "table" then
+          return
+        end
+
+        local childID = tonumber(professionInfo.professionID)
+        if not childID or childID <= 0 then
+          return
+        end
+
+        -- 1) Actually switch the profession child skill line (this updates Blizzard's RankBar).
+        if C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
+          C_TradeSkillUI.SetProfessionChildSkillLineID(childID)
+        end
+
+        -- 2) Also broadcast the event so anything listening refreshes.
+        if EventRegistry and EventRegistry.TriggerEvent then
+          EventRegistry:TriggerEvent("Professions.SelectSkillLine", professionInfo)
+        end
+
+        -- 3) Save the user's choice (pending + immediate persistence handled in ProfessionMemory fix below).
+        local baseID = GetBaseProfessionID(activeInfo)
+        if baseID and ns.ProfessionMemory and ns.ProfessionMemory.SetPending then
+          ns.ProfessionMemory:SetPending(baseID, childID)
+        elseif baseID and GuidestoneDB then
+          GuidestoneDB.lastProfessionChildSkillLineByParentID = GuidestoneDB.lastProfessionChildSkillLineByParentID or {}
+          GuidestoneDB.lastProfessionChildSkillLineByParentID[baseID] = childID
+        end
+
+        -- 4) Update *our* dropdown label immediately, so it doesn't wait for the next open.
+        if self.expansionDropdown and self.expansionDropdown.SetDefaultText then
+          local label = professionInfo.expansionName
+          if type(label) ~= "string" or label == "" then
+            label = "Select Expansion"
+          end
+          self.expansionDropdown:SetDefaultText(label)
+        end
+
+        -- 5) Re-render the guide immediately using the newly-selected child info.
+        self:LoadForProfession(professionInfo)
+      end
+
+      --[[local function SetSelected(professionInfo)
         if type (professionInfo) ~= "table" then
           return
         end
@@ -977,7 +1019,7 @@ function GuidePage:Create(parent)
         elseif baseID and childID and GuidestoneDB and type(GuidestoneDB.lastProfessionChildSkillLineByParentID) == "table" then
           GuidestoneDB.lastProfessionChildSkillLineByParentID[baseID] = childID
         end
-      end
+      end]]
 
       for i = 1, #sortedKeys do
         local expansionKey = sortedKeys[i]
