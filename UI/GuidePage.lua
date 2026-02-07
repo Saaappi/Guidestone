@@ -787,6 +787,50 @@ local function GetKnownChildInfosByExpansionName()
   return map
 end
 
+---@param professionInfo table|nil
+---@return string|nil
+local function ResolveExpansionName(professionInfo)
+  if type(professionInfo) ~= "table" then
+    return nil
+  end
+
+  -- An expansion name is available, so use it.
+  local expansionName = professionInfo.expansionName
+  if type(expansionName) == "string" and expansionName ~= "" then
+    return expansionName
+  end
+
+  -- Match the active child skill line to a child information record.
+  local childID = tonumber(professionInfo.professionID)
+  if childID and childID > 0 and C_TradeSkillUI and C_TradeSkillUI.GetChildProfessionInfos then
+    local children = C_TradeSkillUI.GetChildProfessionInfos()
+    if type(children) == "table" then
+      for i = 1, #children do
+        local child = children[i]
+        if tonumber(child and child.professionID) == childID then
+          local name = child and child.expansionName
+          if type(name) == "string" and name ~= "" then
+            return name
+          end
+        end
+      end
+    end
+  end
+
+  -- Last ditch effort...
+  local parentName = professionInfo.parentProfessionName
+  local fullName = professionInfo.professionName
+  if type(parentName) == "string" and parentName ~= "" and type(fullName) == "string" and fullName ~= "" then
+    local prefix = fullName:gsub("%s*" .. parentName .. "%s*$", "")
+    prefix = prefix:gsub("%s+$", "")
+    if prefix ~= "" and prefix ~= fullName then
+      return prefix
+    end
+  end
+
+  return nil
+end
+
 ---@return string[]
 local function GetSortedExpansionKeys()
   local keys = {}
