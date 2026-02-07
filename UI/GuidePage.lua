@@ -951,7 +951,7 @@ function GuidePage:Create(parent)
 
       ---@param professionInfo table
       local function IsSelected(professionInfo)
-        return tonumber(professionInfo and professionInfo.professionInfo) == activeChildID
+        return tonumber(professionInfo and professionInfo.professionID) == activeChildID
       end
 
       ---@param professionInfo table
