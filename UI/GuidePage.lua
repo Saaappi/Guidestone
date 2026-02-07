@@ -1163,9 +1163,15 @@ function GuidePage:LoadForProfession(professionInfo)
     local expansionName = ResolveExpansionName(activeInfo)
     if type(expansionName) == "string" and expansionName ~= "" then
       self.expansionDropdown:SetDefaultText(expansionName)
+      if self.expansionDropdown.Text and self.expansionDropdown.Text.SetText then
+        self.expansionDropdown.Text:SetText(expansionName)
+      end
       self.expansionDropdown:Enable()
     else
       self.expansionDropdown:SetDefaultText("Select Expansion")
+      if self.expansionDropdown.Text and self.expansionDropdown.Text.SetText then
+        self.expansionDropdown.Text:SetText("Select Expansion")
+      end
       if activeInfo then
         self.expansionDropdown:Enable()
       else

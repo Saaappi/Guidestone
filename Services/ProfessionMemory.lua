@@ -335,7 +335,7 @@ function ProfessionMemory:TryInstall()
   -- This event is triggered by the RankBar dropdown (user picking an expansion tier).
   -- Treat this as the authoritative "user selected a tier" signal.
   EventRegistry:RegisterCallback("Professions.SelectSkillLine", function(_, professionInfo)
-    ProfessionMemory:RememberUserSelection(professionInfo)
+    ProfessionMemory:RememberUserSelection(professionInfo, false)
   end, ProfessionMemory)
 
   -- Restore on open.
