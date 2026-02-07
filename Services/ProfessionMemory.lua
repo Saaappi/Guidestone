@@ -235,21 +235,18 @@ function ProfessionMemory:SelectChildSkillLine(desiredChildSkillLineID)
   if not desiredChildSkillLineID or desiredChildSkillLineID <= 0 then
     return
   end
-
   local childInfo = GetChildProfessionInfoBySkillLineID(desiredChildSkillLineID)
   if type(childInfo) ~= "table" then
     return
   end
-
-  -- Use Blizzard's own selection flow (this is what the dropdown uses).
-  if EventRegistry and EventRegistry.TriggerEvent then
-    EventRegistry:TriggerEvent("Professions.SelectSkillLine", childInfo)
-    return
-  end
-
-  -- Fallback (best-effort).
+  -- IMPORTANT: Tell Blizzard to switch the active child skill line when the player
+  -- has selected a new one from the leveling guide tab.
   if C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
     C_TradeSkillUI.SetProfessionChildSkillLineID(desiredChildSkillLineID)
+  end
+  -- Notify listeners that rely on this event bus.
+  if EventRegistry and EventRegistry.TriggerEvent then
+    EventRegistry:TriggerEvent("Professions.SelectSkillLine", childInfo)
   end
 end
 
