@@ -965,61 +965,57 @@ function GuidePage:Create(parent)
           return
         end
 
-        -- 1) Actually switch the profession child skill line (this updates Blizzard's RankBar).
-        if C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
+        -- Use a "full" professionInfo when possible (Blizzard expects this shape in places).
+        local fullInfo = nil
+        if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+          fullInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(childID)
+        end
+        fullInfo = fullInfo or professionInfo
+
+        -- 1) Switch the child skill line using Blizzard's normal flow (keeps RankBar in sync).
+        if ns.ProfessionMemory and ns.ProfessionMemory.SelectChildSkillLine then
+          ns.ProfessionMemory:SelectChildSkillLine(childID)
+        elseif EventRegistry and EventRegistry.TriggerEvent then
+          EventRegistry:TriggerEvent("Professions.SelectSkillLine", fullInfo)
+        elseif C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
           C_TradeSkillUI.SetProfessionChildSkillLineID(childID)
         end
 
-        -- 2) Also broadcast the event so anything listening refreshes.
-        if EventRegistry and EventRegistry.TriggerEvent then
-          EventRegistry:TriggerEvent("Professions.SelectSkillLine", professionInfo)
+        -- 2) Persist selection immediately (this is the bug: your dropdown wasn't counted as a "user selection").
+        if ns.ProfessionMemory and ns.ProfessionMemory.RememberUserSelection then
+          ns.ProfessionMemory:RememberUserSelection(fullInfo, true) -- force
+        else
+          -- Fallback: direct DB write
+          local baseID = GetBaseProfessionID(activeInfo)
+          if baseID and GuidestoneDB then
+            GuidestoneDB.lastProfessionChildSkillLineByParentID = GuidestoneDB.lastProfessionChildSkillLineByParentID or {}
+            GuidestoneDB.lastProfessionChildSkillLineByParentID[baseID] = childID
+          end
         end
 
-        -- 3) Save the user's choice (pending + immediate persistence handled in ProfessionMemory fix below).
-        local baseID = GetBaseProfessionID(activeInfo)
-        if baseID and ns.ProfessionMemory and ns.ProfessionMemory.SetPending then
-          ns.ProfessionMemory:SetPending(baseID, childID)
-        elseif baseID and GuidestoneDB then
-          GuidestoneDB.lastProfessionChildSkillLineByParentID = GuidestoneDB.lastProfessionChildSkillLineByParentID or {}
-          GuidestoneDB.lastProfessionChildSkillLineByParentID[baseID] = childID
-        end
-
-        -- 4) Update *our* dropdown label immediately, so it doesn't wait for the next open.
-        if self.expansionDropdown and self.expansionDropdown.SetDefaultText then
-          local label = professionInfo.expansionName
+        -- 3) Update *visible* dropdown text immediately (not just the "default" text).
+        if self.expansionDropdown then
+          local label = fullInfo and fullInfo.expansionName or professionInfo.expansionName
           if type(label) ~= "string" or label == "" then
             label = "Select Expansion"
           end
-          self.expansionDropdown:SetDefaultText(label)
+
+          if self.expansionDropdown.SetDefaultText then
+            self.expansionDropdown:SetDefaultText(label)
+          end
+          if self.expansionDropdown.Text and self.expansionDropdown.Text.SetText then
+            self.expansionDropdown.Text:SetText(label) -- forces repaint so you don't need to click twice
+          end
+
+          -- If this mixin exists on the client, close the menu after selection to avoid stale display.
+          if self.expansionDropdown.CloseMenu then
+            self.expansionDropdown:CloseMenu()
+          end
         end
 
-        -- 5) Re-render the guide immediately using the newly-selected child info.
-        self:LoadForProfession(professionInfo)
+        -- 4) Re-render guide immediately.
+        self:LoadForProfession(fullInfo)
       end
-
-      --[[local function SetSelected(professionInfo)
-        if type (professionInfo) ~= "table" then
-          return
-        end
-
-        -- Select the expansion tier in the base UI.
-        if EventRegistry and EventRegistry.TriggerEvent then
-          EventRegistry:TriggerEvent("Professions.SelectSkillLine", professionInfo)
-        elseif ns.ProfessionMemory and ns.ProfessionMemory.SelectChildSkillLine then
-          ns.ProfessionMemory:SelectChildSkillLine(tonumber(professionInfo.professionID))
-        end
-
-        -- Save the user's skill line choice when using the dropdown. All about that
-        -- consisten user experience.
-        local baseID = GetBaseProfessionID(activeInfo)
-        local childID = tonumber(professionInfo.professionID)
-
-        if baseID and childID and ns.ProfessionMemory and ns.ProfessionMemory.SetPending then
-          ns.ProfessionMemory:SetPending(baseID, childID)
-        elseif baseID and childID and GuidestoneDB and type(GuidestoneDB.lastProfessionChildSkillLineByParentID) == "table" then
-          GuidestoneDB.lastProfessionChildSkillLineByParentID[baseID] = childID
-        end
-      end]]
 
       for i = 1, #sortedKeys do
         local expansionKey = sortedKeys[i]
