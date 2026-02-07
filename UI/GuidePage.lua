@@ -1014,7 +1014,18 @@ function GuidePage:Create(parent)
         end
 
         -- 4) Re-render guide immediately.
-        self:LoadForProfession(fullInfo)
+        local attempts = 0
+        local function TryReload()
+          attempts = attempts + 1
+          local info = (Professions and Professions.GetProfessionInfo) and Professions.GetProfessionInfo() or nil
+          local currentChild = tonumber(info and info.professionID) or nil
+          if currentChild == childID or attempts >= 10 then
+            self:LoadForProfession(info or fullInfo)
+            return
+          end
+          C_Timer.After(0.05, TryReload)
+        end
+        C_Timer.After(0, TryReload)
       end
 
       for i = 1, #sortedKeys do

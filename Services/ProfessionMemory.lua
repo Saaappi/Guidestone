@@ -235,18 +235,28 @@ function ProfessionMemory:SelectChildSkillLine(desiredChildSkillLineID)
   if not desiredChildSkillLineID or desiredChildSkillLineID <= 0 then
     return
   end
-  local childInfo = GetChildProfessionInfoBySkillLineID(desiredChildSkillLineID)
-  if type(childInfo) ~= "table" then
+
+  -- Always prefer a full professionInfo payload.
+  local fullInfo = nil
+  if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+    fullInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(desiredChildSkillLineID)
+  end
+  if type(fullInfo) ~= "table" then
     return
   end
-  -- IMPORTANT: Tell Blizzard to switch the active child skill line when the player
-  -- has selected a new one from the leveling guide tab.
+
+  -- IMPORTANT:
+  -- This is what Blizzard’s own RankBar dropdown ultimately does.
+  -- It updates the Professions UI controller state (which RankBar reads),
+  -- and it will call into TradeSkillUI as needed.
+  if Professions and Professions.SelectSkillLine then
+    Professions.SelectSkillLine(fullInfo)
+    return
+  end
+
+  -- Fallback (older/odd clients): do the raw API call.
   if C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
     C_TradeSkillUI.SetProfessionChildSkillLineID(desiredChildSkillLineID)
-  end
-  -- Notify listeners that rely on this event bus.
-  if EventRegistry and EventRegistry.TriggerEvent then
-    EventRegistry:TriggerEvent("Professions.SelectSkillLine", childInfo)
   end
 end
 
