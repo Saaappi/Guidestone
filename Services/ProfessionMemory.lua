@@ -175,8 +175,9 @@ function ProfessionMemory:SetPending(baseProfessionID, childSkillLineID)
 end
 
 ---@param professionInfo table|nil
+---@param force boolean|nil
 ---@return nil
-function ProfessionMemory:RememberUserSelection(professionInfo)
+function ProfessionMemory:RememberUserSelection(professionInfo, force)
   if self._logoutInProgress then
     return
   end
@@ -184,6 +185,12 @@ function ProfessionMemory:RememberUserSelection(professionInfo)
     return
   end
   if type(professionInfo) ~= "table" then
+    return
+  end
+
+  -- Only accept Blizzard's event when the player is actively using Blizzard's dropdown,
+  -- unless the caller is explicitly forcing the save (via the dropdown in the Leveling Guide tab).
+  if not force and not IsUserSelectingExpansion() then
     return
   end
 
@@ -328,10 +335,6 @@ function ProfessionMemory:TryInstall()
   -- This event is triggered by the RankBar dropdown (user picking an expansion tier).
   -- Treat this as the authoritative "user selected a tier" signal.
   EventRegistry:RegisterCallback("Professions.SelectSkillLine", function(_, professionInfo)
-    if not IsUserSelectingExpansion() then
-      return
-    end
-
     ProfessionMemory:RememberUserSelection(professionInfo)
   end, ProfessionMemory)
 
