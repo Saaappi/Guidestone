@@ -163,6 +163,15 @@ function ProfessionMemory:SetPending(baseProfessionID, childSkillLineID)
   end
 
   self._pendingChildByParentID[baseProfessionID] = childSkillLineID
+
+  -- Write through to the database immediately so I can restore the choice
+  -- after closing or reopening the Professions frame.
+  if self._db then
+    self._db.lastProfessionChildSkillLineByParentID = self._db.lastProfessionChildSkillLineByParentID or {}
+    if type(self._db.lastProfessionChildSkillLineByParentID) == "table" then
+      self._db.lastProfessionChildSkillLineByParentID[baseProfessionID] = childSkillLineID
+    end
+  end
 end
 
 ---@param professionInfo table|nil
