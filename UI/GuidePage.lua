@@ -940,7 +940,12 @@ function GuidePage:Create(parent)
       rootDescription:SetTag("MENU_GUIDESTONE_EXPANSION")
 
       local activeInfo = (Professions and Professions.GetProfessionInfo) and Professions.GetProfessionInfo() or nil
+      local baseID = GetBaseProfessionID(activeInfo)
       local activeChildID = tonumber(activeInfo and activeInfo.professionID) or nil
+
+      if baseID and ns.ProfessionMemory and ns.ProfessionMemory.GetSavedChildSkillLineID then
+        activeChildID = ns.ProfessionMemory:GetSavedChildSkillLineID(baseID) or activeChildID
+      end
 
       local titleText = (activeInfo and activeInfo.parentProfessionName) or (activeInfo and activeInfo.professionName) or "Profession"
       rootDescription:CreateTitle(titleText)
@@ -965,51 +970,31 @@ function GuidePage:Create(parent)
           return
         end
 
-        -- 1) Switch via Blizzard’s controller path.
-        if ns.ProfessionMemory and ns.ProfessionMemory.SelectChildSkillLine then
-          ns.ProfessionMemory:SelectChildSkillLine(childID)
-        elseif Professions and Professions.SelectSkillLine then
-          local fullInfo = C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID and C_TradeSkillUI.GetProfessionInfoBySkillLineID(childID) or professionInfo
-          Professions.SelectSkillLine(fullInfo)
-        else
-          if C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
-            C_TradeSkillUI.SetProfessionChildSkillLineID(childID)
-          end
+        local fullInfo =
+          (C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID and C_TradeSkillUI.GetProfessionInfoBySkillLineID(childID))
+          or professionInfo
+
+        -- Save ONLY the guide dropdown choice (do not change Blizzard's active tier).
+        if ns.ProfessionMemory and ns.ProfessionMemory.RememberGuideSelection then
+          ns.ProfessionMemory:RememberGuideSelection(fullInfo)
         end
 
-        -- 2) Update *visible* dropdown text immediately (not just the "default" text).
+        -- Update visible dropdown label immediately.
         if self.expansionDropdown then
-          local label = fullInfo and fullInfo.expansionName or professionInfo.expansionName
-          if type(label) ~= "string" or label == "" then
-            label = "Select Expansion"
-          end
-
+          local label = fullInfo.expansionName or professionInfo.expansionName or "Select Expansion"
           if self.expansionDropdown.SetDefaultText then
             self.expansionDropdown:SetDefaultText(label)
           end
           if self.expansionDropdown.Text and self.expansionDropdown.Text.SetText then
-            self.expansionDropdown.Text:SetText(label) -- forces repaint so you don't need to click twice
+            self.expansionDropdown.Text:SetText(label)
           end
-
-          -- If this mixin exists on the client, close the menu after selection to avoid stale display.
           if self.expansionDropdown.CloseMenu then
             self.expansionDropdown:CloseMenu()
           end
         end
 
-        -- 3) Re-render guide immediately.
-        local attempts = 0
-        local function TryReload()
-          attempts = attempts + 1
-          local info = (Professions and Professions.GetProfessionInfo) and Professions.GetProfessionInfo() or nil
-          local currentChild = tonumber(info and info.professionID) or nil
-          if currentChild == childID or attempts >= 10 then
-            self:LoadForProfession(info or fullInfo)
-            return
-          end
-          C_Timer.After(0.05, TryReload)
-        end
-        C_Timer.After(0, TryReload)
+        -- Reload guide content for the selected tier.
+        self:LoadForProfession(fullInfo)
       end
 
       for i = 1, #sortedKeys do
