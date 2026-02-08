@@ -1297,6 +1297,141 @@ function GuidePage:RenderGuide(guide)
     ns.LinkPopup:ShowLinks("Links", links)
   end
 
+  ---@return EditBox|nil searchBox
+  ---@return Button|nil searchButton
+  local function GetAuctionHouseSearchWidgets()
+    local ah = _G.AuctionHouseFrame
+    if not (ah and ah.IsShown and ah:IsShown()) then
+      return nil, nil
+    end
+
+    -- Only treat the AH as searchable when the search box itself is visible.
+    local bar = ah.SearchBar
+      or (ah.BrowseResultsFrame and ah.BrowseResultsFrame.SearchBar)
+      or (ah.CommoditiesBuyFrame and ah.CommoditiesBuyFrame.SearchBar)
+      or (ah.BuyItemFrame and ah.BuyItemFrame.SearchBar)
+
+    local box = bar and (bar.SearchBox or (bar.SearchBar and bar.SearchBar.SearchBox)) or nil
+    if not (box and box.IsShown and box:IsShown() and box.SetText) then
+      return nil, nil
+    end
+
+    local btn = bar and (bar.SearchButton or bar.Search) or nil
+    return box, btn
+  end
+
+  ---@param query string
+  ---@return boolean
+  local function TriggerAuctionHouseSearch(query)
+    local box, btn = GetAuctionHouseSearchWidgets()
+    if not box then
+      return false
+    end
+
+    query = tostring(query or "")
+    box:SetText(query)
+
+    -- Prefer clicking the search button; fall back to using the enter handler.
+    if btn and btn.Click then
+      btn:Click()
+      return true
+    end
+
+    local onEnter = box.GetScript and box:GetScript("OnEnterPressed")
+    if type(onEnter) == "function" then
+      if ns.Util and ns.Util.SafeCall then
+        ns.Util.SafeCall(onEnter, box)
+      else
+        pcall(onEnter, box)
+      end
+      return true
+    end
+
+    return true
+  end
+
+  ---@return EditBox|nil
+  local function EnsureChatEditBox()
+    local editBox = nil
+
+    if _G.ChatEdit_ChooseBoxForSend then
+      editBox = _G.ChatEdit_ChooseBoxForSend()
+    end
+
+    if not editBox and _G.DEFAULT_CHAT_FRAME then
+      editBox = _G.DEFAULT_CHAT_FRAME.editBox
+    end
+
+    if editBox and _G.ChatEdit_ActivateChat then
+      _G.ChatEdit_ActivateChat(editBox)
+    elseif editBox and editBox.Show then
+      editBox:Show()
+    end
+
+    return editBox
+  end
+
+  ---@param text string
+  ---@return boolean
+  local function InsertIntoChat(text)
+    local editBox = EnsureChatEditBox()
+    if not editBox then
+      return false
+    end
+
+    text = tostring(text or "")
+
+    if _G.ChatEdit_InsertLink then
+      _G.ChatEdit_InsertLink(text)
+    elseif editBox.Insert then
+      editBox:Insert(text)
+    end
+
+    return true
+  end
+
+  ---@param mat table
+  ---@return nil
+  local function HandleMaterialShiftClick(mat)
+    local itemID = mat and tonumber(mat.itemID) or nil
+    if not (itemID and itemID > 0) then
+      return
+    end
+
+    -- If the Auction House is open and the search box is visible, search it.
+    local ahBox = GetAuctionHouseSearchWidgets()
+    if ahBox then
+      TriggerAuctionHouseSearch(GetItemName(itemID))
+      return
+    end
+
+    -- Otherwise, open chat and insert the item link.
+    local link = nil
+    if _G.C_Item.GetItemInfo then
+      link = select(2, _G.C_Item.GetItemInfo(itemID))
+    end
+
+    if link and link ~= "" then
+      InsertIntoChat(link)
+      return
+    end
+
+    -- If the link isn't cached yet, load it asynchronously and insert once available.
+    if _G.Item and _G.Item.CreateFromItemID then
+      local item = _G.Item:CreateFromItemID(itemID)
+      item:ContinueOnItemLoad(function()
+        local itemLink = (item.GetItemLink and item:GetItemLink()) or (select(2, _G.C_Item.GetItemInfo and _G.C_Item.GetItemInfo(itemID)))
+        if itemLink and itemLink ~= "" then
+          InsertIntoChat(itemLink)
+        else
+          InsertIntoChat(("item:%d"):format(itemID))
+        end
+      end)
+    else
+      InsertIntoChat(("item:%d"):format(itemID))
+    end
+  end
+
   ---@param text string
   ---@param note string|nil
   ---@param indent number|nil
@@ -1469,6 +1604,18 @@ function GuidePage:RenderGuide(guide)
 
     hit:SetScript("OnLeave", function()
       GameTooltip:Hide()
+    end)
+
+    hit:SetScript("OnMouseUp", function(_, button)
+      if button ~= "LeftButton" then
+        return
+      end
+
+      if not (_G.IsShiftKeyDown and _G.IsShiftKeyDown()) then
+        return
+      end
+
+      HandleMaterialShiftClick(mat)
     end)
 
     -- Material note, when present, should not affect main line alignment.
