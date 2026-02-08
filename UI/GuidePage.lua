@@ -965,35 +965,19 @@ function GuidePage:Create(parent)
           return
         end
 
-        -- Use a "full" professionInfo when possible (Blizzard expects this shape in places).
-        local fullInfo = nil
-        if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
-          fullInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(childID)
-        end
-        fullInfo = fullInfo or professionInfo
-
-        -- 1) Switch the child skill line using Blizzard's normal flow (keeps RankBar in sync).
+        -- 1) Switch via Blizzard’s controller path.
         if ns.ProfessionMemory and ns.ProfessionMemory.SelectChildSkillLine then
           ns.ProfessionMemory:SelectChildSkillLine(childID)
-        elseif EventRegistry and EventRegistry.TriggerEvent then
-          EventRegistry:TriggerEvent("Professions.SelectSkillLine", fullInfo)
-        elseif C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
-          C_TradeSkillUI.SetProfessionChildSkillLineID(childID)
-        end
-
-        -- 2) Persist selection immediately (this is the bug: your dropdown wasn't counted as a "user selection").
-        if ns.ProfessionMemory and ns.ProfessionMemory.RememberUserSelection then
-          ns.ProfessionMemory:RememberUserSelection(fullInfo, true) -- force
+        elseif Professions and Professions.SelectSkillLine then
+          local fullInfo = C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID and C_TradeSkillUI.GetProfessionInfoBySkillLineID(childID) or professionInfo
+          Professions.SelectSkillLine(fullInfo)
         else
-          -- Fallback: direct DB write
-          local baseID = GetBaseProfessionID(activeInfo)
-          if baseID and GuidestoneDB then
-            GuidestoneDB.lastProfessionChildSkillLineByParentID = GuidestoneDB.lastProfessionChildSkillLineByParentID or {}
-            GuidestoneDB.lastProfessionChildSkillLineByParentID[baseID] = childID
+          if C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
+            C_TradeSkillUI.SetProfessionChildSkillLineID(childID)
           end
         end
 
-        -- 3) Update *visible* dropdown text immediately (not just the "default" text).
+        -- 2) Update *visible* dropdown text immediately (not just the "default" text).
         if self.expansionDropdown then
           local label = fullInfo and fullInfo.expansionName or professionInfo.expansionName
           if type(label) ~= "string" or label == "" then
@@ -1013,7 +997,7 @@ function GuidePage:Create(parent)
           end
         end
 
-        -- 4) Re-render guide immediately.
+        -- 3) Re-render guide immediately.
         local attempts = 0
         local function TryReload()
           attempts = attempts + 1

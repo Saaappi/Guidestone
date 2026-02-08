@@ -19,6 +19,67 @@ ProfessionMemory._pendingChildByParentID = ProfessionMemory._pendingChildByParen
 -- Helpers
 -- ---------------------------------------------------------------------------
 
+---@param baseID number
+---@param childID number
+---@return nil
+function ProfessionMemory:CommitSelection(baseID, childID)
+  if not self._db then
+    return
+  end
+  self._db.lastProfessionChildSkillLineByParentID = self._db.lastProfessionChildSkillLineByParentID or {}
+  self._db.lastProfessionChildSkillLineByParentID[baseID] = childID
+end
+
+---@param professionInfo table|nil
+---@return nil
+function ProfessionMemory:RefreshBlizzardRankBarLabel(professionInfo)
+  if type(professionInfo) ~= "table" then
+    return
+  end
+  local dropdown = GetRankBarDropdownButton()
+  if not dropdown then
+    return
+  end
+  local label = professionInfo.expansionName
+  if type(label) ~= "string" or label == "" then
+    return
+  end
+  if dropdown.SetDefaultText then
+    dropdown:SetDefaultText(label)
+  end
+  if dropdown.Text and dropdown.Text.SetText then
+    dropdown.Text:SetText(label) -- force repaint
+  end
+  local rankBar = dropdown:GetParent()
+  if rankBar and rankBar.Update then
+    rankBar:Update()
+  elseif rankBar and rankBar.Refresh then
+    rankBar:Refresh()
+  end
+end
+
+---@param childSkillLineID number|nil
+---@return number|nil
+local function ResolveParentProfessionID(childSkillLineID)
+  childSkillLineID = tonumber(childSkillLineID)
+  if not childSkillLineID or childSkillLineID <= 0 then
+    return nil
+  end
+
+  if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+    local info = C_TradeSkillUI.GetProfessionInfoBySkillLineID(childSkillLineID)
+    local parentID = tonumber(info and info.parentProfessionID)
+    if parentID and parentID > 0 then
+      return parentID
+    end
+  end
+
+  return nil
+end
+
+---@return table|nil
+local GetActiveProfessionInfo
+
 ---@param professionInfo table|nil
 ---@return number|nil
 local function GetBaseProfessionKey(professionInfo)
@@ -29,20 +90,20 @@ local function GetBaseProfessionKey(professionInfo)
   if parentID and parentID > 0 then
     return parentID
   end
-  -- If the payload doesn't include a parentProfessionID (this happens with some API returns),
-  -- fall back to the currently-active profession's base parent.
-  local activeInfo = GetActiveProfessionInfo()
-  local activeParent = tonumber(activeInfo and activeInfo.parentProfessionID)
-  if activeParent and activeParent > 0 then
-    return activeParent
-  end
   local childID = tonumber(professionInfo.professionID)
   if childID and childID > 0 then
+    -- Some payloads (notably during initial UI open after /reload) don’t include parentProfessionID.
+    -- Derive it from the skill line ID.
+    local derivedParent = ResolveParentProfessionID(childID)
+    if derivedParent then
+      return derivedParent
+    end
     return childID
   end
 
   return nil
 end
+
 
 ---@param skillLineID number|nil
 ---@return table|nil
@@ -73,7 +134,7 @@ local function GetChildProfessionInfoBySkillLineID(skillLineID)
 end
 
 ---@return table|nil
-local function GetActiveProfessionInfo()
+GetActiveProfessionInfo = function()
   if Professions and Professions.GetProfessionInfo then
     return Professions.GetProfessionInfo()
   end
@@ -201,6 +262,9 @@ function ProfessionMemory:RememberUserSelection(professionInfo, force)
   -- Only mark pending here; we commit at PLAYER_LOGOUT to avoid reload/login churn
   -- overwriting the desired value.
   self:SetPending(baseID, childID)
+  if force then
+    self:CommitSelection(baseID, childID)
+  end
 end
 
 ---@return nil
@@ -233,8 +297,7 @@ function ProfessionMemory:SelectChildSkillLine(desiredChildSkillLineID)
   if not desiredChildSkillLineID or desiredChildSkillLineID <= 0 then
     return
   end
-
-  -- Always prefer a full professionInfo payload.
+  -- Prefer a "full" payload; Blizzard's controller logic expects this shape.
   local fullInfo = nil
   if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
     fullInfo = C_TradeSkillUI.GetProfessionInfoBySkillLineID(desiredChildSkillLineID)
@@ -242,17 +305,12 @@ function ProfessionMemory:SelectChildSkillLine(desiredChildSkillLineID)
   if type(fullInfo) ~= "table" then
     return
   end
-
-  -- IMPORTANT:
-  -- This is what Blizzard’s own RankBar dropdown ultimately does.
-  -- It updates the Professions UI controller state (which RankBar reads),
-  -- and it will call into TradeSkillUI as needed.
+  -- This updates Blizzard’s controller + RankBar state correctly.
   if Professions and Professions.SelectSkillLine then
     Professions.SelectSkillLine(fullInfo)
     return
   end
-
-  -- Fallback (older/odd clients): do the raw API call.
+  -- Fallback (best-effort).
   if C_TradeSkillUI and C_TradeSkillUI.SetProfessionChildSkillLineID then
     C_TradeSkillUI.SetProfessionChildSkillLineID(desiredChildSkillLineID)
   end
@@ -350,6 +408,21 @@ function ProfessionMemory:TryInstall()
   ProfessionsFrame:HookScript("OnShow", function()
     ProfessionMemory:QueueRestore()
   end)
+
+  local function RefreshRankBarIfPossible()
+    local info = GetActiveProfessionInfo()
+    if info then
+      ProfessionMemory:RefreshBlizzardRankBarLabel(info)
+    end
+  end
+
+  if ProfessionsFrame.CraftingPage and ProfessionsFrame.CraftingPage.HookScript then
+    ProfessionsFrame.CraftingPage:HookScript("OnShow", RefreshRankBarIfPossible)
+  end
+
+  if ProfessionsFrame.OrdersPage and ProfessionsFrame.OrdersPage.HookScript then
+    ProfessionsFrame.OrdersPage:HookScript("OnShow", RefreshRankBarIfPossible)
+  end
 
   -- Commit at logout/reload and lock writes so late UI churn can't overwrite.
   local logoutFrame = CreateFrame("Frame")
