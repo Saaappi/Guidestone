@@ -4,7 +4,6 @@ Add:
 - Localization
 
 Fix These:
-- The dropdown needs to also change the selected expansion, not just load that expansion's leveling guide.
 
 Before Release:
 Clean the code for any unnecessary shit.
