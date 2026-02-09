@@ -1,12 +1,13 @@
-local ADDON, ns = ...
+local Addon = _G.Guidestone
 
-ns.GuidePage = ns.GuidePage or {}
+---@class GuidestoneGuidePage
+local GuidePage = {}
+
+Addon.modules.GuidePage = GuidePage
 
 local Item = _G.Item
 local IsAddOnLoaded = _G.C_AddOns.IsAddOnLoaded
 local LoadAddOn = _G.C_AddOns.LoadAddOn
-
-local GuidePage = ns.GuidePage
 
 local WOWPROF_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\WoWProfessions.png"
 local WOWHEAD_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Wowhead.png"
@@ -39,6 +40,169 @@ GuidePage.stepRows = GuidePage.stepRows or {}
 GuidePage.trainerRows = GuidePage.trainerRows or {}
 
 GuidePage._pendingItemLoads = GuidePage._pendingItemLoads or {}
+
+local initialized = false
+function GuidePage:TryInitProfessionsTab()
+  if not _G.ProfessionsFrame then
+    return
+  end
+
+  -- Install profession expansion memory even if the guide tab is already initialized.
+  if Addon.modules.ProfessionMemory and Addon.modules.ProfessionMemory.TryInstall then
+    Addon.modules.ProfessionMemory:TryInstall()
+  end
+
+  if initialized then
+    return
+  end
+
+  -- UI/GuidePage.lua will define ns.GuidePage. I do not require it here.
+  if not (GuidePage and GuidePage.Create and GuidePage.LoadForProfession) then
+    -- Not an error; it just means the UI file is not implemented yet.
+    return
+  end
+
+  -- Create the guide page frmae and add it as a Professions tab page.
+  local page = GuidePage:Create(ProfessionsFrame)
+  if not page then
+    return
+  end
+  page:Hide()
+
+  local tabID = ProfessionsFrame:AddNamedTab("Leveling Guide", page)
+  ProfessionsFrame.guidestoneLevelingGuideTabID = tabID
+
+  ---@param checkTabID number
+  ---@return boolean
+  local function IsGuideTabSelected(checkTabID)
+    if not (ProfessionsFrame and ProfessionsFrame.GetTab) then
+      return false
+    end
+    return ProfessionsFrame:GetTab() == checkTabID
+  end
+
+  ---@return boolean
+  local function IsOverlayCastBarOwnedByProfessions()
+    if not (OverlayPlayerCastingBarFrame and OverlayPlayerCastingBarFrame.GetParent) then
+      return false
+    end
+    if not ProfessionsFrame then
+      return false
+    end
+
+    local parent = OverlayPlayerCastingBarFrame:GetParent()
+    while parent do
+      if parent == ProfessionsFrame then
+        return true
+      end
+      parent = parent.GetParent and parent:GetParent() or nil
+    end
+
+    return false
+  end
+
+  ---@param checkTabID number
+  ---@return nil
+  local function EnsurePlayerCastBarVisibleOnGuideTab(checkTabID)
+    if not IsGuideTabSelected(checkTabID) then
+      return
+    end
+
+    -- Only tear down the overlay bar if Professions created/owns it.
+    if not IsOverlayCastBarOwnedByProfessions() then
+      return
+    end
+
+    if OverlayPlayerCastingBarFrame and OverlayPlayerCastingBarFrame.EndReplacingPlayerBar then
+      OverlayPlayerCastingBarFrame:EndReplacingPlayerBar()
+    elseif PlayerCastingBarFrame and PlayerCastingBarFrame.SetAndUpdateShowCastbar then
+      PlayerCastingBarFrame:SetAndUpdateShowCastbar(true)
+    end
+
+    -- Keep CraftingPage state consistent in case Blizzard thinks the override is still active.
+    local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
+    if craftingPage then
+      craftingPage.isOverrideCastBarActive = false
+    end
+  end
+
+  ---@param checkTabID number
+  ---@return nil
+  local function InstallGuideTabCastBarFix(checkTabID)
+    local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
+    if not (craftingPage and craftingPage.SetOverrideCastBarActive) then
+      return
+    end
+
+    if craftingPage._gsCastBarFixInstalled then
+      return
+    end
+    craftingPage._gsCastBarFixInstalled = true
+
+    local origSetOverrideCastBarActive = craftingPage.SetOverrideCastBarActive
+
+    -- Prevent the Professions overlay cast bar from being used while the addon's tab
+    -- hides CraftingPage.
+    craftingPage.SetOverrideCastBarActive = function(self, active)
+      if active and IsGuideTabSelected(checkTabID) then
+        -- Do NOT call the original: it will disable the real PlayerCastingBarFrame and
+        -- attach OverlayPlayerCastingBarFrame to a hidden CraftingPage anchor (forcing
+        -- the bar to be invisible.)
+        self.isOverrideCastBarActive = false
+        return
+      end
+
+      return origSetOverrideCastBarActive(self, active)
+    end
+  end
+
+  -- Install the cast bar fix once the addon's tab is created.
+  InstallGuideTabCastBarFix(tabID)
+
+  local function RefreshGuideIfVisible(professionInfo)
+    if not (ProfessionsFrame and ProfessionsFrame.IsShown and ProfessionsFrame:IsShown()) then
+      return
+    end
+
+    if not (ProfessionsFrame.GetTab and ProfessionsFrame:GetTab() == tabID) then
+      return
+    end
+
+    page:Show()
+    if Addon.modules.ProfessionMemory and Addon.modules.ProfessionMemory.GetGuideProfessionInfo then
+      professionInfo = Addon.modules.ProfessionMemory:GetGuideProfessionInfo(professionInfo)
+    end
+    GuidePage:LoadForProfession(professionInfo)
+  end
+
+  if EventRegistry and EventRegistry.RegisterCallback and not page.professionSelectedCallbackRegistered then
+    EventRegistry:RegisterCallback("Professions.ProfessionSelected", function(_, professionInfo)
+      RefreshGuideIfVisible(professionInfo)
+    end, page)
+
+    page.professionSelectedCallbackRegistered = true
+  end
+
+  ProfessionsFrame:SetTabCallback(tabID, function()
+    -- If a craft is already in progress, ensure it doesn't lose the cast bar
+    -- to a professions overlay anchored to a hidden CraftingPage.
+    EnsurePlayerCastBarVisibleOnGuideTab(tabID)
+
+    local info = (Professions and Professions.GetProfessionInfo) and Professions.GetProfessionInfo() or nil
+    if Addon.modules.ProfessionMemory and Addon.modules.ProfessionMemory.GetGuideProfessionInfo then
+      info = Addon.modules.ProfessionMemory:GetGuideProfessionInfo(info)
+    end
+
+    page:Show()
+    GuidePage:LoadForProfession(info)
+  end)
+
+  ProfessionsFrame:SetTabDeselectCallback(tabID, function()
+    page:Hide()
+  end)
+
+  initialized = true
+end
 
 ---@param atlas string|nil
 ---@return boolean
