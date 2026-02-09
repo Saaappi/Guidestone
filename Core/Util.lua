@@ -12,7 +12,6 @@ local UiMapPoint = UiMapPoint
 
 ---@class GuidestoneUtil
 local Util = {}
-
 Addon.modules.Util = Util
 
 function Util.SafeCall(fn, ...)

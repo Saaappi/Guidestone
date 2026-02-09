@@ -10,7 +10,6 @@ local tsort = table.sort
 
 ---@class GuidestoneGuides
 local Guides = {}
-
 Addon.modules.Guides = Guides
 
 -- -----------------------------------------------------------------------------

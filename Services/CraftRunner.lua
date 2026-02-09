@@ -1,7 +1,12 @@
-local _, ns = ...
+local Addon = _G.Guidestone
 
-ns.CraftRunner = ns.CraftRunner or {}
-local CraftRunner = ns.CraftRunner
+---@class GuidestoneCraftRunner
+local CraftRunner = {}
+Addon.modules.CraftRunner = CraftRunner
+
+local type = type
+local lower = string.lower
+local C_TradeSkillUI = C_TradeSkillUI
 
 CraftRunner._frame = CraftRunner._frame or nil
 CraftRunner._running = false
@@ -48,7 +53,7 @@ ns.FindRecipeIDByName = function(recipeName)
     local info = C_TradeSkillUI.GetRecipeInfo(recipeID)
     local name = info and info.name
     if type(name) == "string" then
-      local n = name:lower()
+      local n = lower(name)
       if n == target then
         bestExact = recipeID
         break
