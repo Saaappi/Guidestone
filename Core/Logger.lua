@@ -1,23 +1,43 @@
-local _, ns = ...
+local Addon = _G.Guidestone
 
-ns.Logger = ns.Logger or {}
+local tostring = tostring
+local format = string.format
+
+---@class GuidestoneLogger
+local Logger = {}
+
+Addon.modules.Logger = Logger
 
 local function Prefix()
-  return "|cff9AD6FFGuidestone|r"
+  return format("|cff9AD6FF%s|r:", Addon.name or "Guidestone")
 end
 
-function ns.Logger:Debug(...)
-  if not (GuidestoneDB and GuidestoneDB.debug) then
+---@return boolean
+function Logger:IsDebugEnabled()
+  local db = Addon.db
+  return (db and db.debug) == true
+end
+
+---@param msg any
+---@param ... any
+function Logger:Debug(msg, ...)
+  if not self:IsDebugEnabled() then
     return
   end
-
-  print(Prefix(), ...)
+  msg = tostring(msg)
+  print(Prefix(), format(msg, ...))
 end
 
-function ns.Logger:Info(...)
-  print(Prefix(), ...)
+---@param msg any
+---@param ... any
+function Logger:Info(msg, ...)
+  msg = tostring(msg)
+  print(Prefix(), format(msg, ...))
 end
 
-function ns.Logger.Warn(...)
-  print(Prefix(), "|cffFFB020WARN|r", ...)
+---@param msg any
+---@param ... any
+function Logger:Warn(msg, ...)
+  msg = tostring(msg)
+  print(Prefix(), "|cffFFB020WARN|r", format(msg, ...))
 end

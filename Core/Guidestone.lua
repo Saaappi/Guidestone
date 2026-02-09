@@ -1,6 +1,28 @@
+local addonName = ...
+
+---@class GuidestoneAddon
+---@field name string
+---@field db table|nil
+---@field events Frame|nil
+---@field modules table<string, table>
+local Addon = {
+  name = addonName,
+  db = nil,
+  events = nil,
+  modules = {}
+}
+
+_G.Guidestone = Addon
+
+---@return GuidestoneAddon
+function Addon:Get()
+  return self
+end
+
+
 local ADDON, ns = ...
 
-local function EnsureDB()
+--[[local function EnsureDB()
   if type(GuidestoneDB) ~= "table" then
     GuidestoneDB = {}
   end
@@ -50,7 +72,7 @@ local function EnsureDB()
   if GuidestoneDB.trainerMaxSpendCopper == nil then
     GuidestoneDB.trainerMaxSpendCopper = 0
   end
-end
+end]]
 
 local function PrintPrefix(...)
   print("|cff9AD6FFGuidestone|r", ...)
