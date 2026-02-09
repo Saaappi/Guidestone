@@ -1,18 +1,25 @@
 local Addon = _G.Guidestone
+local Util = Addon.modules.Util
+local Guides = Addon.modules.Guides
+local ProfessionMemory = Addon.modules.ProfessionMemory
+local CraftRunner = Addon.modules.CraftRunner
+local LinkPopup = Addon.modules.LinkPopup
 
 ---@class GuidestoneGuidePage
 local GuidePage = {}
-
 Addon.modules.GuidePage = GuidePage
 
-local Item = _G.Item
-local IsAddOnLoaded = _G.C_AddOns.IsAddOnLoaded
-local LoadAddOn = _G.C_AddOns.LoadAddOn
+local type = type
+local tonumber = tonumber
+local tostring = tostring
+local Item = Item
+local C_Item = C_Item
+local C_TradeSkillUI = C_TradeSkillUI
 
-local WOWPROF_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\WoWProfessions.png"
-local WOWHEAD_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Wowhead.png"
-local TOMTOM_ICON  = "Interface\\AddOns\\" .. ADDON .. "\\Media\\TomTom.png"
-local HEART_ICON = "Interface\\AddOns\\" .. ADDON .. "\\Media\\Heart.png"
+local WOWPROF_ICON = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\WoWProfessions.png"
+local WOWHEAD_ICON = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\Wowhead.png"
+local TOMTOM_ICON  = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\TomTom.png"
+local HEART_ICON = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\Heart.png"
 
 local PROF_BG_ATLAS_BY_ID = {
   [171] = "Professions-Recipe-Background-Alchemy",
@@ -43,7 +50,7 @@ GuidePage._pendingItemLoads = GuidePage._pendingItemLoads or {}
 
 local initialized = false
 function GuidePage:TryInitProfessionsTab()
-  if not _G.ProfessionsFrame then
+  if not ProfessionsFrame then
     return
   end
 
@@ -507,7 +514,7 @@ local function GetAvailableVendorEntries(entries)
     return results
   end
 
-  local playerFaction = ns.Util.GetPlayerFactionFlag and ns.Util.GetPlayerFactionFlag() or 0
+  local playerFaction = Util.GetPlayerFactionFlag and Util:GetPlayerFactionFlag() or 0
 
   -- Single table form.
   if entries.uiMapID or entries.name then
@@ -587,7 +594,7 @@ local function CreateLearnSourceIcon(row, craftBtn)
       end
 
       if vendors and #vendors > 0 then
-        local clickHint = (ns.Util and ns.Util.IsTomTomEnabled and ns.Util.IsTomTomEnabled())
+        local clickHint = (Util and Util.IsTomTomEnabled and Util:IsTomTomEnabled())
           and "Set TomTom Waypoint"
           or "Set Waypoint"
         GameTooltip:AddLine("\n"..clickHint, 0.25, 1, 0.25, true)
@@ -617,8 +624,8 @@ local function CreateLearnSourceIcon(row, craftBtn)
     -- One vendor? JUST DO IT!
     if #vendors == 1 then
       local vendor = vendors[1]
-      if vendor and vendor.uiMapID and vendor.x and vendor.y and ns.Util and ns.Util.AddWaypoint then
-        ns.Util.AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+      if vendor and vendor.uiMapID and vendor.x and vendor.y and Util and Util.AddWaypoint then
+        Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
       end
       return
     end
@@ -633,8 +640,8 @@ local function CreateLearnSourceIcon(row, craftBtn)
           local label = IsNonEmptyString(vendor.name) and vendor.name or ("Vendor " .. i)
 
           root:CreateButton(label, function()
-            if vendor and vendor.uiMapID and vendor.x and vendor.y and ns.Util and ns.Util.AddWaypoint then
-              ns.Util.AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+            if vendor and vendor.uiMapID and vendor.x and vendor.y and Util and Util.AddWaypoint then
+              Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
             end
           end)
         end
@@ -644,8 +651,8 @@ local function CreateLearnSourceIcon(row, craftBtn)
 
     -- Fallback if MenuUtil isn't available for some reason.
     local vendor = vendors[1]
-    if vendor and vendor.uiMapID and vendor.x and vendor.y and ns.Util and ns.Util.AddWaypoint then
-      ns.Util.AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+    if vendor and vendor.uiMapID and vendor.x and vendor.y and Util and Util.AddWaypoint then
+      Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
     end
   end)
 
@@ -998,7 +1005,7 @@ end
 ---@return string[]
 local function GetSortedExpansionKeys()
   local keys = {}
-  local expansions = ns.Guides and ns.Guides.Expansions
+  local expansions = Guides and Guides.Expansions
 
   if type(expansions) ~= "table" then
     return keys
@@ -1107,14 +1114,14 @@ function GuidePage:Create(parent)
       local baseID = GetBaseProfessionID(activeInfo)
       local activeChildID = tonumber(activeInfo and activeInfo.professionID) or nil
 
-      if baseID and ns.ProfessionMemory and ns.ProfessionMemory.GetSavedChildSkillLineID then
-        activeChildID = ns.ProfessionMemory:GetSavedChildSkillLineID(baseID) or activeChildID
+      if baseID and ProfessionMemory and ProfessionMemory.GetSavedChildSkillLineID then
+        activeChildID = ProfessionMemory:GetSavedChildSkillLineID(baseID) or activeChildID
       end
 
       local titleText = (activeInfo and activeInfo.parentProfessionName) or (activeInfo and activeInfo.professionName) or "Profession"
       rootDescription:CreateTitle(titleText)
 
-      local expansions = ns.Guides and ns.Guides.Expansions or nil
+      local expansions = Guides and Guides.Expansions or nil
       local byName = GetKnownChildInfosByExpansionName()
       local sortedKeys = GetSortedExpansionKeys()
 
@@ -1139,8 +1146,8 @@ function GuidePage:Create(parent)
           or professionInfo
 
         -- Save ONLY the guide dropdown choice (do not change Blizzard's active tier).
-        if ns.ProfessionMemory and ns.ProfessionMemory.RememberGuideSelection then
-          ns.ProfessionMemory:RememberGuideSelection(fullInfo)
+        if ProfessionMemory and ProfessionMemory.RememberGuideSelection then
+          ProfessionMemory:RememberGuideSelection(fullInfo)
         end
 
         -- Update visible dropdown label immediately.
@@ -1329,13 +1336,13 @@ function GuidePage:LoadForProfession(professionInfo)
     self:SetProfessionBackground(professionInfo)
   end
 
-  local guide = ns.Guides and ns.Guides.GetBestGuide and ns.Guides:GetBestGuide(professionInfo) or nil
+  local guide = Guides and Guides.GetBestGuide and Guides:GetBestGuide(professionInfo) or nil
   self.currentGuide = guide
 
   -- Remember the last active guide so other services can function even when the
   -- professions UI isn't open.
-  if GuidestoneDB then
-    GuidestoneDB.lastGuideSkillLineID = guide and guide.skillLineID or nil
+  if Addon.db then
+    Addon.db.lastGuideSkillLineID = guide and guide.skillLineID or nil
   end
 
   self:RenderGuide(guide)
@@ -1427,11 +1434,11 @@ function GuidePage:RenderGuide(guide)
   self.titleText:SetText(guide.title or "Leveling Guide")
 
   -- Materials
-  local materials = (ns.Guides and ns.Guides.GetMaterials) and ns.Guides:GetMaterials(guide) or (guide.materials or {})
+  local materials = (Guides and Guides.GetMaterials) and Guides:GetMaterials(guide) or (guide.materials or {})
   local prev = nil
 
   local function OpenWoWProfessionsLinks(mat)
-    if not (ns.LinkPopup and ns.LinkPopup.Show) then
+    if not (LinkPopup and LinkPopup.Show) then
       return
     end
 
@@ -1453,12 +1460,12 @@ function GuidePage:RenderGuide(guide)
       return
     end
 
-    if #links == 1 or not (ns.LinkPopup.ShowLinks) then
-      ns.LinkPopup:Show(links[1].title or "Link", links[1].url)
+    if #links == 1 or not (LinkPopup.ShowLinks) then
+      LinkPopup:Show(links[1].title or "Link", links[1].url)
       return
     end
 
-    ns.LinkPopup:ShowLinks("Links", links)
+    LinkPopup:ShowLinks("Links", links)
   end
 
   ---@return EditBox|nil searchBox
@@ -1503,8 +1510,8 @@ function GuidePage:RenderGuide(guide)
 
     local onEnter = box.GetScript and box:GetScript("OnEnterPressed")
     if type(onEnter) == "function" then
-      if ns.Util and ns.Util.SafeCall then
-        ns.Util.SafeCall(onEnter, box)
+      if Util and Util.SafeCall then
+        Util:SafeCall(onEnter, box)
       else
         pcall(onEnter, box)
       end
@@ -1518,16 +1525,16 @@ function GuidePage:RenderGuide(guide)
   local function EnsureChatEditBox()
     local editBox = nil
 
-    if _G.ChatEdit_ChooseBoxForSend then
-      editBox = _G.ChatEdit_ChooseBoxForSend()
+    if ChatEdit_ChooseBoxForSend then
+      editBox = ChatEdit_ChooseBoxForSend()
     end
 
-    if not editBox and _G.DEFAULT_CHAT_FRAME then
-      editBox = _G.DEFAULT_CHAT_FRAME.editBox
+    if not editBox and DEFAULT_CHAT_FRAME then
+      editBox = DEFAULT_CHAT_FRAME.editBox
     end
 
-    if editBox and _G.ChatEdit_ActivateChat then
-      _G.ChatEdit_ActivateChat(editBox)
+    if editBox and ChatEdit_ActivateChat then
+      ChatEdit_ActivateChat(editBox)
     elseif editBox and editBox.Show then
       editBox:Show()
     end
@@ -1697,8 +1704,8 @@ function GuidePage:RenderGuide(guide)
     local wh = MakeIconButtonWithStates(line, WOWHEAD_ICON, "Wowhead")
     wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
     wh:SetScript("OnClick", function()
-      if ns.LinkPopup and ns.LinkPopup.Show and mat.itemID then
-        ns.LinkPopup:Show("Wowhead", ns.Util.GetWowheadItemUrl(mat.itemID))
+      if LinkPopup and LinkPopup.Show and mat.itemID then
+        LinkPopup:Show("Wowhead", Util:GetWowheadItemUrl(mat.itemID))
       end
     end)
     row._whBtn = wh
@@ -1732,8 +1739,8 @@ function GuidePage:RenderGuide(guide)
           GameTooltip:AddLine("Also satisfied by:")
 
           local bestCount, matchedItemID = 0, 0
-          if ns.Util and ns.Util.GetBestItemCount then
-            bestCount, matchedItemID = ns.Util.GetBestItemCount(itemID, mat.aliasItems)
+          if Util and Util.GetBestItemCount then
+            bestCount, matchedItemID = Util:GetBestItemCount(itemID, mat.aliasItems)
           end
 
           for _, aliasID in ipairs(mat.aliasItems) do
@@ -1742,8 +1749,8 @@ function GuidePage:RenderGuide(guide)
               local aliasName = GetSafeItemName(aliasID)
 
               local count = 0
-              if ns.Util and ns.Util.GetItemCount then
-                count = ns.Util.GetItemCount(aliasID) or 0
+              if Util and Util.GetItemCount then
+                count = Util:GetItemCount(aliasID) or 0
               end
 
               local prefix = ""
@@ -1878,8 +1885,8 @@ function GuidePage:RenderGuide(guide)
 
   -- Trainers
   local trainers = guide.trainers or {}
-  local playerFaction = ns.Util.GetPlayerFactionFlag and ns.Util.GetPlayerFactionFlag() or 0
-  local isTomTomEnabled = ns.Util.IsTomTomEnabled and ns.Util.IsTomTomEnabled() or false
+  local playerFaction = Util.GetPlayerFactionFlag and Util.GetPlayerFactionFlag() or 0
+  local isTomTomEnabled = Util.IsTomTomEnabled and Util:IsTomTomEnabled() or false
 
   prev = nil
   local anyTrainer = false
@@ -1941,8 +1948,8 @@ function GuidePage:RenderGuide(guide)
       local waypointBtn = MakeIconButtonWithStates(row, icon, tooltipText, isAtlas)
       waypointBtn:SetPoint("TOPRIGHT", 0, 0)
       waypointBtn:SetScript("OnClick", function()
-        if ns.Util and ns.Util.AddWaypoint then
-          ns.Util.AddWaypoint(trainer.uiMapID, trainer.x, trainer.y, trainer.name)
+        if Util and Util.AddWaypoint then
+          Util:AddWaypoint(trainer.uiMapID, trainer.x, trainer.y, trainer.name)
         end
       end)
       row._waypointBtn = waypointBtn
@@ -2058,7 +2065,7 @@ function GuidePage:RenderGuide(guide)
           return
         end
 
-        local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
+        local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel()) or nil
         local toSkill = tonumber(step and step.toSkill)
 
         -- If the player has reached or exceeded the target skill, do not allow them
@@ -2070,8 +2077,8 @@ function GuidePage:RenderGuide(guide)
         end
 
         -- Prepare the runner state. No crafting.
-        if ns.CraftRunner and ns.CraftRunner.Start then
-          ns.CraftRunner:Start(step, function()
+        if CraftRunner and CraftRunner.Start then
+          CraftRunner:Start(step, function()
             if GuidePage.currentGuide then
               GuidePage:RenderGuide(GuidePage.currentGuide)
             end
@@ -2191,11 +2198,11 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       return 0, 0
     end
 
-    if ns.Util and ns.Util.GetBestItemCount then
-      return ns.Util.GetBestItemCount(itemID, mat.aliasItems)
+    if Util and Util.GetBestItemCount then
+      return Util:GetBestItemCount(itemID, mat.aliasItems)
     end
 
-    return (ns.Util and ns.Util.GetItemCount and ns.Util.GetItemCount(itemID)) or 0, itemID
+    return (Util and Util.GetItemCount and Util:GetItemCount(itemID)) or 0, itemID
   end
 
   -- anyMix: group progress by summing option counts
@@ -2216,7 +2223,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
 
       local itemID = tonumber(row._mat.itemID)
       if itemID and itemID > 0 then
-        st.have = st.have + (ns.Util.GetItemCount(itemID) or 0)
+        st.have = st.have + (Util:GetItemCount(itemID) or 0)
       end
     end
 
@@ -2224,7 +2231,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       local g = row._group
       local itemID = tonumber(row._mat.itemID)
       local required = ComputeBufferedRequired(tonumber(row._mat.required) or 0, row._mat)
-      local have = itemID and (ns.Util.GetItemCount(itemID) or 0) or 0
+      local have = itemID and (Util:GetItemCount(itemID) or 0) or 0
       local done = (required <= 0) or (have >= required)
 
       if choiceDoneByGroup[g] == nil then
@@ -2286,11 +2293,11 @@ function GuidePage:RefreshMaterialsState(skipLayout)
         end
       end
 
-      ns.Util.SetFontStringGreyed(row._text, done)
+      Util:SetFontStringGreyed(row._text, done)
 
       if row._icon then
         row._icon:SetTexture(GetItemIcon(itemID))
-        ns.Util.SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
+        Util:SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
       end
 
       if row._wpBtn and row._wpBtn._tex then
@@ -2299,12 +2306,12 @@ function GuidePage:RefreshMaterialsState(skipLayout)
           or (type(mat.links) == "table" and #mat.links > 0)
 
         row._wpBtn:SetEnabled((not done) and hasAnyLink)
-        ns.Util.SetDesaturatedAndAlpha(row._wpBtn._tex, done or (not hasAnyLink), (done or (not hasAnyLink)) and 0.35 or 1)
+        Util:SetDesaturatedAndAlpha(row._wpBtn._tex, done or (not hasAnyLink), (done or (not hasAnyLink)) and 0.35 or 1)
       end
 
       if row._whBtn and row._whBtn._tex then
         row._whBtn:SetEnabled(not done)
-        ns.Util.SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
+        Util:SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
       end
 
     elseif row._matType == "anyMixHeader" and row._group and row._text then
@@ -2313,16 +2320,16 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       local label = g.label or "Choose any"
 
       row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(label, st.have or 0, st.required or 0))
-      ns.Util.SetFontStringGreyed(row._text, st.done)
+      Util:SetFontStringGreyed(row._text, st.done)
 
     elseif row._matType == "choiceHeader" and row._group and row._text then
       local done = choiceDoneByGroup[row._group] or false
       row._text:SetText(row._group.label or "Choose one")
-      ns.Util.SetFontStringGreyed(row._text, done)
+      Util:SetFontStringGreyed(row._text, done)
 
     elseif row._matType == "choicePick" and row._group and row._text then
       local done = choiceDoneByGroup[row._group] or false
-      ns.Util.SetFontStringGreyed(row._text, done)
+      Util:SetFontStringGreyed(row._text, done)
 
       -- Gold highlight for the selected choice (purely visual)
       local sel = GetChoiceSelection(row._guideID, row._group.key, row._group)
@@ -2332,9 +2339,9 @@ function GuidePage:RefreshMaterialsState(skipLayout)
 
       if row._choiceBtn then
         local alpha = done and 0.35 or 1
-        ns.Util.SetDesaturatedAndAlpha(row._choiceBtn._normalTex, done, alpha)
-        ns.Util.SetDesaturatedAndAlpha(row._choiceBtn.highlightTex, done, alpha)
-        ns.Util.SetDesaturatedAndAlpha(row._choiceBtn._pushedTex, done, alpha)
+        Util:SetDesaturatedAndAlpha(row._choiceBtn._normalTex, done, alpha)
+        Util:SetDesaturatedAndAlpha(row._choiceBtn.highlightTex, done, alpha)
+        Util:SetDesaturatedAndAlpha(row._choiceBtn._pushedTex, done, alpha)
       end
     end
   end
@@ -2377,7 +2384,7 @@ function GuidePage:UpdateStepRow(row)
 
   local recipeID = row._recipeID
   if not recipeID and step and step.recipeName then
-    recipeID = ns.FindRecipeIDByName(step.recipeName)
+    recipeID = Util:FindRecipeIDByName(step.recipeName)
     row._recipeID = recipeID
   end
 
@@ -2485,7 +2492,7 @@ function GuidePage:UpdateStepRow(row)
   -- Disable the craft button once the player reaches or exceeds the target skill.
   do
     local btn = row._craftBtn
-    local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
+    local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel()) or nil
     local toSkill = tonumber(step and step.toSkill)
 
     local reachedTarget = (toSkill and currentSkill and currentSkill >= toSkill) and true or false
@@ -2516,7 +2523,7 @@ function GuidePage:UpdateStepRow(row)
   do
     local icon = row._learnIcon
     if icon then
-      local currentSkill = (ns.GetCurrentSkillLevel and ns.GetCurrentSkillLevel()) or nil
+      local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel()) or nil
       local fromSkill = tonumber(step and step.fromSkill)
 
       local shouldShowLearnIcon = false
