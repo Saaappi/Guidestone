@@ -1,7 +1,12 @@
-local _, ns = ...
+local Addon = _G.Guidestone
 
-ns.ProfessionMemory = ns.ProfessionMemory or {}
-local ProfessionMemory = ns.ProfessionMemory
+---@class GuidestoneProfessionMemory
+local ProfessionMemory = {}
+Addon.modules.ProfessionMemory = ProfessionMemory
+
+local type = type
+local tonumber = tonumber
+local C_TradeSkillUI = C_TradeSkillUI
 
 ProfessionMemory._db = ProfessionMemory._db or nil
 
@@ -52,7 +57,6 @@ local function GetFullProfessionInfo(skillLineID)
     return nil
   end
 
-  local C_TradeSkillUI = _G.C_TradeSkillUI
   if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
     local full = C_TradeSkillUI.GetProfessionInfoBySkillLineID(skillLineID)
     return type(full) == "table" and full or nil
@@ -107,8 +111,8 @@ end
 function ProfessionMemory:GetGuideProfessionInfo(activeProfessionInfo)
   local active = type(activeProfessionInfo) == "table" and activeProfessionInfo or nil
 
-  if not active and _G.Professions and _G.Professions.GetProfessionInfo then
-    active = _G.Professions.GetProfessionInfo()
+  if not active and Professions and Professions.GetProfessionInfo then
+    active = Professions.GetProfessionInfo()
   end
 
   if not active then

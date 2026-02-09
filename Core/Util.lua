@@ -8,13 +8,14 @@ local C_Item = C_Item
 local C_AddOns = C_AddOns
 local C_Map = C_Map
 local C_TradeSkillUI = C_TradeSkillUI
+local C_SuperTrack = C_SuperTrack
 local UiMapPoint = UiMapPoint
 
 ---@class GuidestoneUtil
 local Util = {}
 Addon.modules.Util = Util
 
-function Util.SafeCall(fn, ...)
+function Util:SafeCall(fn, ...)
   if type(fn) ~= "function" then
     return
   end
@@ -27,7 +28,7 @@ function Util.SafeCall(fn, ...)
   end
 end
 
-function Util.GetItemCount(itemID)
+function Util:GetItemCount(itemID)
   if not itemID then
     return 0
   end
@@ -51,7 +52,7 @@ end
 ---@param aliasItems number[]|nil
 ---@return number count
 ---@return number matchedItemID
-function Util.GetBestItemCount(itemID, aliasItems)
+function Util:GetBestItemCount(itemID, aliasItems)
   local primaryID = tonumber(itemID)
   if not primaryID or primaryID <= 0 then
     return 0, 0
@@ -76,11 +77,11 @@ function Util.GetBestItemCount(itemID, aliasItems)
   return bestCount, bestID
 end
 
-function Util.GetWowheadItemUrl(itemID)
+function Util:GetWowheadItemUrl(itemID)
   return ("https://www.wowhead.com/item=%d"):format(tonumber(itemID) or 0)
 end
 
-function Util.SetDesaturatedAndAlpha(region, desaturated, alpha)
+function Util:SetDesaturatedAndAlpha(region, desaturated, alpha)
   if region and region.SetDesaturated then
     region:SetDesaturated(desaturated and true or false)
   end
@@ -90,7 +91,7 @@ function Util.SetDesaturatedAndAlpha(region, desaturated, alpha)
   end
 end
 
-function Util.SetFontStringGreyed(fs, greyed)
+function Util:SetFontStringGreyed(fs, greyed)
   if not fs then
     return
   end
@@ -104,7 +105,7 @@ end
 
 ---@param t table
 ---@return nil
-function Util.WipeTable(t)
+function Util:WipeTable(t)
   if type(t) ~= "table" then
     return
   end
@@ -123,7 +124,7 @@ end
 ---Returns the player's faction in the guide's flag foramt.
 ---0 = Neutral | 1 = Alliance | 2 = Horde
 ---@return GuidestoneFactionFlag
-function Util.GetPlayerFactionFlag()
+function Util:GetPlayerFactionFlag()
   local faction = (UnitFactionGroup and UnitFactionGroup("player")) or nil
   if faction == "Alliance" then
     return 1
@@ -136,7 +137,7 @@ end
 
 ---Whether TomTom is available and provides the AddWaypoint method.
 ---@return boolean
-function Util.IsTomTomAvailable()
+function Util:IsTomTomAvailable()
   if not C_AddOns or not C_AddOns.IsAddOnLoaded then
     return false
   end
@@ -151,7 +152,7 @@ end
 ---Whether TomTom is enabled for the current character.
 ---TomTom can be enabled but not yet loaded (LoD).
 ---@return boolean
-function Util.IsTomTomEnabled()
+function Util:IsTomTomEnabled()
   if not C_AddOns or not C_AddOns.GetAddOnEnableState then
     return false
   end
@@ -168,12 +169,12 @@ end
 
 ---Attempt to load TomTom if it is enabled but not yet loaded.
 ---@return boolean loaded
-function Util.TryLoadTomTom()
+function Util:TryLoadTomTom()
   if not (C_AddOns and C_AddOns.LoadAddOn and C_AddOns.IsAddOnLoaded) then
     return false
   end
 
-  if not Util.IsTomTomEnabled() then
+  if not self:IsTomTomEnabled() then
     return false
   end
 
@@ -193,7 +194,7 @@ end
 ---@param y number -- percent (0-100)
 ---@param title string|nil
 ---@return boolean ok
-function Util.AddWaypoint(uiMapID, x, y, title)
+function Util:AddWaypoint(uiMapID, x, y, title)
   uiMapID = tonumber(uiMapID)
   x = tonumber(x)
   y = tonumber(y)
@@ -205,12 +206,12 @@ function Util.AddWaypoint(uiMapID, x, y, title)
   local nx = x / 100
   local ny = y / 100
 
-  if Util.IsTomTomAvailable() then
+  if self:IsTomTomAvailable() then
     -- If TomTom is enabled, never fall back to a Blizzard User Waypoint.
     -- The fallback creates a super-tracked pin, which is not desired when
     -- the user has chosen TomTom.
-    if Util.IsTomTomAvailable() then
-      Util.TryLoadTomTom()
+    if self:IsTomTomAvailable() then
+      self:TryLoadTomTom()
 
       if type(_G.TomTom) ~= "table" or type(_G.TomTom.AddWaypoint) ~= "function" then
         return false
@@ -252,7 +253,7 @@ end
 -- ---------------------------------------------------------------------------
 
 ---@return table|nil
-function Util.GetProfessionInfo()
+function Util:GetProfessionInfo()
   if Professions and Professions.GetProfessionInfo then
     local ok, info = pcall(Professions.GetProfessionInfo)
     if ok then
@@ -263,8 +264,8 @@ function Util.GetProfessionInfo()
 end
 
 ---@return number|nil
-function Util.GetCurrentSkillLevel()
-  local info = Util.GetProfessionInfo()
+function Util:GetCurrentSkillLevel()
+  local info = self:GetProfessionInfo()
   if type(info) ~= "table" then
     return nil
   end
@@ -288,7 +289,7 @@ local recipeNameToID = {} ---@type table<string, number>
 
 ---@param recipeName string
 ---@return number|nil
-function Util.FindRecipeIDByName(recipeName)
+function Util:FindRecipeIDByName(recipeName)
   if type(recipeName) ~= "string" or recipeName == "" then
     return nil
   end
