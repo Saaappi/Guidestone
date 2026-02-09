@@ -1,17 +1,12 @@
 local Addon = _G.Guidestone
 
-local tostring = tostring
-local format = string.format
+---@class GuidestoneSettings
+local SettingsModule = {}
+Addon.modules.Settings = SettingsModule
 
+local type = type
 
-
-
-local ADDON, ns = ...
-
-ns.Settings = ns.Settings or {}
-local SettingsModule = ns.Settings
-
-local CATEGORY_NAME = "Guidestone"
+local CATEGORY_NAME = Addon.name
 
 SettingsModule._inited = false
 SettingsModule.categoryID = nil
@@ -107,14 +102,14 @@ function SettingsModule:Init(db)
     category,
     "GUIDESTONE_TRAINER_ENABLE_BUTTON",
     Settings.VarType and Settings.VarType.Boolean or "boolean",
-    "Show trainer 'Train Needed' button",
+    "Show 'Train Needed' Button",
     GetBooleanDefault(Settings, true),
     GetTrainerEnableButton,
     SetTrainerEnableButton
   )
 
   CreateCheckbox(category, trainerEnableButtonSetting,
-    "Adds a button to the trainer window that trains only the recipes required by the active Guidestone guide."
+    "Adds a button to the trainer window that trains only the recipes required by the active guide."
   )
 
   -- trainerAutoLearn
@@ -139,7 +134,7 @@ function SettingsModule:Init(db)
   )
 
   CreateCheckbox(category, trainerAutoLearnSetting,
-    "When you open a trainer, automatically buys trainer services that match the active guide. Only trains what the guide needs."
+    "When you open a trainer, automatically buys trainer services that match the active guide."
   )
 
   Settings.RegisterAddOnCategory(category)
