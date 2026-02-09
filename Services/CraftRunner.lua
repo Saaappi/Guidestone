@@ -1,12 +1,14 @@
 local Addon = _G.Guidestone
+local Util = Addon.modules.Util
 
 ---@class GuidestoneCraftRunner
 local CraftRunner = {}
 Addon.modules.CraftRunner = CraftRunner
 
 local type = type
-local lower = string.lower
+local tonumber = tonumber
 local C_TradeSkillUI = C_TradeSkillUI
+local C_TradeInfo = C_TradeInfo
 
 CraftRunner._frame = CraftRunner._frame or nil
 CraftRunner._running = false
@@ -22,50 +24,6 @@ CraftRunner._maxNoSkillupCasts = 25
 CraftRunner._recipeID = nil
 CraftRunner._recipeSpellID = nil
 CraftRunner._repeatCancelAttempted = false
-
-ns.GetCurrentSkillLevel = function()
-  if Professions and Professions.GetProfessionInfo then
-    local info = Professions.GetProfessionInfo()
-    return (info and info.skillLevel) or 0
-  end
-  return 0
-end
-
-ns.FindRecipeIDByName = function(recipeName)
-  if type(recipeName) ~= "string" or recipeName == "" then
-    return nil
-  end
-
-  if not (C_TradeSkillUI and C_TradeSkillUI.GetFilteredRecipeIDs and C_TradeSkillUI.GetRecipeInfo) then
-    return nil
-  end
-
-  local ids = C_TradeSkillUI.GetFilteredRecipeIDs()
-  if type(ids) ~= "table" then
-    return nil
-  end
-
-  local target = recipeName:lower()
-  local bestExact = nil
-  local bestContains = nil
-
-  for _, recipeID in ipairs(ids) do
-    local info = C_TradeSkillUI.GetRecipeInfo(recipeID)
-    local name = info and info.name
-    if type(name) == "string" then
-      local n = lower(name)
-      if n == target then
-        bestExact = recipeID
-        break
-      end
-      if not bestContains and n:find(target, 1, true) then
-        bestContains = recipeID
-      end
-    end
-  end
-
-  return bestExact or bestContains
-end
 
 local function EnsureFrame()
   if CraftRunner._frame then
@@ -112,7 +70,7 @@ function CraftRunner:IsRunning()
 end
 
 function CraftRunner:ReachedTargetSkill()
-  return ns.GetCurrentSkillLevel() >= (self._targetSkill or 0)
+  return Util:GetCurrentSkillLevel() >= (self._targetSkill or 0)
 end
 
 ---@return nil
@@ -137,7 +95,7 @@ function CraftRunner:OnSkillLinesChanged()
     return
   end
 
-  local currentSkill = ns.GetCurrentSkillLevel()
+  local currentSkill = Util:GetCurrentSkillLevel()
   if currentSkill > (self._lastSkill or 0) then
     self._lastSkill = currentSkill
     self._noSkillupCasts = 0
@@ -171,11 +129,11 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
     return
   end
 
-  if not (_G.ProfessionsFrame and ProfessionsFrame.CraftingPage and ProfessionsFrame.CraftingPage.SelectRecipe) then
+  if not (ProfessionsFrame and ProfessionsFrame.CraftingPage and ProfessionsFrame.CraftingPage.SelectRecipe) then
     return
   end
 
-  local recipeID = ns.FindRecipeIDByName(step.recipeName)
+  local recipeID = Util:FindRecipeIDByName(step.recipeName)
   if not recipeID then
     return
   end
@@ -189,7 +147,7 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
   self._onDone = onDone
 
   self._targetSkill = targetSkill
-  self._lastSkill = ns.GetCurrentSkillLevel()
+  self._lastSkill = Util:GetCurrentSkillLevel()
   self._noSkillupCasts = 0
 
   self._repeatCancelAttempted = false
