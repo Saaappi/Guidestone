@@ -7,6 +7,7 @@ local tonumber = tonumber
 local C_Item = C_Item
 local C_AddOns = C_AddOns
 local C_Map = C_Map
+local C_TradeSkillUI = C_TradeSkillUI
 local UiMapPoint = UiMapPoint
 
 ---@class GuidestoneUtil
@@ -245,4 +246,78 @@ function Util.AddWaypoint(uiMapID, x, y, title)
   end
 
   return false
+end
+
+-- ---------------------------------------------------------------------------
+-- Profession helpers (used across UI + services)
+-- ---------------------------------------------------------------------------
+
+---@return table|nil
+function Util.GetProfessionInfo()
+  if Professions and Professions.GetProfessionInfo then
+    local ok, info = pcall(Professions.GetProfessionInfo)
+    if ok then
+      return info
+    end
+  end
+  return nil
+end
+
+---@return number|nil
+function Util.GetCurrentSkillLevel()
+  local info = Util.GetProfessionInfo()
+  if type(info) ~= "table" then
+    return nil
+  end
+
+  local candidates = {
+    info.skillLevel,
+    info.skillLineCurrentLevel,
+    info.skillLineCurrentLevelWithoutBonuses
+  }
+
+  for i = 1, #candidates do
+    if type(candidates[i]) == "number" then
+      return candidates[i]
+    end
+  end
+
+  return nil
+end
+
+local recipeNameToID = {} ---@type table<string, number>
+
+---@param recipeName string
+---@return number|nil
+function Util.FindRecipeIDByName(recipeName)
+  if type(recipeName) ~= "string" or recipeName == "" then
+    return nil
+  end
+
+  local cached = recipeNameToID[recipeName]
+  if type(cached) == "number" then
+    return cached
+  end
+
+  if not (C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs and C_TradeSkillUI.GetRecipeInfo) then
+    return nil
+  end
+
+  local ok, recipeIDs = pcall(C_TradeSkillUI.GetAllRecipeIDs)
+  if not ok or type(recipeIDs) ~= "table" then
+    return nil
+  end
+
+  for i = 1, #recipeIDs do
+    local recipeID = recipeIDs[i]
+    if type(recipeID) == "number" then
+      local okInfo, info = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
+      if okInfo and info and info.name == recipeName then
+        recipeNameToID[recipeName] = recipeID
+        return recipeID
+      end
+    end
+  end
+
+  return nil
 end
