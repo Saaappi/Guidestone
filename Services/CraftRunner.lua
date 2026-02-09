@@ -95,7 +95,7 @@ function CraftRunner:OnSkillLinesChanged()
     return
   end
 
-  local currentSkill = Util:GetCurrentSkillLevel()
+  local currentSkill = Util:GetCurrentSkillLevel() or 0
   if currentSkill > (self._lastSkill or 0) then
     self._lastSkill = currentSkill
     self._noSkillupCasts = 0
@@ -147,7 +147,7 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
   self._onDone = onDone
 
   self._targetSkill = targetSkill
-  self._lastSkill = Util:GetCurrentSkillLevel()
+  self._lastSkill = Util:GetCurrentSkillLevel() or 0
   self._noSkillupCasts = 0
 
   self._repeatCancelAttempted = false
@@ -253,7 +253,7 @@ function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
     end
   end
 
-  local currentSkill = ns.GetCurrentSkillLevel()
+  local currentSkill = Util:GetCurrentSkillLevel() or 0
   if currentSkill > (self._lastSkill or 0) then
     self._lastSkill = currentSkill
     self._noSkillupCasts = 0

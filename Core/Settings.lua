@@ -67,7 +67,7 @@ function SettingsModule:Init(db)
 
   self.db = db
 
-  local Settings = _G.Settings
+  local Settings = Settings
   if not (Settings and Settings.RegisterVerticalLayoutCategory and Settings.RegisterProxySetting) then
     return
   end
@@ -83,8 +83,8 @@ function SettingsModule:Init(db)
   end
 
   -- Optional: add a section header like EventQ (only if layout supports it)
-  if layout and layout.AddInitializer and _G.CreateSettingsListSectionHeaderInitializer then
-    layout:AddInitializer(_G.CreateSettingsListSectionHeaderInitializer("Trainer"))
+  if layout and layout.AddInitializer and CreateSettingsListSectionHeaderInitializer then
+    layout:AddInitializer(CreateSettingsListSectionHeaderInitializer("Trainer"))
   end
 
   -- trainerEnableButton
@@ -142,7 +142,7 @@ end
 
 ---@return nil
 function SettingsModule:Open()
-  local Settings = _G.Settings
+  local Settings = Settings
   if not (Settings and Settings.OpenToCategory) then
     return
   end
