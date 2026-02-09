@@ -1,8 +1,13 @@
-local _, ns = ...
+local Addon = _G.Guidestone
 
-ns.LinkPopup = ns.LinkPopup or {}
+---@class GuidestoneLinkPopup
+local LinkPopup = {}
+Addon.modules.LinkPopup = LinkPopup
 
-local LinkPopup = ns.LinkPopup
+local type = type
+local tinsert = table.insert
+local ceil = math.ceil
+local CreateFrame = CreateFrame
 
 LinkPopup.frame = nil
 
@@ -143,7 +148,7 @@ function LinkPopup:ShowLinks(titleText, links)
   if type(links) == "table" then
     for _, link in ipairs(links) do
       if type(link) == "table" and type(link.url) == "string" and link.url ~= "" then
-        table.insert(valid, { title = link.title, url = link.url })
+        tinsert(valid, { title = link.title, url = link.url })
       end
     end
   end
@@ -190,7 +195,7 @@ function LinkPopup:ShowLinks(titleText, links)
   end
 
   -- Resize link container height based on rows
-  local rows = math.ceil(shown / 2)
+  local rows = ceil(shown / 2)
   popup._links:SetHeight(rows * 24)
 
   -- Seed edit with first link
