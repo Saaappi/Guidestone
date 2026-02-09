@@ -9,6 +9,10 @@
 Core/Guidestone.lua
 Core/Logger.lua
 Core/Database.lua
+Core/Localization.lua
+
+Locales/enUS.lua
+
 Core/Class.lua
 Core/Settings.lua
 Core/Util.lua
