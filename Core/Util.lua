@@ -252,6 +252,47 @@ end
 -- Profession helpers (used across UI + services)
 -- ---------------------------------------------------------------------------
 
+---@return nil
+function Util:DumpProfessionInfo()
+  if not (Professions and Professions.GetProfessionInfo) then
+    Logger:Warn("Professions API is unavailable.")
+    return
+  end
+
+  local info = Professions.GetProfessionInfo()
+  if not info then
+    Logger:Info("No profession info available. Please open a profession window first.")
+    return
+  end
+
+  Logger:Info("Profession dump:")
+  Logger:Info("professionName:", info.professionName or "nil")
+  Logger:Info("professionID (child):", info.professionID or "nil")
+  Logger:Info("parentProfessionName:", info.parentProfessionName or "nil")
+  Logger:Info("parentProfessionID:", info.parentProfessionID or "nil")
+  Logger:Info("skillLevel:", info.skillLevel or "nil")
+  Logger:Info("maxSkillLevel:", info.maxSkillLevel or "nil")
+
+  if C_TradeSkillUI and C_TradeSkillUI.GetChildProfessionInfos then
+    local children = C_TradeSkillUI.GetChildProfessionInfos()
+    if type(children) == "table" then
+      Logger:Info("Child profession infos:")
+      for i = 1, #children do
+        local child = children[i]
+        Logger:Info("-", child.expansionName or "?", "id:", child.professionID or "nil")
+      end
+    end
+  end
+
+  local db = Addon.db
+  if db and type(db.lastProfessionChildSkillLineByParentID) == "table" then
+    local key = tonumber(info.parentProfessionID) or tonumber(info.professionID)
+    if key then
+      Logger:Info("Saved child for base", key, "=>", db.lastProfessionChildSkillLineByParentID[key] or "nil")
+    end
+  end
+end
+
 ---@return table|nil
 function Util:GetProfessionInfo()
   if Professions and Professions.GetProfessionInfo then

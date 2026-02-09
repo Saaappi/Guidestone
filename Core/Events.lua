@@ -1,15 +1,18 @@
 local Addon = _G.Guidestone
-local Logger = Addon.modules.Logger
+local Util = Addon.modules.Util
 local Database = Addon.modules.Database
 local SettingsModule = Addon.modules.Settings
 local ProfessionMemory = Addon.modules.ProfessionMemory
 local TrainerLearner = Addon.modules.TrainerLearner
 local GuidePage = Addon.modules.GuidePage
+local Logger = Addon.modules.Logger
 
 ---@class GuidestoneEvents
 local Events = {}
-
 Addon.modules.Events = Events
+
+local strlower = string.lower
+local strtrim = string.trim
 
 ---@param event string
 function Events:OnEvent(event, ...)
@@ -30,7 +33,30 @@ function Events:OnEvent(event, ...)
 
       -- Initialize Trainer auto-learning service.
       if TrainerLearner and TrainerLearner.Init then
-        TrainerLearner:Init(Addon.db)
+        TrainerLearner:Init()
+      end
+
+      SLASH_GUIDESTONE1 = "/guidestone"
+      SlashCmdList.GUIDESTONE = function(msg)
+        msg = strlower(strtrim(msg or ""))
+
+        if msg == "dump" then
+          Util:DumpProfessionInfo()
+          return
+        end
+
+        if msg == "debug" then
+          Addon.db.debug = not Addon.db.debug
+          Logger:Debug("Debug:", Addon.db.debug and "ON" or "OFF")
+          return
+        end
+
+        if msg == "settings" then
+          if SettingsModule and SettingsModule.Open then
+            SettingsModule:Open()
+            return
+          end
+        end
       end
 
       Logger:Debug("ADDON_LOADED: Core initialization has completed successfully.")
