@@ -1,4 +1,5 @@
 local Addon = _G.Guidestone
+local Localization = Addon.modules.Localization
 local Logger = Addon.modules.Logger
 
 local type = type
@@ -14,6 +15,10 @@ local UiMapPoint = UiMapPoint
 ---@class GuidestoneUtil
 local Util = {}
 Addon.modules.Util = Util
+
+local function L(key, ...)
+  return Localization:Get(key, ...)
+end
 
 function Util:SafeCall(fn, ...)
   if type(fn) ~= "function" then
@@ -255,13 +260,13 @@ end
 ---@return nil
 function Util:DumpProfessionInfo()
   if not (Professions and Professions.GetProfessionInfo) then
-    Logger:Warn("Professions API is unavailable.")
+    Logger:Warn(L("ERR_PROF_API_UNAVAILABLE"))
     return
   end
 
   local info = Professions.GetProfessionInfo()
   if not info then
-    Logger:Info("No profession info available. Please open a profession window first.")
+    Logger:Info(L("ERR_NO_PROF_INFO"))
     return
   end
 
