@@ -1,6 +1,8 @@
-local _, ns = ...
+local Addon = _G.Guidestone
+local Logger = Addon.modules.Logger
+local Guides = Addon.modules.Guides
 
-local ok, err = ns.Guides:RegisterGuide({
+local ok, err = Guides:RegisterGuide({
   id = "classic_alchemy",
   title = "Classic Alchemy 1-300",
   expansionKey = "CLASSIC",
@@ -145,5 +147,5 @@ local ok, err = ns.Guides:RegisterGuide({
 })
 
 if not ok then
-  ns.Logger.Warn("Failed to register guide classic_alchemy:", err)
+  Logger.Warn("Failed to register guide classic_alchemy:", err)
 end
