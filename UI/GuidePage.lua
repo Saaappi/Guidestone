@@ -4,6 +4,7 @@ local Guides = Addon.modules.Guides
 local ProfessionMemory = Addon.modules.ProfessionMemory
 local CraftRunner = Addon.modules.CraftRunner
 local LinkPopup = Addon.modules.LinkPopup
+local Localization = Addon.modules.Localization
 
 ---@class GuidestoneGuidePage
 local GuidePage = {}
@@ -48,6 +49,10 @@ GuidePage.trainerRows = GuidePage.trainerRows or {}
 
 GuidePage._pendingItemLoads = GuidePage._pendingItemLoads or {}
 
+local function L(key, ...)
+  return Localization:Get(key, ...)
+end
+
 local initialized = false
 function GuidePage:TryInitProfessionsTab()
   if not ProfessionsFrame then
@@ -76,7 +81,7 @@ function GuidePage:TryInitProfessionsTab()
   end
   page:Hide()
 
-  local tabID = ProfessionsFrame:AddNamedTab("Leveling Guide", page)
+  local tabID = ProfessionsFrame:AddNamedTab(L("TAB_LEVELING_GUIDE"), page)
   ProfessionsFrame.guidestoneLevelingGuideTabID = tabID
 
   ---@param checkTabID number
@@ -579,7 +584,7 @@ local function CreateLearnSourceIcon(row, craftBtn)
     local name = (r and r._craftName and r._craftName.GetText and r._craftName:GetText()) or "this recipe"
 
     if self._kind == "vendor" then
-      GameTooltip:SetText("Vendor")
+      GameTooltip:SetText(L("TOOLTIP_VENDOR"))
       GameTooltip:AddLine(("You don't know %s yet. Visit a vendor to purchase it."):format(name), 1, 1, 1, true)
 
       local v = self._vendor
@@ -600,7 +605,7 @@ local function CreateLearnSourceIcon(row, craftBtn)
         GameTooltip:AddLine("\n"..clickHint, 0.25, 1, 0.25, true)
       end
     else
-      GameTooltip:SetText("Trainer")
+      GameTooltip:SetText(L("TOOLTIP_TRAINER"))
       GameTooltip:AddLine(("You don't know %s yet. Visit a trainer to learn it."):format(name), 1, 1, 1, true)
     end
 
@@ -1100,7 +1105,7 @@ function GuidePage:Create(parent)
     local dropdown = CreateFrame("DropdownButton", nil, page, "WowStyle1DropdownTemplate")
     dropdown:SetSize(170, 25)
     dropdown:SetPoint("TOPRIGHT", page, "TOPRIGHT", -35, -25)
-    dropdown:SetDefaultText("Select Expansion")
+    dropdown:SetDefaultText(L("DROPDOWN_SELECT_EXPANSION"))
 
     -- Keep a consistent height and avoid truncation surprises.
     if dropdown.Text and dropdown.Text.SetMaxLines then
@@ -1228,7 +1233,7 @@ function GuidePage:Create(parent)
   end
 
   -- Materials header and container
-  local materialsHeader = MakeHeader(child, "Materials Required")
+  local materialsHeader = MakeHeader(child, L("HEADER_MATERIALS_REQUIRED"))
   materialsHeader:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -16)
   self.materialsHeader = materialsHeader
 
@@ -1239,7 +1244,7 @@ function GuidePage:Create(parent)
   self.materialsContainer = materialsContainer
 
   -- Trainers header and container
-  local trainersHeader = MakeHeader(child, "Trainers")
+  local trainersHeader = MakeHeader(child, L("HEADER_TRAINERS"))
   trainersHeader:SetPoint("TOPLEFT", materialsContainer, "BOTTOMLEFT", 0, -20)
   self.trainersHeader = trainersHeader
 
@@ -1250,7 +1255,7 @@ function GuidePage:Create(parent)
   self.trainersContainer = trainersContainer
 
   -- Steps header and container
-  local stepsHeader = MakeHeader(child, "Leveling Guide")
+  local stepsHeader = MakeHeader(child, L("HEADER_LEVELING_GUIDE"))
   stepsHeader:SetPoint("TOPLEFT", trainersContainer, "BOTTOMLEFT", 0, -20)
   self.stepsHeader = stepsHeader
 
@@ -1410,10 +1415,10 @@ function GuidePage:RenderGuide(guide)
   ClearRows(self.stepRows)
 
   if not guide then
-    self.titleText:SetText("Leveling Guide")
-    self.materialsHeader:SetText("Materials Required")
-    self.trainersHeader:SetText("Trainers")
-    self.stepsHeader:SetText("Leveling Guide")
+    self.titleText:SetText(L("HEADER_LEVELING_GUIDE"))
+    self.materialsHeader:SetText(L("HEADER_MATERIALS_REQUIRED"))
+    self.trainersHeader:SetText(L("HEADER_TRAINERS"))
+    self.stepsHeader:SetText(L("HEADER_LEVELING_GUIDE"))
 
     local row = CreateFrame("Frame", nil, self.scrollChild)
     row:SetPoint("TOPLEFT", self.materialsHeader, "BOTTOMLEFT", 0, -10)
@@ -1422,7 +1427,7 @@ function GuidePage:RenderGuide(guide)
 
     local fs = MakeText(row, "GameFontHighlight", 600)
     fs:SetPoint("LEFT", 0, 0)
-    fs:SetText("No guide available for this profession.")
+    fs:SetText(L("TEXT_NO_GUIDE_AVAILABLE"))
     row._text = fs
 
     table.insert(self.materialRows, row)
@@ -1431,7 +1436,7 @@ function GuidePage:RenderGuide(guide)
     return
   end
 
-  self.titleText:SetText(guide.title or "Leveling Guide")
+  self.titleText:SetText(guide.title or L("HEADER_LEVELING_GUIDE"))
 
   -- Materials
   local materials = (Guides and Guides.GetMaterials) and Guides:GetMaterials(guide) or (guide.materials or {})
@@ -1767,7 +1772,7 @@ function GuidePage:RenderGuide(guide)
           end
         end
       else
-        GameTooltip:SetText("Material")
+        GameTooltip:SetText(L("TOOLTIP_MATERIAL"))
       end
 
       GameTooltip:Show()
@@ -1966,7 +1971,7 @@ function GuidePage:RenderGuide(guide)
 
     local fs = MakeText(row, "GameFontHighlight")
     fs:SetPoint("LEFT", 0, 0)
-    fs:SetText("No trainers available in this guide.")
+    fs:SetText(L("TEXT_NO_TRAINERS_AVAILABLE"))
     row._details = fs
 
     table.insert(self.trainerRows, row)

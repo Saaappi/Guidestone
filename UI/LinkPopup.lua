@@ -1,4 +1,5 @@
 local Addon = _G.Guidestone
+local Localization = Addon.modules.Localization
 
 ---@class GuidestoneLinkPopup
 local LinkPopup = {}
@@ -10,6 +11,10 @@ local ceil = math.ceil
 local CreateFrame = CreateFrame
 
 LinkPopup.frame = nil
+
+local function L(key, ...)
+  return Localization:Get(key, ...)
+end
 
 local function EnsureFrame()
   if LinkPopup.frame then
@@ -41,7 +46,7 @@ local function EnsureFrame()
   desc:SetPoint("TOP", title, "BOTTOM", 0, -8)
   desc:SetJustifyH("CENTER")
   desc:SetWidth(600)
-  desc:SetText("Copy the link below and paste it into your browser.")
+  desc:SetText(L("LINKPOPUP_DESC"))
   popup._desc = desc
 
   -- Optional link buttons for multi-link materials.
@@ -90,7 +95,7 @@ local function EnsureFrame()
 
   local selectAll = CreateFrame("Button", nil, popup, "UIPanelButtonTemplate")
   selectAll:SetSize(120, 24)
-  selectAll:SetText("Select All")
+  selectAll:SetText(L("LINKPOPUP_SELECT_ALL"))
   selectAll:SetPoint("BOTTOMLEFT", 18, 14)
   selectAll:SetScript("OnClick", function()
     edit:SetFocus()
@@ -127,7 +132,7 @@ function LinkPopup:Show(titleText, url)
   end
   popup:SetHeight(180)
 
-  popup._title:SetText(titleText or "Link")
+  popup._title:SetText(titleText or L("LINKPOPUP_TITLE_LINK"))
   popup._edit:SetText(url or "")
   popup._edit:SetCursorPosition(0)
   popup._edit:SetFocus()
@@ -142,7 +147,7 @@ end
 function LinkPopup:ShowLinks(titleText, links)
   local popup = EnsureFrame()
 
-  popup._title:SetText(titleText or "Links")
+  popup._title:SetText(titleText or L("LINKPOPUP_TITLE_LINKS"))
 
   local valid = {}
   if type(links) == "table" then

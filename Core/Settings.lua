@@ -1,4 +1,5 @@
 local Addon = _G.Guidestone
+local Localization = Addon.modules.Localization
 
 ---@class GuidestoneSettings
 local SettingsModule = {}
@@ -11,6 +12,10 @@ local CATEGORY_NAME = Addon.name
 SettingsModule._inited = false
 SettingsModule.categoryID = nil
 SettingsModule.db = nil
+
+local function L(key, ...)
+  return Localization:Get(key, ...)
+end
 
 ---@param db table
 ---@return nil
@@ -84,7 +89,7 @@ function SettingsModule:Init(db)
 
   -- Optional: add a section header like EventQ (only if layout supports it)
   if layout and layout.AddInitializer and CreateSettingsListSectionHeaderInitializer then
-    layout:AddInitializer(CreateSettingsListSectionHeaderInitializer("Trainer"))
+    layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(L("SETTINGS_SECTION_TRAINER")))
   end
 
   -- trainerEnableButton

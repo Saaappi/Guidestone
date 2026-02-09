@@ -2,7 +2,7 @@ local Addon = _G.Guidestone
 local Guides = Addon.modules.Guides
 local GuidePage = Addon.modules.GuidePage
 local Util = Addon.modules.Util
-local Logger = Addon.modules.Logger
+local Localization = Addon.modules.Localization
 
 ---@class GuidestoneTrainerLearner
 local TrainerLearner = {}
@@ -23,6 +23,10 @@ local tostring = tostring
 local C_Spell = C_Spell
 local C_Timer = C_Timer
 local C_TradeSkillUI = C_TradeSkillUI
+
+local function L(key, ...)
+  return Localization:Get(key, ...)
+end
 
 TrainerLearner._frame = TrainerLearner._frame or nil
 TrainerLearner._button = TrainerLearner._button or nil
@@ -444,7 +448,7 @@ function TrainerLearner:EnsureButton()
   local btn = CreateFrame("Button", nil, ClassTrainerTrainButton, "UIPanelButtonTemplate")
   btn:SetSize(150, 22)
   btn:SetPoint("TOPRIGHT", ClassTrainerTrainButton, "TOPLEFT", -5, 0)
-  btn:SetText("Train Needed")
+  btn:SetText(L("BUTTON_TRAIN_NEEDED"))
   btn:Hide()
 
   btn:SetScript("OnClick", function()
@@ -490,7 +494,7 @@ function TrainerLearner:UpdateButton()
     return
   end
 
-  self._button:SetText(("Train Needed (%d)"):format(#self._matches))
+  self._button:SetText((L("BUTTON_TRAIN_NEEDED_FMT")):format(#self._matches))
   self._button:Show()
 end
 
