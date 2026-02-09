@@ -807,7 +807,7 @@ local function GetChoiceSelection(guideID, groupKey, groupDef)
     return nil
   end
 
-  local db = _G.GuidestoneDB
+  local db = Addon.db
   if type(db) ~= "table" then
     return nil
   end
@@ -884,7 +884,7 @@ local function SetChoiceSelection(guideID, groupKey, choiceValue)
     return
   end
 
-  local db = _G.GuidestoneDB
+  local db = Addon.db
   if type(db) ~= "table" then
     return
   end
