@@ -1,3 +1,11 @@
+local Addon = _G.Guidestone
+
+local tostring = tostring
+local format = string.format
+
+
+
+
 local ADDON, ns = ...
 
 ns.Settings = ns.Settings or {}

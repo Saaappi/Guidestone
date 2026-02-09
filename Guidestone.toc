@@ -10,6 +10,7 @@ Core/Guidestone.lua
 Core/Logger.lua
 Core/Database.lua
 Core/Class.lua
+Core/Settings.lua
 Core/Util.lua
 
 Data/Guides.lua
@@ -19,33 +20,10 @@ Data/Guides.lua
 Data/Guides/Classic/Alchemy.lua
 Data/Guides/Classic/Jewelcrafting.lua
 
-# TBC
-
-# Wrath
-
-# Cata
-
-# MoP
-
-# WoD
-
-# Legion
-
-# BfA
-
-# Shadowlands
-
-# Dragonflight
-
-# The War Within
-
-# Midnight
-
 Services/CraftRunner.lua
 Services/ProfessionMemory.lua
 Services/TrainerLearner.lua
 
-UI/Settings.lua
 UI/LinkPopup.lua
 UI/GuidePage.lua
 
