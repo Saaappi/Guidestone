@@ -47,7 +47,7 @@ function Events:OnEvent(event, ...)
 
         if msg == "debug" then
           Addon.db.debug = not Addon.db.debug
-          Logger:Debug("Debug:", Addon.db.debug and "ON" or "OFF")
+          Logger:Info("Debug:", Addon.db.debug and "ON" or "OFF")
           return
         end
 

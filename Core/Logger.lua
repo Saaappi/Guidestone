@@ -25,19 +25,19 @@ function Logger:Debug(msg, ...)
     return
   end
   msg = tostring(msg)
-  print(Prefix(), format(msg, ...))
+  print(Prefix(), format(msg), format(...))
 end
 
 ---@param msg any
 ---@param ... any
 function Logger:Info(msg, ...)
   msg = tostring(msg)
-  print(Prefix(), format(msg, ...))
+  print(Prefix(), format(msg), format(...))
 end
 
 ---@param msg any
 ---@param ... any
 function Logger:Warn(msg, ...)
   msg = tostring(msg)
-  print(Prefix(), "|cffFFB020WARN|r", format(msg, ...))
+  print(Prefix(), "|cffFFB020WARN|r", format(msg), format(...))
 end
