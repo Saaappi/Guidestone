@@ -143,7 +143,7 @@ function TrainerLearner:GetActiveGuide()
 
   -- Fallback: the user may be at a trainer with the Professions UI closed.
   -- In that case, use the last guide selected in the profession UI.
-  local lastSkillLineID = GuidestoneDB and tonumber(GuidestoneDB.lastGuideSkillLineID) or nil
+  local lastSkillLineID = Addon.db and tonumber(Addon.db.lastGuideSkillLineID) or nil
   if lastSkillLineID and Guides and Guides.GetBySkillLineID then
     return Guides:GetBySkillLineID(lastSkillLineID)
   end
@@ -185,22 +185,22 @@ end
 
 ---@return number
 function TrainerLearner:GetLookahead()
-  return (GuidestoneDB and tonumber(GuidestoneDB.trainerLookahead)) or 25
+  return (Addon.db and tonumber(Addon.db.trainerLookahead)) or 25
 end
 
 ---@return number
 function TrainerLearner:GetMaxSpendCopper()
-  return (GuidestoneDB and tonumber(GuidestoneDB.trainerMaxSpendCopper)) or 0
+  return (Addon.db and tonumber(Addon.db.trainerMaxSpendCopper)) or 0
 end
 
----@return boolean
+---@return boolean|nil
 function TrainerLearner:IsAutoLearnEnabled()
-  return (GuidestoneDB and GuidestoneDB.trainerAutoLearn == true)
+  return (Addon.db and Addon.db.trainerAutoLearn == true)
 end
 
----@return boolean
+---@return boolean|nil
 function TrainerLearner:IsButtonEnabled()
-  return (GuidestoneDB and GuidestoneDB.trainerEnableButton == true)
+  return (Addon.db and Addon.db.trainerEnableButton == true)
 end
 
 -- ---------------------------------------------------------------------------
