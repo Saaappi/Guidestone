@@ -1,4 +1,17 @@
-local _, ns = ...
+local Addon = _G.Guidestone
+local Util = Addon.modules.Util
+
+local type = type
+local tonumber = tonumber
+local tostring = tostring
+local floor = math.floor
+local tinsert = table.insert
+local tsort = table.sort
+
+---@class GuidestoneGuides
+local Guides = {}
+
+Addon.modules.Guides = Guides
 
 -- -----------------------------------------------------------------------------
 -- Data model (expansion-wide)
@@ -50,10 +63,6 @@ local _, ns = ...
 --    [123] = "https://www.wow-professions.com/farming/...",
 --  },
 -- }
-
-ns.Guides = ns.Guides or {}
-
-local Guides = ns.Guides
 
 -- -----------------------------------------------------------------------------
 -- Expansion registry
@@ -119,7 +128,7 @@ local function NormalizeKey(key)
 
   local n = tonumber(key)
   if n then
-    return tostring(math.floor(n))
+    return tostring(floor(n))
   end
 
   return tostring(key)
@@ -139,7 +148,7 @@ local function NormalizeLinks(links)
       local title = type(link.title) == "string" and link.title ~= "" and link.title or nil
       local url = type(link.url) == "string" and link.url ~= "" and link.url or nil
       if url then
-        table.insert(out, { title = title, url = url })
+        tinsert(out, { title = title, url = url })
       end
     end
   end
@@ -169,7 +178,7 @@ local function NormalizeAliasItems(aliasItems)
   for _, v in ipairs(aliasItems) do
     local id = tonumber(v)
     if id and id > 0 then
-      id = math.floor(id)
+      id = floor(id)
       if id > 0 and not seen[id] then
         seen[id] = true
         out[#out + 1] = id
@@ -201,7 +210,7 @@ local function NormalizeMaterialItem(entry, farmingUrls)
 
   return {
     type = "item",
-    itemID = math.floor(itemID),
+    itemID = floor(itemID),
     aliasItems = NormalizeAliasItems(entry.aliasItems or entry.aliasItemIDs or entry.alias),
     required = required,
     noBuffer = noBuffer,
@@ -322,7 +331,7 @@ end
 local function IsPositiveInt(n)
   n = tonumber(n)
 
-  return n and n > 0 and math.floor(n) == n
+  return n and n > 0 and floor(n) == n
 end
 
 local function SumMaterialsFromSteps(steps)
@@ -351,14 +360,14 @@ end
 local function BuildMaterialsFromTotals(totals, farmingUrls)
   local list = {}
   for itemID, required in pairs(totals or {}) do
-    table.insert(list, {
+    tinsert(list, {
       itemID = itemID,
       required = required,
       wowProfessionsUrl = farmingUrls and farmingUrls[itemID] or nil,
     })
   end
 
-  table.sort(list, function(a, b)
+  tsort(list, function(a, b)
     return (a.itemID or 0) < (b.itemID or 0)
   end)
 
@@ -384,7 +393,7 @@ local function NormalizeGuide(guide)
 
   -- Normalize step fields (minimal validation; don't mutate caller tables unexpectedly)
   local normalized = ShallowCopy(guide)
-  normalized.skillLineID = math.floor(tonumber(guide.skillLineID))
+  normalized.skillLineID = floor(tonumber(guide.skillLineID))
 
   normalized.expansionKey = tostring(guide.expansionKey or "UNKNOWN")
   local expansionMeta = GetExpansionMeta(normalized.expansionKey)
@@ -439,7 +448,7 @@ function Guides:RegisterGuide(guide)
   end
 
   self._bySkillLineID[key] = normalized
-  table.insert(self._all, normalized)
+  tinsert(self._all, normalized)
 
   return true, nil
 end
@@ -489,7 +498,7 @@ function Guides:GetExpansionKeysOrdered()
     end
   end
 
-  table.sort(keys, function(a, b)
+  tsort(keys, function(a, b)
     local ma = GetExpansionMeta(a)
     local mb = GetExpansionMeta(b)
     if (ma.order or 9999) ~= (mb.order or 9999) then
@@ -509,11 +518,11 @@ function Guides:GetAllGroupedByExpansion()
   for _, guide in ipairs(self._all) do
     local key = guide.expansionKey or "UNKNOWN"
     out[key] = out[key] or {}
-    table.insert(out[key], guide)
+    tinsert(out[key], guide)
   end
 
   for _, guides in pairs(out) do
-    table.sort(guides, function(a, b)
+    tsort(guides, function(a, b)
       return tostring(a.professionKey) < tostring(b.professionKey)
     end)
   end
