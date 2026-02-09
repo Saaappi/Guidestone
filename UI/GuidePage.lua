@@ -63,7 +63,7 @@ function GuidePage:TryInitProfessionsTab()
     return
   end
 
-  -- UI/GuidePage.lua will define ns.GuidePage. I do not require it here.
+  -- UI/GuidePage.lua defines Addon.modules.GuidePage.
   if not (GuidePage and GuidePage.Create and GuidePage.LoadForProfession) then
     -- Not an error; it just means the UI file is not implemented yet.
     return
