@@ -1,20 +1,28 @@
-local ADDON, ns = ...
+local Addon = _G.Guidestone
+local Guides = Addon.modules.Guides
+local GuidePage = Addon.modules.GuidePage
+local Util = Addon.modules.Util
+local Logger = Addon.modules.Logger
 
-ns.TrainerLearner = ns.TrainerLearner or {}
-local TrainerLearner = ns.TrainerLearner
+---@class GuidestoneTrainerLearner
+local TrainerLearner = {}
+Addon.modules.TrainerLearner = TrainerLearner
 
-local CreateFrame = _G.CreateFrame
-local InCombatLockdown = _G.InCombatLockdown
-local GetNumTrainerServices = _G.GetNumTrainerServices
-local GetTrainerServiceInfo = _G.GetTrainerServiceInfo
-local SelectTrainerService = _G.SelectTrainerService
-local GetTrainerSelectionIndex = _G.GetTrainerSelectionIndex
-local GetTrainerServiceItemLink = _G.GetTrainerServiceItemLink
-local GetTrainerServiceCost = _G.GetTrainerServiceCost
-local BuyTrainerService = _G.BuyTrainerService
-local C_Spell = _G.C_Spell
-local C_Timer = _G.C_Timer
-local Settings = _G.Settings
+local CreateFrame = CreateFrame
+local InCombatLockdown = InCombatLockdown
+local GetNumTrainerServices = GetNumTrainerServices
+local GetTrainerServiceInfo = GetTrainerServiceInfo
+local SelectTrainerService = SelectTrainerService
+local GetTrainerSelectionIndex = GetTrainerSelectionIndex
+local GetTrainerServiceItemLink = GetTrainerServiceItemLink
+local GetTrainerServiceCost = GetTrainerServiceCost
+local BuyTrainerService = BuyTrainerService
+local type = type
+local tonumber = tonumber
+local tostring = tostring
+local C_Spell = C_Spell
+local C_Timer = C_Timer
+local C_TradeSkillUI = C_TradeSkillUI
 
 TrainerLearner._frame = TrainerLearner._frame or nil
 TrainerLearner._button = TrainerLearner._button or nil
@@ -129,15 +137,15 @@ end
 
 ---@return table|nil
 function TrainerLearner:GetActiveGuide()
-  if ns.GuidePage and ns.GuidePage.currentGuide then
-    return ns.GuidePage.currentGuide
+  if GuidePage and GuidePage.currentGuide then
+    return GuidePage.currentGuide
   end
 
   -- Fallback: the user may be at a trainer with the Professions UI closed.
   -- In that case, use the last guide selected in the profession UI.
   local lastSkillLineID = GuidestoneDB and tonumber(GuidestoneDB.lastGuideSkillLineID) or nil
-  if lastSkillLineID and ns.Guides and ns.Guides.GetBySkillLineID then
-    return ns.Guides:GetBySkillLineID(lastSkillLineID)
+  if lastSkillLineID and Guides and Guides.GetBySkillLineID then
+    return Guides:GetBySkillLineID(lastSkillLineID)
   end
   return nil
 end
@@ -195,34 +203,6 @@ function TrainerLearner:IsButtonEnabled()
   return (GuidestoneDB and GuidestoneDB.trainerEnableButton == true)
 end
 
----@param msg string
----@return nil
-function TrainerLearner:Debug(msg)
-  if ns.Logger and ns.Logger.Debug then
-    ns.Logger:Debug(msg)
-  end
-end
-
----@param msg string
----@return nil
-function TrainerLearner:Info(msg)
-  if ns.Logger and ns.Logger.Info then
-    ns.Logger:Info(msg)
-  else
-    print("|cff9AD6FFGuidestone|r", msg)
-  end
-end
-
----@param msg string
----@return nil
-function TrainerLearner:Warn(msg)
-  if ns.Logger and ns.Logger.Warn then
-    ns.Logger:Warn(msg)
-  else
-    print("|cff9AD6FFGuidestone|r", "|cffFFB020WARN|r", msg)
-  end
-end
-
 -- ---------------------------------------------------------------------------
 -- Needed recipes computation
 -- ---------------------------------------------------------------------------
@@ -262,9 +242,9 @@ function TrainerLearner:BuildNeededTrainerSets(guide, currentSkill, lookahead)
   local neededSpellIDs = self._neededSpellIDs or {}
   local neededByName = self._neededByName or {}
 
-  ns.Util.WipeTable(neededItemIDs)
-  ns.Util.WipeTable(neededSpellIDs)
-  ns.Util.WipeTable(neededByName)
+  Util:WipeTable(neededItemIDs)
+  Util:WipeTable(neededSpellIDs)
+  Util:WipeTable(neededByName)
 
   if type(guide) ~= "table" or type(guide.steps) ~= "table" then
     self._neededItemIDs = neededItemIDs
@@ -327,7 +307,7 @@ end
 ---@return nil
 function TrainerLearner:ScanTrainer()
   self._matches = self._matches or {}
-  ns.Util.WipeTable(self._matches)
+  Util:WipeTable(self._matches)
   self._totalCost = 0
 
   if not self:IsTrainerAPIAvailable() then
@@ -431,8 +411,8 @@ end
 
 ---@return Frame|nil
 function TrainerLearner:GetTrainerParent()
-  local trainerFrame = _G.TrainerFrame
-  local classTrainerFrame = _G.ClassTrainerFrame
+  local trainerFrame = TrainerFrame
+  local classTrainerFrame = ClassTrainerFrame
 
   if trainerFrame and trainerFrame.IsShown and trainerFrame:IsShown() then
     return trainerFrame
@@ -477,7 +457,7 @@ function TrainerLearner:EnsureButton()
     end
 
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-    GameTooltip:SetText(ADDON)
+    GameTooltip:SetText(Addon.name)
     if #self._matches == 0 then
       GameTooltip:AddLine("No guide-required recipes available.", 0.8, 0.8, 0.8, true)
     else
@@ -556,8 +536,8 @@ function TrainerLearner:TrainNeeded()
     end
   end
 
-  ns.Util.WipeTable(self._serviceItemIdCache)
-  ns.Util.WipeTable(self._serviceSpellIdCache)
+  Util:WipeTable(self._serviceItemIdCache)
+  Util:WipeTable(self._serviceSpellIdCache)
 
   if trained > 0 then
     self:Info(("Trained %d guide-required recipe(s)."):format(trained))
@@ -593,8 +573,8 @@ function TrainerLearner:EnsureFrame()
       -- Mark pending first; trainer services often populate after SHOW.
       self._autoLearnPending = self:IsAutoLearnEnabled()
 
-      ns.Util.WipeTable(self._serviceItemIdCache)
-      ns.Util.WipeTable(self._serviceSpellIdCache)
+      Util:WipeTable(self._serviceItemIdCache)
+      Util:WipeTable(self._serviceSpellIdCache)
 
       self:RefreshTrainerState()
 
@@ -635,8 +615,8 @@ function TrainerLearner:EnsureFrame()
       self._totalCost = 0
       self._autoLearnPending = false
 
-      ns.Util.WipeTable(self._serviceItemIdCache)
-      ns.Util.WipeTable(self._serviceSpellIdCache)
+      Util:WipeTable(self._serviceItemIdCache)
+      Util:WipeTable(self._serviceSpellIdCache)
       return
     end
   end)
