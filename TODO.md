@@ -1,5 +1,7 @@
 Add:
 - Add support for Wowhead links to the multi-link popup?
+  - Bronze Bar, for example, has multi-link support for Copper and Tin Ore farming pages on WoW-Professions;
+    I want the same for Wowhead, just to the item pages for Copper and Tin Ore instead
 - Add support for gathering profession leveling guides
   - There should be skill level headers and maps beneath them
     - The maps should have faction flags or be neutral
