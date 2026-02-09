@@ -147,8 +147,8 @@ function SettingsModule:Open()
     return
   end
 
-  if not self._inited and type(GuidestoneDB) == "table" then
-    self:Init(GuidestoneDB)
+  if not self._inited and type(Addon.db) == "table" then
+    self:Init(Addon.db)
   end
 
   if self.categoryID then
