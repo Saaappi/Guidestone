@@ -135,64 +135,73 @@ local ok, err = Guides:RegisterGuide({
       maxCrafts = 30,
       note = L("TEXT_SAVE_THESE_FOR_LATER_CRAFT")
     },
-    {
+    { -- Tigerseye Band
       fromSkill = 30,
       toSkill = 50,
-      recipeName = "Tigerseye Band",
+      recipeID = 32179,
+      outputItemID = 25439,
       maxCrafts = 20,
       requiresChoices = { classicJewelcrafting_30_50 = "tigerseye" }
     },
-    {
+    { -- Malachite Pendant
       fromSkill = 30,
       toSkill = 50,
-      recipeName = "Malachite Pendant",
+      recipeID = 32178,
+      outputItemID = 25438,
       maxCrafts = 20,
       requiresChoices = { classicJewelcrafting_30_50 = "malachite" }
     },
-    {
+    { -- Bronze Setting
       fromSkill = 50,
       toSkill = 80,
-      recipeName = "Bronze Setting",
+      recipeID = 25278,
+      outputItemID = 20817,
       maxCrafts = 50,
       note = L("TEXT_SAVE_THESE_FOR_LATER_CRAFT")
     },
-    {
+    { -- Gloom Band
       fromSkill = 80,
       toSkill = 100,
-      recipeName = "Gloom Band",
+      recipeID = 25287,
+      outputItemID = 20823,
       maxCrafts = 20,
       requiresChoices = { classicJewelcrafting_80_100 = "shadowgem" }
     },
-    {
+    { -- Simple Pearl Ring
       fromSkill = 80,
       toSkill = 100,
-      recipeName = "Simple Pearl Ring",
+      recipeID = 25284,
+      outputItemID = 20820,
       maxCrafts = 20,
       requiresChoices = { classicJewelcrafting_80_100 = "shadowgem_lustrouspearl" }
     },
-    {
+    { -- Ring of Twilight Shadows
       fromSkill = 100,
       toSkill = 110,
-      recipeName = "Ring of Twilight Shadows",
+      recipeID = 25318,
+      outputItemID = 20828,
       maxCrafts = 10
     },
-    {
+    { -- Heavy Stone Statue
       fromSkill = 110,
       toSkill = 120,
-      recipeName = "Heavy Stone Statue",
+      recipeID = 32807,
+      outputItemID = 25881,
       maxCrafts = 10
     },
-    {
+    { -- Pendant of the Agate Shield
       fromSkill = 120,
       toSkill = 150,
-      recipeName = "Pendant of the Agate Shield",
+      recipeID = 25610,
+      outputItemID = 20950,
       maxCrafts = 30,
       requiresChoices = { classicJewelcrafting_120_150 = "mossAgate" }
     },
-    {
+    { -- Amulet of the Moon
       fromSkill = 120,
       toSkill = 150,
-      recipeName = "Amulet of the Moon",
+      recipeID = 25339,
+      outputItemID = 20830,
       maxCrafts = 30,
       requiresChoices = { classicJewelcrafting_120_150 = "lesserMoonstone" },
       learn = {
@@ -205,71 +214,82 @@ local ok, err = Guides:RegisterGuide({
         }
       }
     },
-    {
+    { -- Mithril Filigree
       fromSkill = 150,
       toSkill = 180,
-      recipeName = "Mithril Filigree",
+      recipeID = 25615,
+      outputItemID = 20963,
       maxCrafts = 45
     },
-    {
+    { -- Solid Stone Statue
       fromSkill = 180,
       toSkill = 185,
-      recipeName = "Solid Stone Statue",
+      recipeID = 32808,
+      outputItemID = 25882,
       maxCrafts = 8
     },
-    {
+    { -- Engraved Truesilver Ring
       fromSkill = 185,
       toSkill = 200,
-      recipeName = "Engraved Truesilver Ring",
+      recipeID = 25620,
+      outputItemID = 20960,
       maxCrafts = 15
     },
-    {
+    { -- Citrine Ring of Rapid Healing
       fromSkill = 200,
       toSkill = 220,
-      recipeName = "Citrine Ring of Rapid Healing",
+      recipeID = 25621,
+      outputItemID = 20961,
       maxCrafts = 25
     },
-    {
+    { -- Aquamarine Pendant of the Warrior
       fromSkill = 220,
       toSkill = 225,
-      recipeName = "Aquamarine Pendant of the Warrior",
+      recipeID = 26876,
+      outputItemID = 21755,
       maxCrafts = 5
     },
-    {
+    { -- Thorium Setting
       fromSkill = 225,
       toSkill = 250,
-      recipeName = "Thorium Setting",
+      recipeID = 26880,
+      outputItemID = 21752,
       maxCrafts = 50,
       note = L("TEXT_SAVE_THESE_FOR_LATER_CRAFT")
     },
-    {
+    { -- Ruby Pendant of Fire
       fromSkill = 250,
       toSkill = 260,
-      recipeName = "Ruby Pendant of Fire",
+      recipeID = 26883,
+      outputItemID = 21764,
       maxCrafts = 10
     },
-    {
+    { -- Simple Opal Ring
       fromSkill = 260,
       toSkill = 280,
-      recipeName = "Simple Opal Ring",
+      recipeID = 26902,
+      outputItemID = 21767,
       maxCrafts = 20
     },
-    {
+    { -- Diamond Focus Ring
       fromSkill = 280,
       toSkill = 287,
-      recipeName = "Diamond Focus Ring",
+      recipeID = 36526,
+      outputItemID = 30422,
       maxCrafts = 7
     },
-    {
+    { -- Sapphire Pendant of Winter Night
       fromSkill = 287,
       toSkill = 290,
-      recipeName = "Sapphire Pendant of Winter Night",
+      recipeID = 26908,
+      outputItemID = 21790,
       maxCrafts = 3
     },
-    {
+    { -- Emerald Lion Ring
       fromSkill = 290,
       toSkill = 300,
-      recipeName = "Emerald Lion Ring",
+      recipeID = 34961,
+      outputItemID = 29160,
       maxCrafts = 10
     },
   },
