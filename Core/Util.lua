@@ -367,3 +367,41 @@ function Util:FindRecipeIDByName(recipeName)
 
   return nil
 end
+
+local recipeSpellIDToID = {} ---@type table<number, number>
+
+---@param spellID number
+---@return number|nil
+function Util:FindRecipeIDBySpellID(spellID)
+  spellID = tonumber(spellID)
+  if not spellID or spellID <= 0 then
+    return nil
+  end
+
+  local cached = recipeSpellIDToID[spellID]
+  if type(cached) == "number" then
+    return cached
+  end
+
+  if not (C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs and C_TradeSkillUI.GetRecipeInfo) then
+    return nil
+  end
+
+  local ok, recipeIDs = pcall(C_TradeSkillUI.GetAllRecipeIDs)
+  if not ok or type(recipeIDs) ~= "table" then
+    return nil
+  end
+
+  for i = 1, #recipeIDs do
+    local recipeID = recipeIDs[i]
+    if type(recipeID) == "number" then
+      local okInfo, info = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
+      if okInfo and type(info) == "table" and tonumber(info.spellID) == spellID then
+        recipeSpellIDToID[spellID] = recipeID
+        return recipeID
+      end
+    end
+  end
+
+  return nil
+end

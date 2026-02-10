@@ -120,20 +120,17 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
     return
   end
 
-  if type(step.recipeName) ~= "string" or step.recipeName == "" then
-    return
+  local recipeID = nil
+  local spellID = tonumber(step.recipeSpellID)
+  if spellID and spellID > 0 and Util.FindRecipeIDBySpellID then
+    recipeID = Util:FindRecipeIDBySpellID(spellID)
   end
 
-  local targetSkill = tonumber(step.toSkill) or 0
-  if targetSkill <= 0 then
-    return
+  -- Backward compatibility fallback since guides are currently using the name.
+  if not recipeID and type(step.recipeName) == "string" and step.recipeName ~= "" then
+    recipeID = Util:FindRecipeIDByName(step.recipeName)
   end
 
-  if not (ProfessionsFrame and ProfessionsFrame.CraftingPage and ProfessionsFrame.CraftingPage.SelectRecipe) then
-    return
-  end
-
-  local recipeID = Util:FindRecipeIDByName(step.recipeName)
   if not recipeID then
     return
   end
@@ -247,7 +244,7 @@ function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
   -- However, some clients may report a generic tradeskill spellID during
   -- batch crafting, so if we're actively repeating, allow it through.
   if self._recipeSpellID and spellID ~= self._recipeSpellID then
-    local repeating = (C_TradeSkillUI and C_TradeSkillUI.IsRecipeRepeating and C_TradeInfo.IsRecipeRepeating()) or false
+    local repeating = (C_TradeSkillUI and C_TradeSkillUI.IsRecipeRepeating and C_TradeSkillUI.IsRecipeRepeating()) or false
     if not repeating then
       return
     end

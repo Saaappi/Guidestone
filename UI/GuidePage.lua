@@ -15,6 +15,7 @@ local tonumber = tonumber
 local tostring = tostring
 local Item = Item
 local C_Item = C_Item
+local C_Spell = C_Spell
 local C_TradeSkillUI = C_TradeSkillUI
 
 local WOWPROF_ICON = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\WoWProfessions.png"
@@ -2141,7 +2142,7 @@ function GuidePage:RenderGuide(guide)
         elseif row._outputHyperlink then
           GameTooltip:SetHyperlink(row._outputHyperlink)
         else
-          GameTooltip:SetText(step.recipeName or "Craft")
+          GameTooltip:SetText(row._displayName or (step and step.recipeName) or "Craft")
         end
         GameTooltip:Show()
       end)
@@ -2383,13 +2384,33 @@ function GuidePage:UpdateStepRow(row)
   local step = row._step
 
   local displayName = (step and step.recipeName) or "Craft"
+  do
+    local spellID = step and tonumber(step.recipeSpellID)
+    if spellID and spellID > 0 and C_Spell and C_Spell.GetSpellInfo then
+      local info = C_Spell.GetSpellInfo(spellID)
+      if info and type(info.name) == "string" and info.name ~= "" then
+        displayName = info.name
+      end
+    end
+  end
+  row._displayName = displayName
+
   local iconTexturePath = "Interface\\Icons\\INV_Misc_QuestionMark"
   row._outputHyperlink = nil
   row._outputItemID = nil
 
   local recipeID = row._recipeID
-  if not recipeID and step and step.recipeName then
-    recipeID = Util:FindRecipeIDByName(step.recipeName)
+  if not recipeID and step then
+    local spellID = tonumber(step.recipeSpellID)
+    if spellID and spellID > 0 and Util.FindRecipeIDBySpellID then
+      recipeID = Util:FindRecipeIDBySpellID(spellID)
+    end
+
+    -- Backward compatibility fallback during migration.
+    if not recipeID and step.recipeName then
+      recipeID = Util:FindRecipeIDByName(step.recipeName)
+    end
+
     row._recipeID = recipeID
   end
 

@@ -125,7 +125,7 @@ local ok, err = Guides:RegisterGuide({
     {
       fromSkill = 1,
       toSkill = 30,
-      recipeName = "Delicate Copper Wire",
+      recipeSpellID = 25255,
       maxCrafts = 30,
       note = "Save these, you'll need them for the next craft."
     },
