@@ -309,26 +309,22 @@ function Util:GetProfessionInfo()
   return nil
 end
 
+---@param skillLineID number|nil
 ---@return number|nil
-function Util:GetCurrentSkillLevel()
-  local info = self:GetProfessionInfo()
+function Util:GetCurrentSkillLevel(skillLineID)
+  local info
+
+  if type(skillLineID) == "number" and C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+    info = C_TradeSkillUI.GetProfessionInfoBySkillLineID(skillLineID)
+  else
+    info = self:GetProfessionInfo()
+  end
+
   if type(info) ~= "table" then
     return nil
   end
 
-  local candidates = {
-    info.skillLevel,
-    info.skillLineCurrentLevel,
-    info.skillLineCurrentLevelWithoutBonuses
-  }
-
-  for i = 1, #candidates do
-    if type(candidates[i]) == "number" then
-      return candidates[i]
-    end
-  end
-
-  return nil
+  return info.skillLevel or info.skillLineCurrentLevel or info.skillLineCurrentLevelWithoutBonuses
 end
 
 local recipeNameToID = {} ---@type table<string, number>

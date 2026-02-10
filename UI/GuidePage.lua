@@ -15,7 +15,6 @@ local tonumber = tonumber
 local tostring = tostring
 local Item = Item
 local C_Item = C_Item
-local C_Spell = C_Spell
 local C_TradeSkillUI = C_TradeSkillUI
 
 local WOWPROF_ICON = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\WoWProfessions.png"
@@ -2071,7 +2070,7 @@ function GuidePage:RenderGuide(guide)
           return
         end
 
-        local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel()) or nil
+        local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel(Addon.db.lastGuideSkillLineID)) or nil
         local toSkill = tonumber(step and step.toSkill)
 
         -- If the player has reached or exceeded the target skill, do not allow them
@@ -2506,7 +2505,7 @@ function GuidePage:UpdateStepRow(row)
   -- Disable the craft button once the player reaches or exceeds the target skill.
   do
     local btn = row._craftBtn
-    local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel()) or nil
+    local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel(Addon.db.lastGuideSkillLineID)) or nil
     local toSkill = tonumber(step and step.toSkill)
 
     local reachedTarget = (toSkill and currentSkill and currentSkill >= toSkill) and true or false
@@ -2537,7 +2536,7 @@ function GuidePage:UpdateStepRow(row)
   do
     local icon = row._learnIcon
     if icon then
-      local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel()) or nil
+      local currentSkill = (Util.GetCurrentSkillLevel and Util:GetCurrentSkillLevel(Addon.db.lastGuideSkillLineID)) or nil
       local fromSkill = tonumber(step and step.fromSkill)
 
       local shouldShowLearnIcon = false
