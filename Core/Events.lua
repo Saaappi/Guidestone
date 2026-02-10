@@ -40,6 +40,11 @@ function Events:OnEvent(event, ...)
       SlashCmdList.GUIDESTONE = function(msg)
         msg = strlower(strtrim(msg or ""))
 
+        if msg == "recipe" then
+          Util:DumpSelectedRecipeSnapshot()
+          return
+        end
+
         if msg == "dump" then
           Util:DumpProfessionInfo()
           return

@@ -405,3 +405,56 @@ function Util:FindRecipeIDBySpellID(spellID)
 
   return nil
 end
+
+---@return table|nil
+function Util:GetSelectedRecipeSnapshot()
+  if not (C_TradeSkillUI and C_TradeSkillUI.GetSelectedRecipeID) then
+    return nil
+  end
+
+  local okSel, recipeID = pcall(C_TradeSkillUI.GetSelectedRecipeID)
+  if not okSel or type(recipeID) ~= "number" or recipeID <= 0 then
+    return nil
+  end
+
+  local snap = { recipeID = recipeID }
+
+  if C_TradeSkillUI.GetRecipeInfo then
+    local okInfo, info = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
+    if okInfo and type(info) == "table" then
+      snap.spellID = tonumber(info.spellID)
+      snap.name = info.name
+    end
+  end
+
+  -- Try to capture the output itemID for the craft. Not every recipe will have one.
+  if C_TradeSkillUI.GetRecipeSchematic then
+    local okSch, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false)
+    if okSch and type(schematic) == "table" and type (schematic.outputItemID) == "number" then
+      snap.outputItemID = schematic.outputItemID
+    end
+  end
+
+  return snap
+end
+
+---@return boolean ok
+function Util:DumpSelectedRecipeSnapshot()
+  local snap = self:GetSelectedRecipeSnapshot()
+  if not snap then
+    Logger:Warn(L("ERR_NO_RECIPE_SELECTED"))
+    return false
+  end
+
+  Logger:Info("Selected recipe:")
+  Logger:Info("  recipeID:", snap.recipeID)
+  Logger:Info("  spellID:", snap.spellID or "nil")
+  Logger:Info("  name:", snap.name, "nil")
+  Logger:Info("  outputItemID:", snap.outputItemID or "nil")
+
+  if type(snap.spellID) == "number" then
+    Logger:Info("Guide data (preferred):", "recipeSpellID = " .. snap.spellID ..",")
+  end
+
+  return true
+end

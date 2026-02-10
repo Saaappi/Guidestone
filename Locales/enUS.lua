@@ -8,6 +8,7 @@ Localization:RegisterLocale("enUS", {
 
   ERR_PROF_API_UNAVAILABLE = "Professions API is unavailable.",
   ERR_NO_PROF_INFO = "No profession info. Open a profession window first.",
+  ERR_NO_RECIPE_SELECTED = "No recipe selected. Open a profession, select a recipe, and then run /guidestone recipeInfo.",
   ERR_CANNOT_TRAIN_IN_COMBAT = "Cannot train while in combat.",
   ERR_COST_EXCEEDS_CAP = "Trainer purchase blocked because total cost exceeds your cap.",
 

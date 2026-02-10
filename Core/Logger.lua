@@ -5,7 +5,6 @@ local format = string.format
 
 ---@class GuidestoneLogger
 local Logger = {}
-
 Addon.modules.Logger = Logger
 
 local function Prefix()
@@ -24,20 +23,17 @@ function Logger:Debug(msg, ...)
   if not self:IsDebugEnabled() then
     return
   end
-  msg = tostring(msg)
-  print(Prefix(), format(msg), format(...))
+  print(Prefix(), tostring(msg), ...)
 end
 
 ---@param msg any
 ---@param ... any
 function Logger:Info(msg, ...)
-  msg = tostring(msg)
-  print(Prefix(), format(msg), format(...))
+  print(Prefix(), tostring(msg), ...)
 end
 
 ---@param msg any
 ---@param ... any
 function Logger:Warn(msg, ...)
-  msg = tostring(msg)
-  print(Prefix(), "|cffFFB020WARN|r", format(msg), format(...))
+  print(Prefix(), "|cffFFB020WARN|r", tostring(msg), ...)
 end
