@@ -120,18 +120,17 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
     return
   end
 
-  local recipeID = nil
-  local spellID = tonumber(step.recipeSpellID)
-  if spellID and spellID > 0 and Util.FindRecipeIDBySpellID then
-    recipeID = Util:FindRecipeIDBySpellID(spellID)
-  end
-
+  local recipeID = tonumber(step.recipeID)
   -- Backward compatibility fallback since guides are currently using the name.
-  if not recipeID and type(step.recipeName) == "string" and step.recipeName ~= "" then
+  if (not recipeID or recipeID <= 0) and type(step.recipeName) == "string" and step.recipeName ~= "" then
     recipeID = Util:FindRecipeIDByName(step.recipeName)
   end
 
-  if not recipeID then
+  if not recipeID or recipeID <= 0 then
+    return
+  end
+
+  if not (C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo) then
     return
   end
 
@@ -150,7 +149,10 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
   self._repeatCancelAttempted = false
 
   self._recipeID = recipeID
-  self._recipeSpellID = recipeInfo.spellID
+
+  -- For most recipe crafts, the recipeID will match the spell ID. If this isn't the case,
+  -- then I'll fall back to repeat-state checks later.
+  self._recipeSpellID = recipeID
 
   self._running = true
   EnsureFrame():Show()

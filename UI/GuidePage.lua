@@ -2384,15 +2384,6 @@ function GuidePage:UpdateStepRow(row)
   local step = row._step
 
   local displayName = (step and step.recipeName) or "Craft"
-  do
-    local spellID = step and tonumber(step.recipeSpellID)
-    if spellID and spellID > 0 and C_Spell and C_Spell.GetSpellInfo then
-      local info = C_Spell.GetSpellInfo(spellID)
-      if info and type(info.name) == "string" and info.name ~= "" then
-        displayName = info.name
-      end
-    end
-  end
   row._displayName = displayName
 
   local iconTexturePath = "Interface\\Icons\\INV_Misc_QuestionMark"
@@ -2401,13 +2392,10 @@ function GuidePage:UpdateStepRow(row)
 
   local recipeID = row._recipeID
   if not recipeID and step then
-    local spellID = tonumber(step.recipeSpellID)
-    if spellID and spellID > 0 and Util.FindRecipeIDBySpellID then
-      recipeID = Util:FindRecipeIDBySpellID(spellID)
-    end
+    recipeID = tonumber(step.recipeID)
 
     -- Backward compatibility fallback during migration.
-    if not recipeID and step.recipeName then
+    if (not recipeID or recipeID <= 0) and step.recipeName then
       recipeID = Util:FindRecipeIDByName(step.recipeName)
     end
 

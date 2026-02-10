@@ -122,10 +122,11 @@ local ok, err = Guides:RegisterGuide({
   },
 
   steps = {
-    {
+    { -- Delicate Copper Wire
       fromSkill = 1,
       toSkill = 30,
-      recipeSpellID = 25255,
+      recipeID = 25255,
+      outputItemID = 20816,
       maxCrafts = 30,
       note = "Save these, you'll need them for the next craft."
     },

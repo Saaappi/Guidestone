@@ -57,36 +57,6 @@ local function NormalizeName(name)
   return name
 end
 
----@param spellID number|nil
----@return string|nil
-local function GetSpellNameByID(spellID)
-  spellID = tonumber(spellID)
-  if not spellID or spellID <= 0 then
-    return nil
-  end
-
-  -- Retail: C_Spell.GetSpellInfo returns a table
-  if C_Spell and C_Spell.GetSpellInfo then
-    local info = C_Spell.GetSpellInfo(spellID)
-    if type(info) == "table" and type(info.name) == "string" and info.name ~= "" then
-      return info.name
-    end
-    if type(info) == "string" and info ~= "" then
-      return info
-    end
-  end
-
-  -- Classic/other: GetSpellInfo returns name
-  if _G.GetSpellInfo then
-    local name = _G.GetSpellInfo(spellID)
-    if type(name) == "string" and name ~= "" then
-      return name
-    end
-  end
-
-  return nil
-end
-
 ---@param index number
 ---@return string|nil
 function TrainerLearner:GetTrainerServiceLinkSafe(index)
@@ -272,7 +242,7 @@ function TrainerLearner:BuildNeededTrainerSets(guide, currentSkill, lookahead)
           neededCount = neededCount + 1
         end
 
-        local spellID = tonumber(step.recipeSpellID)
+        local spellID = tonumber(step.recipeID)
         if spellID and spellID > 0 and not neededSpellIDs[spellID] then
           neededSpellIDs[spellID] = true
           neededCount = neededCount + 1

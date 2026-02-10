@@ -434,19 +434,18 @@ function Util:GetSelectedRecipeSnapshot()
 
   local snap = { recipeID = recipeID }
 
-  if C_TradeSkillUI.GetRecipeInfo then
-    local okInfo, info = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
-    if okInfo and type(info) == "table" then
-      snap.spellID = tonumber(info.spellID)
-      snap.name = info.name
-    end
-  end
-
-  -- Try to capture the output itemID for the craft. Not every recipe will have one.
-  if C_TradeSkillUI.GetRecipeSchematic then
-    local okSch, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false)
-    if okSch and type(schematic) == "table" and type (schematic.outputItemID) == "number" then
-      snap.outputItemID = schematic.outputItemID
+  if ProfessionsFrame and ProfessionsFrame.CraftingPage and ProfessionsFrame.CraftingPage.SchematicForm then
+    local okForm, formInfo = pcall(ProfessionsFrame.CraftingPage.SchematicForm.GetRecipeInfo, ProfessionsFrame.CraftingPage.SchematicForm)
+    if okForm and type(formInfo) == "table" then
+      if type(formInfo.name) == "string" and formInfo.name ~= "" then
+        snap.name = formInfo.name
+      end
+      if type(formInfo.icon) == "number" and formInfo.icon > 0 then
+        snap.icon = formInfo.icon
+      end
+      if type(formInfo.hyperlink) == "string" and formInfo.hyperlink ~= "" then
+        snap.hyperlink = formInfo.hyperlink
+      end
     end
   end
 
@@ -463,12 +462,12 @@ function Util:DumpSelectedRecipeSnapshot()
 
   Logger:Info("Selected recipe:")
   Logger:Info("  recipeID:", snap.recipeID)
-  Logger:Info("  spellID:", snap.spellID or "nil")
   Logger:Info("  name:", snap.name or "nil")
-  Logger:Info("  outputItemID:", snap.outputItemID or "nil")
+  Logger:Info("  icon:", snap.icon or "nil")
+  Logger:Info("  outputItemID:", (snap.hyperlink):match("Hitem:(%d+)") or "nil")
 
   if type(snap.spellID) == "number" then
-    Logger:Info("Guide data (preferred):", "recipeSpellID = " .. snap.spellID .. ",")
+    Logger:Info("Guide data:", "recipeID = " .. snap.recipeID .. ",")
   end
 
   return true

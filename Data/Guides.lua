@@ -36,8 +36,7 @@ Addon.modules.Guides = Guides
 --    {
 --      fromSkill = 1,
 --      toSkill = 25,
---      recipeName = "Foo", -- recipeSpellID is preferred
---      recipeSpellID = nil,
+--      recipeID = 25255,
 --
 --      -- Planning + automation constraints:
 --      maxCrafts = 30, -- planned maximum crafts for this step
