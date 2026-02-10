@@ -2,6 +2,7 @@ local Addon = _G.Guidestone
 local Guides = Addon.modules.Guides
 local GuidePage = Addon.modules.GuidePage
 local Util = Addon.modules.Util
+local Logger = Addon.modules.Logger
 local Localization = Addon.modules.Localization
 
 ---@class GuidestoneTrainerLearner
@@ -298,13 +299,13 @@ function TrainerLearner:ScanTrainer()
     self:BuildNeededTrainerSets(guide, currentSkill, self:GetLookahead())
 
   if neededCount <= 0 then
-    self:Debug(("Trainer scan: guide=%s skillLineID=%s currentSkill=%s lookahead=%d needed=0"):format(
+    Logger:Debug(("Trainer scan: guide=%s skillLineID=%s currentSkill=%s lookahead=%d needed=0"):format(
       tostring(guide.id), tostring(guide.skillLineID), currentSkill, self:GetLookahead()
     ))
     return
   end
 
-  self:Debug(("Trainer scan: guide=%s skillLineID=%s currentSkill=%s lookahead=%d needed=%d"):format(
+  Logger:Debug(("Trainer scan: guide=%s skillLineID=%s currentSkill=%s lookahead=%d needed=%d"):format(
     tostring(guide.id), tostring(guide.skillLineID), currentSkill, self:GetLookahead(), neededCount
   ))
 
@@ -312,7 +313,7 @@ function TrainerLearner:ScanTrainer()
   if num <= 0 then
     return
   end
-  self:Debug(("Trainer services: num=%d"):format(num))
+  Logger:Debug(("Trainer services: num=%d"):format(num))
 
   local remaining = neededCount
   local itemCache = self._serviceItemIdCache or {}
@@ -363,7 +364,7 @@ function TrainerLearner:ScanTrainer()
 
       if logged < 10 then
         logged = logged + 1
-        self:Debug(("Trainer[%d] %s | itemID=%s spellID=%s | needed=%s"):format(
+        Logger:Debug(("Trainer[%d] %s | itemID=%s spellID=%s | needed=%s"):format(
           i, name, tostring(itemID), tostring(spellID), isNeeded and "YES" or "no"
         ))
       end
@@ -380,7 +381,7 @@ function TrainerLearner:ScanTrainer()
     end
   end
 
-  self:Debug(("Trainer matches: %d (totalCost=%d)"):format(#self._matches, self._totalCost))
+  Logger:Debug(("Trainer matches: %d (totalCost=%d)"):format(#self._matches, self._totalCost))
 end
 
 ---@return Frame|nil

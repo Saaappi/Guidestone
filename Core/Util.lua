@@ -8,6 +8,7 @@ local tonumber = tonumber
 local C_Item = C_Item
 local C_AddOns = C_AddOns
 local C_Map = C_Map
+local C_TooltipInfo = C_TooltipInfo
 local C_TradeSkillUI = C_TradeSkillUI
 local C_SuperTrack = C_SuperTrack
 local UiMapPoint = UiMapPoint
@@ -400,6 +401,70 @@ function Util:FindRecipeIDBySpellID(spellID)
   end
 
   return nil
+end
+
+local npcNameCache = {} ---@type table<number, string>
+local mapNameCache = {} ---@type table<number, string>
+
+---Resolve a localized NPC name from an npcId (Creature ID).
+---Uses tooltip hyperlink parsing and caches results.
+---@param npcId number|nil
+---@param fallback string|nil
+---@return string
+function Util:ResolveNpcName(npcId, fallback)
+  npcId = tonumber(npcId)
+  if not npcId or npcId <= 0 then
+    return fallback or ""
+  end
+
+  local cached = npcNameCache[npcId]
+  if cached then
+    return cached
+  end
+
+  -- Tooltip hyperlink: unit:Creature-0-0-0-0-<npcId>
+  if C_TooltipInfo and C_TooltipInfo.GetHyperlink then
+    local link = ("unit:Creature-0-0-0-0-%d"):format(npcId)
+    local ok, data = pcall(C_TooltipInfo.GetHyperlink, link)
+
+    if ok and type(data) == "table" and type(data.lines) == "table" then
+      local first = data.lines[1]
+      local name = first and first.leftText
+      if type(name) == "string" and name ~= "" then
+        npcNameCache[npcId] = name
+        return name
+      end
+    end
+  end
+
+  -- Fallback to whatever the guide provided
+  return fallback or ("Trainer #%d"):format(npcId)
+end
+
+---Resolve a localized map/zone name from a uiMapID.
+---@param uiMapID number|nil
+---@param fallback string|nil
+---@return string
+function Util:GetMapName(uiMapID, fallback)
+  uiMapID = tonumber(uiMapID)
+  if not uiMapID or uiMapID <= 0 then
+    return fallback or ""
+  end
+
+  local cached = mapNameCache[uiMapID]
+  if cached then
+    return cached
+  end
+
+  if C_Map and C_Map.GetMapInfo then
+    local ok, info = pcall(C_Map.GetMapInfo, uiMapID)
+    if ok and type(info) == "table" and type(info.name) == "string" and info.name ~= "" then
+      mapNameCache[uiMapID] = info.name
+      return info.name
+    end
+  end
+
+  return fallback or ("Map #%d"):format(uiMapID)
 end
 
 ---@return number|nil

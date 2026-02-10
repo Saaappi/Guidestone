@@ -1918,16 +1918,24 @@ function GuidePage:RenderGuide(guide)
       name:SetPoint("TOPLEFT", 0, 0)
       name:SetPoint("TOPRIGHT", -120, 0)
       name:SetWordWrap(false)
-      name:SetText(trainer.name or "Trainer")
-      row._name = name
+      local displayName = trainer.name or "Trainer"
+      if Util and Util.ResolveNpcName and trainer.npcId then
+        displayName = Util:ResolveNpcName(trainer.npcId, displayName)
+      end
+      name:SetText(displayName)
 
       local details = MakeText(row, "GameFontHighlightSmall")
       details:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -2)
       details:SetPoint("TOPRIGHT", name, "BOTTOMRIGHT", 0, -2)
 
       local zone = trainer.zone or trainer.location or ""
+      if (zone == "" or zone == nil) and trainer.uiMapID then
+        zone = Util:GetMapName(trainer.uiMapID, "")
+      end
+
       local x = tonumber(trainer.x)
       local y = tonumber(trainer.y)
+
       if zone ~= "" and x and y then
         details:SetText(("%s (%.1f, %.1f)"):format(zone, x, y))
       elseif zone ~= "" then
@@ -1938,6 +1946,7 @@ function GuidePage:RenderGuide(guide)
         details:SetText("")
       end
       row._details = details
+      row._name = name
 
       local icon, isAtlas, tooltipText
       if isTomTomEnabled then
@@ -1950,11 +1959,12 @@ function GuidePage:RenderGuide(guide)
         tooltipText = L("TOOLTIP_SET_WAYPOINT")
       end
 
+      -- Waypoint button: pass localized name
       local waypointBtn = MakeIconButtonWithStates(row, icon, tooltipText, isAtlas)
       waypointBtn:SetPoint("TOPRIGHT", 0, 0)
       waypointBtn:SetScript("OnClick", function()
         if Util and Util.AddWaypoint then
-          Util:AddWaypoint(trainer.uiMapID, trainer.x, trainer.y, trainer.name)
+          Util:AddWaypoint(trainer.uiMapID, trainer.x, trainer.y, displayName)
         end
       end)
       row._waypointBtn = waypointBtn

@@ -114,16 +114,16 @@ local ok, err = Guides:RegisterGuide({
 
   trainers = {
     -- Alliance
-    { name = "Lilyssia Nightbreeze",  uiMapID = 84,  zone = "Stormwind City",  x = 46.40,  y = 79.60, faction = 1 },
-    { name = "Tally Berryfizz",       uiMapID = 87,  zone = "Ironforge",       x = 67.20,  y = 54.20, faction = 1 },
-    { name = "Ainethil",              uiMapID = 89,  zone = "Darnassus",       x = 55.00,  y = 23.80, faction = 1 },
-    { name = "Lucc",                  uiMapID = 103, zone = "The Exodar",      x = 27.80,  y = 60.20, faction = 1 },
+    --{ name = "Lilyssia Nightbreeze",  uiMapID = 84,  zone = "Stormwind City",  x = 46.40,  y = 79.60, faction = 1 },
+    --{ name = "Tally Berryfizz",       uiMapID = 87,  zone = "Ironforge",       x = 67.20,  y = 54.20, faction = 1 },
+    --{ name = "Ainethil",              uiMapID = 89,  zone = "Darnassus",       x = 55.00,  y = 23.80, faction = 1 },
+    --{ name = "Lucc",                  uiMapID = 103, zone = "The Exodar",      x = 27.80,  y = 60.20, faction = 1 },
 
     -- Horde
-    { name = "Yelmak",                uiMapID = 85,  zone = "Orgrimmar",        x = 55.56, y = 46.74, faction = 2 },
-    { name = "Doctor Herbert Halsey", uiMapID = 90,  zone = "Undercity",        x = 47.60, y = 73.00, faction = 2 },
-    { name = "Bena Winterhoof",       uiMapID = 88,  zone = "Thunder Bluff",    x = 46.80, y = 33.60, faction = 2 },
-    { name = "Camberon",              uiMapID = 110, zone = "Silvermoon City",  x = 66.40, y = 16.40, faction = 2 },
+    { npcId = 46675,   name = "Lugrah",             uiMapID = 85,   x = 72.48,   y = 34.34,   faction = 2 },
+    { npcId = 52657,   name = "Nahari Cloudchaser", uiMapID = 88,   x = 35.02,   y = 53.92,   faction = 2 },
+    { npcId = 52587,   name = "Neller Fayne",       uiMapID = 90,   x = 55.80,   y = 35.40,   faction = 2 },
+    --{ npcId = 19775,   name = "Kalinda",            uiMapID = 110,  x = 90.80,   y = 73.40,   faction = 2 }, -- Disabled until Blizzard fixes the map
   },
 
   steps = {
