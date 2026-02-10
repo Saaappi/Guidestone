@@ -24,6 +24,8 @@ Localization:RegisterLocale("enUS", {
   TEXT_NO_GUIDE_AVAILABLE = "No guide available for this profession.",
   TEXT_NO_TRAINERS_AVAILABLE = "No trainers available in this guide.",
 
+  TEXT_SAVE_THESE_FOR_LATER_CRAFT = "Save these, you'll need them for a later craft.",
+
   TOOLTIP_VENDOR = "Vendor",
   TOOLTIP_TRAINER = "Trainer",
   TOOLTIP_MATERIAL = "Material",

@@ -1,6 +1,11 @@
 local Addon = _G.Guidestone
-local Logger = Addon.modules.Logger
 local Guides = Addon.modules.Guides
+local Logger = Addon.modules.Logger
+local Localization = Addon.modules.Localization
+
+local function L(key, ...)
+  return Localization:Get(key, ...)
+end
 
 local ok, err = Guides:RegisterGuide({
   id = "classic_jewelcrafting",
@@ -128,7 +133,7 @@ local ok, err = Guides:RegisterGuide({
       recipeID = 25255,
       outputItemID = 20816,
       maxCrafts = 30,
-      note = "Save these, you'll need them for the next craft."
+      note = L("TEXT_SAVE_THESE_FOR_LATER_CRAFT")
     },
     {
       fromSkill = 30,
@@ -149,7 +154,7 @@ local ok, err = Guides:RegisterGuide({
       toSkill = 80,
       recipeName = "Bronze Setting",
       maxCrafts = 50,
-      note = "Save these, you'll need them for the next craft."
+      note = L("TEXT_SAVE_THESE_FOR_LATER_CRAFT")
     },
     {
       fromSkill = 80,
@@ -235,7 +240,7 @@ local ok, err = Guides:RegisterGuide({
       toSkill = 250,
       recipeName = "Thorium Setting",
       maxCrafts = 50,
-      note = "Save these, you'll need them for future crafts. Craft more as you need them."
+      note = L("TEXT_SAVE_THESE_FOR_LATER_CRAFT")
     },
     {
       fromSkill = 250,
