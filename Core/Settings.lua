@@ -107,14 +107,14 @@ function SettingsModule:Init(db)
     category,
     "GUIDESTONE_TRAINER_ENABLE_BUTTON",
     Settings.VarType and Settings.VarType.Boolean or "boolean",
-    "Show 'Train Needed' Button",
+    L("SETTINGS_LABEL_TRAINER_SHOW_TRAIN_NEEDED_BUTTON"),
     GetBooleanDefault(Settings, true),
     GetTrainerEnableButton,
     SetTrainerEnableButton
   )
 
   CreateCheckbox(category, trainerEnableButtonSetting,
-    "Adds a button to the trainer window that trains only the recipes required by the active guide."
+    L("SETTINGS_DESC_TRAINER_SHOW_TRAIN_NEEDED_BUTTON")
   )
 
   -- trainerAutoLearn
@@ -132,14 +132,14 @@ function SettingsModule:Init(db)
     category,
     "GUIDESTONE_TRAINER_AUTO_LEARN",
     Settings.VarType and Settings.VarType.Boolean or "boolean",
-    "Auto-train guide-required recipes",
+    L("SETTINGS_LABEL_TRAINER_AUTO_TRAIN_RECIPES_BUTTON"),
     GetBooleanDefault(Settings, false),
     GetTrainerAutoLearn,
     SetTrainerAutoLearn
   )
 
   CreateCheckbox(category, trainerAutoLearnSetting,
-    "When you open a trainer, automatically buys trainer services that match the active guide."
+    L("SETTINGS_DESC_TRAINER_AUTO_TRAIN_RECIPES_BUTTON")
   )
 
   Settings.RegisterAddOnCategory(category)

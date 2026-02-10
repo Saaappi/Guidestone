@@ -585,7 +585,7 @@ local function CreateLearnSourceIcon(row, craftBtn)
 
     if self._kind == "vendor" then
       GameTooltip:SetText(L("TOOLTIP_VENDOR"))
-      GameTooltip:AddLine(("You don't know %s yet. Visit a vendor to purchase it."):format(name), 1, 1, 1, true)
+      GameTooltip:AddLine((L("TOOLTIP_RECIPE_MISSING_VENDOR")):format(name), 1, 1, 1, true)
 
       local v = self._vendor
       local vendors = self._vendors
@@ -606,7 +606,7 @@ local function CreateLearnSourceIcon(row, craftBtn)
       end
     else
       GameTooltip:SetText(L("TOOLTIP_TRAINER"))
-      GameTooltip:AddLine(("You don't know %s yet. Visit a trainer to learn it."):format(name), 1, 1, 1, true)
+      GameTooltip:AddLine((L("TOOLTIP_RECIPE_MISSING_TRAINER")):format(name), 1, 1, 1, true)
     end
 
     GameTooltip:Show()
@@ -1943,11 +1943,11 @@ function GuidePage:RenderGuide(guide)
       if isTomTomEnabled then
         icon = TOMTOM_ICON
         isAtlas = false
-        tooltipText = "Set TomTom Waypoint"
+        tooltipText = L("TOOLTIP_SET_TOMTOM_WAYPOINT")
       else
         icon = "Waypoint-MapPin-Untracked"
         isAtlas = true
-        tooltipText = "Set Waypoint"
+        tooltipText = L("TOOLTIP_SET_WAYPOINT")
       end
 
       local waypointBtn = MakeIconButtonWithStates(row, icon, tooltipText, isAtlas)

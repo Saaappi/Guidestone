@@ -205,7 +205,6 @@ local function NormalizeMaterialItem(entry, farmingUrls)
   if required < 0 then required = 0 end
 
   local noBuffer = (entry.noBuffer == true) or (entry.applyBuffer == false) or (tostring(entry.bufferMode) == "none")
-  local bufferMultiplier = tonumber(entry.bufferMultiplier)
 
   return {
     type = "item",

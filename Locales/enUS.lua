@@ -8,6 +8,10 @@ Localization:RegisterLocale("enUS", {
 
   ERR_PROF_API_UNAVAILABLE = "Professions API is unavailable.",
   ERR_NO_PROF_INFO = "No profession info. Open a profession window first.",
+  ERR_CANNOT_TRAIN_IN_COMBAT = "Cannot train while in combat.",
+  ERR_COST_EXCEEDS_CAP = "Trainer purchase blocked because total cost exceeds your cap.",
+
+  TEXT_TRAINED_N_RECIPES = "Trained %d guide-required recipe(s).",
 
   -- Main UI
   TAB_LEVELING_GUIDE = "Leveling Guide",
@@ -23,6 +27,12 @@ Localization:RegisterLocale("enUS", {
   TOOLTIP_TRAINER = "Trainer",
   TOOLTIP_MATERIAL = "Material",
 
+  TOOLTIP_SET_TOMTOM_WAYPOINT = "Set TomTom Waypoint",
+  TOOLTIP_SET_WAYPOINT = "Set Waypoint",
+
+  TOOLTIP_RECIPE_MISSING_TRAINER = "You don't know %s yet. Visit a trainer to learn it.",
+  TOOLTIP_RECIPE_MISSING_VENDOR = "You don't know %s yet. Visit a vendor to purchase it.",
+
   -- Trainer Button
   BUTTON_TRAIN_NEEDED = "Train Needed",
   BUTTON_TRAIN_NEEDED_FMT = "Train Needed (%d)",
@@ -34,5 +44,9 @@ Localization:RegisterLocale("enUS", {
   LINKPOPUP_SELECT_ALL = "Select All",
 
   -- Settings
-  SETTINGS_SECTION_TRAINER = "Trainer"
+  SETTINGS_SECTION_TRAINER = "Trainer",
+  SETTINGS_LABEL_TRAINER_SHOW_TRAIN_NEEDED_BUTTON = "Show 'Train Needed' Button",
+  SETTINGS_DESC_TRAINER_SHOW_TRAIN_NEEDED_BUTTON = "Adds a button to the trainer window that trains only the recipes required by the active guide.",
+  SETTINGS_LABEL_TRAINER_AUTO_TRAIN_RECIPES_BUTTON = "Auto-train Guide-required Recipes",
+  SETTINGS_DESC_TRAINER_AUTO_TRAIN_RECIPES_BUTTON = "When you open a trainer, automatically buys trainer services that match the active guide.",
 })

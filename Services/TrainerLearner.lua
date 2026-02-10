@@ -508,7 +508,7 @@ end
 ---@return nil
 function TrainerLearner:TrainNeeded()
   if InCombatLockdown and InCombatLockdown() then
-    self:Warn("Cannot train while in combat.")
+    self:Warn(L("ERR_CANNOT_TRAIN_IN_COMBAT"))
     return
   end
 
@@ -518,7 +518,7 @@ function TrainerLearner:TrainNeeded()
 
   local maxSpend = self:GetMaxSpendCopper()
   if maxSpend > 0 and self._totalCost > maxSpend then
-    self:Warn(("Trainer purchase blocked because total cost exceeds your cap."))
+    self:Warn(L("ERR_COST_EXCEEDS_CAP"))
     return
   end
 
@@ -544,7 +544,7 @@ function TrainerLearner:TrainNeeded()
   Util:WipeTable(self._serviceSpellIdCache)
 
   if trained > 0 then
-    self:Info(("Trained %d guide-required recipe(s)."):format(trained))
+    self:Info((L("TEXT_TRAINED_N_RECIPES")):format(trained))
   end
 
   -- Trainer list updates asynchronously.
