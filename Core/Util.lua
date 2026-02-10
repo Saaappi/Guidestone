@@ -406,14 +406,29 @@ function Util:FindRecipeIDBySpellID(spellID)
   return nil
 end
 
----@return table|nil
-function Util:GetSelectedRecipeSnapshot()
-  if not (C_TradeSkillUI and C_TradeSkillUI.GetSelectedRecipeID) then
-    return nil
+---@return number|nil
+function Util:GetSelectedRecipeIDFromUI()
+  local professionsFrame = ProfessionsFrame
+  if professionsFrame and professionsFrame.CraftingPage then
+    local craftingPage = professionsFrame.CraftingPage
+    if craftingPage.SchematicForm and craftingPage.SchematicForm.GetRecipeInfo then
+      local ok, recipeInfo = pcall(craftingPage.SchematicForm.GetRecipeInfo, craftingPage.SchematicForm)
+      if ok and type(recipeInfo) == "table" then
+        local recipeID = tonumber(recipeInfo.recipeID)
+        if recipeID and recipeID > 0 then
+          return recipeID
+        end
+      end
+    end
   end
 
-  local okSel, recipeID = pcall(C_TradeSkillUI.GetSelectedRecipeID)
-  if not okSel or type(recipeID) ~= "number" or recipeID <= 0 then
+  return nil
+end
+
+---@return table|nil
+function Util:GetSelectedRecipeSnapshot()
+  local recipeID = self:GetSelectedRecipeIDFromUI()
+  if not recipeID then
     return nil
   end
 
@@ -449,11 +464,11 @@ function Util:DumpSelectedRecipeSnapshot()
   Logger:Info("Selected recipe:")
   Logger:Info("  recipeID:", snap.recipeID)
   Logger:Info("  spellID:", snap.spellID or "nil")
-  Logger:Info("  name:", snap.name, "nil")
+  Logger:Info("  name:", snap.name or "nil")
   Logger:Info("  outputItemID:", snap.outputItemID or "nil")
 
   if type(snap.spellID) == "number" then
-    Logger:Info("Guide data (preferred):", "recipeSpellID = " .. snap.spellID ..",")
+    Logger:Info("Guide data (preferred):", "recipeSpellID = " .. snap.spellID .. ",")
   end
 
   return true
