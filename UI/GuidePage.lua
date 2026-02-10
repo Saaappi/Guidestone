@@ -1157,7 +1157,7 @@ function GuidePage:Create(parent)
 
         -- Update visible dropdown label immediately.
         if self.expansionDropdown then
-          local label = fullInfo.expansionName or professionInfo.expansionName or "Select Expansion"
+          local label = fullInfo.expansionName or professionInfo.expansionName or L("DROPDOWN_SELECT_EXPANSION")
           if self.expansionDropdown.SetDefaultText then
             self.expansionDropdown:SetDefaultText(label)
           end
@@ -1324,9 +1324,9 @@ function GuidePage:LoadForProfession(professionInfo)
       end
       self.expansionDropdown:Enable()
     else
-      self.expansionDropdown:SetDefaultText("Select Expansion")
+      self.expansionDropdown:SetDefaultText(L("DROPDOWN_SELECT_EXPANSION"))
       if self.expansionDropdown.Text and self.expansionDropdown.Text.SetText then
-        self.expansionDropdown.Text:SetText("Select Expansion")
+        self.expansionDropdown.Text:SetText(L("DROPDOWN_SELECT_EXPANSION"))
       end
       if activeInfo then
         self.expansionDropdown:Enable()
@@ -1829,7 +1829,7 @@ function GuidePage:RenderGuide(guide)
           pickRow._guideID = guide.id
 
           do
-            local btn = MakeChoiceChevronButton(pickRow._line, "Select")
+            local btn = MakeChoiceChevronButton(pickRow._line, L("TOOLTIP_SELECT"))
             btn:SetPoint("LEFT", pickRow._line, "LEFT", pickRow._indent, 0)
 
             -- Shift the label to the right of the chevron.

@@ -30,6 +30,7 @@ Localization:RegisterLocale("enUS", {
   TOOLTIP_TRAINER = "Trainer",
   TOOLTIP_MATERIAL = "Material",
 
+  TOOLTIP_SELECT = "Select",
   TOOLTIP_SET_TOMTOM_WAYPOINT = "Set TomTom Waypoint",
   TOOLTIP_SET_WAYPOINT = "Set Waypoint",
 
