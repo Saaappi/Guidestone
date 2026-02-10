@@ -13,6 +13,7 @@ Add:
       - Blue: Herbalism
       - Yellow: Mining
 - Localization
+  - Localize the NPC names in both the Trainers list and the Vendors list (found within individual steps)
 - Integrate with Auctionator addon and show the full gold cost if the player were to buy everything
   they need from the auction house; the addon should only consider what they NEED; if they have
   60/75 Peacebloom, then the addon should only factor for 15 Peacebloom in the cost

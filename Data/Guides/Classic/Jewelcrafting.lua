@@ -206,7 +206,7 @@ local ok, err = Guides:RegisterGuide({
       requiresChoices = { classicJewelcrafting_120_150 = "lesserMoonstone" },
       learn = {
         type = "vendor",
-        vendors =  {
+        vendors = {
           { name = "Mythrin'dir", uiMapID = 0, x = 0, y = 0, faction = 1 },
           { name = "Arred", uiMapID = 0, x = 0, y = 0, faction = 1 },
           { name = "Daniel Bartlett", uiMapID = 0, x = 0, y = 0, faction = 2 },
