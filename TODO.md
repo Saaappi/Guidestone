@@ -1,4 +1,8 @@
 Add:
+- Material required counts should decrement when a step is completed.
+  - They should still show in the UI but should grey out and be "disabled". Disabled in the sense they can't be interacted with at all (except the WoW-P and Wowhead buttons).
+  - The have/required count text should also be hidden for disabled materials.
+- Property on materials that allow it to be force ignored by the AuctionPricing service.
 - Add support for Wowhead links to the multi-link popup?
   - Bronze Bar, for example, has multi-link support for Copper and Tin Ore farming pages on WoW-Professions;
     I want the same for Wowhead, just to the item pages for Copper and Tin Ore instead
