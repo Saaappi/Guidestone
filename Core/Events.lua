@@ -76,6 +76,16 @@ function Events:OnEvent(event, ...)
     end
   end
 
+  if event == "AUCTION_HOUSE_SHOW" then
+    Addon.auctionHouseOpen = true
+    return
+  end
+
+  if event == "AUCTION_HOUSE_CLOSED" then
+    Addon.auctionHouseOpen = false
+    return
+  end
+
   if event == "PLAYER_LOGIN" then
     if GuidePage and GuidePage.TryInitProfessionsTab then
       GuidePage:TryInitProfessionsTab()
@@ -98,6 +108,8 @@ function Events:Init()
   end)
 
   f:RegisterEvent("ADDON_LOADED")
+  f:RegisterEvent("AUCTION_HOUSE_SHOW")
+  f:RegisterEvent("AUCTION_HOUSE_CLOSED")
   f:RegisterEvent("PLAYER_LOGIN")
 
   Logger:Debug("Events initialized successfully.")

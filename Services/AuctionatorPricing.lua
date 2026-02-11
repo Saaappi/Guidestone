@@ -7,6 +7,7 @@ Addon.modules.AuctionatorPricing = AuctionatorPricing
 local type = type
 local tonumber = tonumber
 local floor = math.floor
+local C_Item = C_Item
 local C_CurrencyInfo = C_CurrencyInfo
 
 ---@return boolean
@@ -59,4 +60,53 @@ function AuctionatorPricing:FormatMoney(copper)
   local silverFloored = floor((copper % 10000) / 100)
   local copperFloored = floor(copper % 100)
   return ("%dg %ds %dc"):format(goldFloored, silverFloored, copperFloored)
+end
+
+---@param terms string[]
+---@return boolean started
+function AuctionatorPricing:MultiSearch(terms)
+  if not self:IsAvailable() then
+    return false
+  end
+
+  if type(terms) ~= "table" or #terms == 0 then
+    return false
+  end
+
+  if type(_G.Auctionator.API.v1.MultiSearch) ~= "function" then
+    return false
+  end
+
+  local ok = pcall(_G.Auctionator.API.v1.MultiSearch, Addon.name, terms)
+  return ok == true
+end
+
+---@param itemIDs number[]
+---@return boolean started
+function AuctionatorPricing:MultiSearchForItemIDs(itemIDs)
+  if type(itemIDs) ~= "table" or #itemIDs == 0 then
+    return false
+  end
+
+  -- Build search terms from item names.
+  local terms = {}
+  for _, rawID in ipairs(itemIDs) do
+    local itemID = tonumber(rawID)
+    if itemID and itemID > 0 then
+      local name = nil
+      if C_Item and C_Item.GetItemNameByID then
+        name = C_Item.GetItemNameByID(itemID)
+      end
+
+      if (not name or name == "") and C_Item.GetItemInfo then
+        name = C_Item.GetItemInfo(itemID)
+      end
+
+      if type(name) == "string" and name ~= "" then
+        terms[#terms + 1] = name
+      end
+    end
+  end
+
+  return self:MultiSearch(terms)
 end

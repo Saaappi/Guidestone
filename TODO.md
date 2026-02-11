@@ -12,9 +12,6 @@ Add:
     - Check to see if I can automatically optimize the route and change the color of the line
       - Blue: Herbalism
       - Yellow: Mining
-- Integrate with Auctionator addon and show the full gold cost if the player were to buy everything
-  they need from the auction house; the addon should only consider what they NEED; if they have
-  60/75 Peacebloom, then the addon should only factor for 15 Peacebloom in the cost
 
 Fix These:
 

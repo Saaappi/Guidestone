@@ -2283,6 +2283,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
   -- Auctionator: compute the total cost to buy the missing material quantities
   -- ---------------------------------------------------------------------------
   do
+    local missingIDs = {}
     local costText = self.materialsCostText
     if costText then
       local totalInCopper = 0
@@ -2294,8 +2295,9 @@ function GuidePage:RefreshMaterialsState(skipLayout)
           return
         end
 
-        local unit = AuctionatorPricing and AuctionatorPricing.GetUnitPrice and AuctionatorPricing.GetUnitPrice(mat.itemID) or nil
+        local unit = AuctionatorPricing and AuctionatorPricing.GetUnitPrice and AuctionatorPricing:GetUnitPrice(mat.itemID) or nil
         if unit == nil then
+          missingIDs[#missingIDs + 1] = mat.itemID
           missingAnyPrice = true
           return
         end
@@ -2345,6 +2347,16 @@ function GuidePage:RefreshMaterialsState(skipLayout)
                 end
               end
             end
+          end
+        end
+
+        if missingAnyPrice and Addon.auctionHouseOpen then
+          -- Throttle so as not to spam MultiSearch every refresh.
+          local now = GetTime() or 0
+          self._lastAuctionatorScanAt = self._lastAuctionatorScanAt or 0
+          if now - self._lastAuctionatorScanAt > 2 then
+            self._lastAuctionatorScanAt = now
+            AuctionatorPricing:MultiSearchForItemIDs(missingIDs)
           end
         end
 
