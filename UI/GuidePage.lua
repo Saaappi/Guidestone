@@ -4,6 +4,7 @@ local Guides = Addon.modules.Guides
 local ProfessionMemory = Addon.modules.ProfessionMemory
 local CraftRunner = Addon.modules.CraftRunner
 local LinkPopup = Addon.modules.LinkPopup
+local AuctionatorPricing = Addon.modules.AuctionatorPricing
 local Localization = Addon.modules.Localization
 
 ---@class GuidestoneGuidePage
@@ -1245,8 +1246,16 @@ function GuidePage:Create(parent)
   materialsHeader:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -16)
   self.materialsHeader = materialsHeader
 
+  -- Auctionator cost line
+  local materialsCostText = MakeText(child, "GameFontHighlightSmall")
+  materialsCostText:SetPoint("TOPLEFT", materialsHeader, "BOTTOMLEFT", 0, -3)
+  materialsCostText:SetPoint("TOPRIGHT", -15, 0)
+  materialsCostText:SetWordWrap(false)
+  materialsCostText:SetText("") -- RefreshMaterialsState() populates this
+  self.materialsCostText = materialsCostText
+
   local materialsContainer = CreateFrame("Frame", nil, child)
-  materialsContainer:SetPoint("TOPLEFT", materialsHeader, "BOTTOMLEFT", 0, -10)
+  materialsContainer:SetPoint("TOPLEFT", self.materialsCostText, "BOTTOMLEFT", 0, -8)
   materialsContainer:SetPoint("TOPRIGHT", -18, 0)
   materialsContainer:SetHeight(1)
   self.materialsContainer = materialsContainer
@@ -2266,8 +2275,87 @@ function GuidePage:RefreshMaterialsState(skipLayout)
     end
   end
 
-  for _, st in pairs(anyMixState) do
-    st.done = st.required > 0 and st.have >= st.required
+  for _, state in pairs(anyMixState) do
+    state.done = state.required > 0 and state.have >= state.required
+  end
+
+  -- ---------------------------------------------------------------------------
+  -- Auctionator: compute the total cost to buy the missing material quantities
+  -- ---------------------------------------------------------------------------
+  do
+    local costText = self.materialsCostText
+    if costText then
+      local totalInCopper = 0
+      local missingAnyPrice = false
+
+      local function AddCostForItem(mat, required, have)
+        local need = (required or 0) - (have or 0)
+        if need <= 0 then
+          return
+        end
+
+        local unit = AuctionatorPricing and AuctionatorPricing.GetUnitPrice and AuctionatorPricing.GetUnitPrice(mat.itemID) or nil
+        if unit == nil then
+          missingAnyPrice = true
+          return
+        end
+
+        totalInCopper = totalInCopper + (unit * need)
+      end
+
+      if not (AuctionatorPricing and AuctionatorPricing:IsAvailable()) then
+        costText:SetText(L("TEXT_AUCTIONATOR_UNAVAILABLE"))
+      else
+        -- I price:
+        --   * normal items + selected choiceSet items individually
+        --   * anyMix groups as "remaining needed * cheapest option unit price"
+        --     (best-effort estimate; avoids double-counting options)
+        for _, row in ipairs(self.materialRows) do
+          if row._matType == "item" or row._matType == "choiceItem" then
+            local mat = row._mat
+            if mat then
+              local have = GetHaveForMaterial(mat)
+              local required = ComputeBufferedRequired(tonumber(mat.required) or 0, mat)
+              AddCostForItem(mat, required, have)
+            end
+          elseif row._matType == "anyMixHeader" and row._group then
+            local group = row._group
+            local state = anyMixState[group]
+            if state then
+              local remaining = (state.required or 0) - (state.have or 0)
+              if remaining > 0 then
+                local cheapest = nil
+
+                -- get the cheapest priced option in the group
+                for _, optRow in ipairs(self.materialRows) do
+                  if optRow._matType == "anyMixOption" and optRow._group == group and optRow._mat then
+                    local unit = AuctionatorPricing:GetUnitPrice(optRow._mat.itemID)
+                    if unit ~= nil then
+                      if cheapest == nil or unit < cheapest then
+                        cheapest = unit
+                      end
+                    end
+                  end
+                end
+
+                if cheapest == nil then
+                  missingAnyPrice = true
+                else
+                  totalInCopper = totalInCopper + (cheapest * remaining)
+                end
+              end
+            end
+          end
+        end
+
+        local money = AuctionatorPricing:FormatMoney(totalInCopper)
+        if missingAnyPrice then
+          costText:SetText(L("TEXT_AUCTIONATOR_WITH_MISSING_PRICES"):format(money))
+        else
+          costText:SetText(L("TEXT_AUCTIONATOR_ABSOLUTE_PRICE"):format(money))
+        end
+      end
+    end
   end
 
   -- Pass 2: apply row text + greying/enabled state
@@ -2744,6 +2832,7 @@ function GuidePage:Layout()
   local total =
     8 + self.titleText:GetHeight()
     + 16 + self.materialsHeader:GetHeight()
+    + 2 + self.materialsCostText:GetHeight()
     + 10 + self.materialsContainer:GetHeight()
     + 20 + self.trainersHeader:GetHeight()
     + 10 + self.trainersContainer:GetHeight()

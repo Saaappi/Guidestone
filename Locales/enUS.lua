@@ -25,6 +25,9 @@ Localization:RegisterLocale("enUS", {
   TEXT_NO_TRAINERS_AVAILABLE = "No trainers available in this guide.",
 
   TEXT_SAVE_THESE_FOR_LATER_CRAFT = "Save these, you'll need them for a later craft.",
+  TEXT_AUCTIONATOR_UNAVAILABLE = "Estimated AH Cost: (Auctionator not loaded)",
+  TEXT_AUCTIONATOR_WITH_MISSING_PRICES = "Estimated AH Cost: %s (some prices missing)",
+  TEXT_AUCTIONATOR_ABSOLUTE_PRICE = "Estimated AH Cost: %s",
 
   MENU_LABEL_CHOOSE_A_VENDOR = "Choose a vendor:",
 

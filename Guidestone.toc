@@ -27,6 +27,7 @@ Data/Guides/Classic/Jewelcrafting.lua
 Services/CraftRunner.lua
 Services/ProfessionMemory.lua
 Services/TrainerLearner.lua
+Services/AuctionatorPricing.lua
 
 UI/LinkPopup.lua
 UI/GuidePage.lua
