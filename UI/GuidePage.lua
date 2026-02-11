@@ -593,15 +593,18 @@ local function CreateLearnSourceIcon(row, craftBtn)
         GameTooltip:AddLine("\nVendor(s):", 0.85, 0.85, 0.85)
         for i = 1, #vendors do
           local vendor = vendors[i]
-          local label = IsNonEmptyString(vendor.name) and vendor.name or ("Vendor " .. i)
+          local label = Util:ResolveVendorName(vendor.npcId, vendor.name)
+          if not IsNonEmptyString(label) then
+            label = IsNonEmptyString(vendor.name) and vendor.name or (L("LABEL_VENDOR") .. i)
+          end
           GameTooltip:AddLine(("- %s"):format(label), 0.85, 0.85, 0.85, true)
         end
       end
 
       if vendors and #vendors > 0 then
         local clickHint = (Util and Util.IsTomTomEnabled and Util:IsTomTomEnabled())
-          and "Set TomTom Waypoint"
-          or "Set Waypoint"
+          and L("TOOLTIP_SET_TOMTOM_WAYPOINT")
+          or L("TOOLTIP_SET_WAYPOINT")
         GameTooltip:AddLine("\n"..clickHint, 0.25, 1, 0.25, true)
       end
     else
@@ -629,8 +632,9 @@ local function CreateLearnSourceIcon(row, craftBtn)
     -- One vendor? JUST DO IT!
     if #vendors == 1 then
       local vendor = vendors[1]
+      local wpLabel = Util:ResolveVendorName(vendor.npcId, vendor.name) or (vendor.name or L("LABEL_VENDOR"))
       if vendor and vendor.uiMapID and vendor.x and vendor.y and Util and Util.AddWaypoint then
-        Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+        Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, wpLabel)
       end
       return
     end
@@ -638,15 +642,18 @@ local function CreateLearnSourceIcon(row, craftBtn)
     -- Multiple vendors: show a context menu instead.
     if MenuUtil and MenuUtil.CreateContextMenu then
       MenuUtil.CreateContextMenu(self, function(_, root)
-        root:CreateTitle("Choose a vendor:")
+        root:CreateTitle(L("MENU_LABEL_CHOOSE_A_VENDOR"))
 
         for i = 1, #vendors do
           local vendor = vendors[i]
-          local label = IsNonEmptyString(vendor.name) and vendor.name or ("Vendor " .. i)
-
+          local label = Util:ResolveVendorName(vendor.npcId, vendor.name)
+          if not IsNonEmptyString(label) then
+            label = IsNonEmptyString(vendor.name) and vendor.name or (L("LABEL_VENDOR") .. i)
+          end
           root:CreateButton(label, function()
+            local wpLabel = Util:ResolveVendorName(vendor.npcId, vendor.name) or (vendor.name or L("LABEL_VENDOR"))
             if vendor and vendor.uiMapID and vendor.x and vendor.y and Util and Util.AddWaypoint then
-              Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+              Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, wpLabel)
             end
           end)
         end
@@ -656,8 +663,9 @@ local function CreateLearnSourceIcon(row, craftBtn)
 
     -- Fallback if MenuUtil isn't available for some reason.
     local vendor = vendors[1]
+    local wpLabel = Util:ResolveVendorName(vendor.npcId, vendor.name) or (vendor.name or L("LABEL_VENDOR"))
     if vendor and vendor.uiMapID and vendor.x and vendor.y and Util and Util.AddWaypoint then
-      Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, vendor.name or "Vendor")
+      Util:AddWaypoint(vendor.uiMapID, vendor.x, vendor.y, wpLabel)
     end
   end)
 

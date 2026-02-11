@@ -441,6 +441,25 @@ function Util:ResolveNpcName(npcId, fallback)
   return fallback or ("Trainer #%d"):format(npcId)
 end
 
+---Resolve a localized vendor name. This is just a semantic wrapper
+---around ResolveNpcName to allow code to be explicit.
+---@param npcID number|nil
+---@param fallback string|nil
+---@return string
+function Util:ResolveVendorName(npcID, fallback)
+  npcID = tonumber(npcID)
+  if not npcID or npcID <= 0 then
+    return fallback or ""
+  end
+
+  local name = self:ResolveNpcName(npcID, fallback)
+  if name == "" then
+    return fallback or ("Vendor #%d"):format(npcID)
+  end
+
+  return name
+end
+
 ---Resolve a localized map/zone name from a uiMapID.
 ---@param uiMapID number|nil
 ---@param fallback string|nil

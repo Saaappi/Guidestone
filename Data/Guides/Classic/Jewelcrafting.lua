@@ -207,10 +207,10 @@ local ok, err = Guides:RegisterGuide({
       learn = {
         type = "vendor",
         vendors = {
-          { name = "Mythrin'dir", uiMapID = 0, x = 0, y = 0, faction = 1 },
-          { name = "Arred", uiMapID = 0, x = 0, y = 0, faction = 1 },
-          { name = "Daniel Bartlett", uiMapID = 0, x = 0, y = 0, faction = 2 },
-          { name = "Gelanthis", uiMapID = 0, x = 0, y = 0, faction = 2 },
+          { npcId = 4229,  name = "Mythrin'dir",     uiMapID = 89,  x = 58.00, y = 34.00, faction = 1 },
+          { npcId = 17512, name = "Arred",           uiMapID = 103, x = 45.00, y = 25.60, faction = 1 },
+          { npcId = 4561,  name = "Daniel Bartlett", uiMapID = 90,  x = 64.80, y = 38.20, faction = 2 },
+          { npcId = 16624, name = "Gelanthis",       uiMapID = 110, x = 90.80, y = 73.60, faction = 2 },
         }
       }
     },

@@ -26,6 +26,10 @@ Localization:RegisterLocale("enUS", {
 
   TEXT_SAVE_THESE_FOR_LATER_CRAFT = "Save these, you'll need them for a later craft.",
 
+  MENU_LABEL_CHOOSE_A_VENDOR = "Choose a vendor:",
+
+  LABEL_VENDOR = "Vendor",
+
   TOOLTIP_VENDOR = "Vendor",
   TOOLTIP_TRAINER = "Trainer",
   TOOLTIP_MATERIAL = "Material",
