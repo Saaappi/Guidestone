@@ -25,6 +25,7 @@ Data/Guides/Classic/Alchemy.lua
 Data/Guides/Classic/Jewelcrafting.lua
 
 Services/CraftRunner.lua
+Services/MaterialTracker.lua
 Services/ProfessionMemory.lua
 Services/TrainerLearner.lua
 Services/AuctionatorPricing.lua
