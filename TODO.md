@@ -1,7 +1,4 @@
 Add:
-- Material required counts should decrement when a step is completed.
-  - They should still show in the UI but should grey out and be "disabled". Disabled in the sense they can't be interacted with at all (except the WoW-P and Wowhead buttons).
-  - The have/required count text should also be hidden for disabled materials.
 - Property on materials that allow it to be force ignored by the AuctionPricing service.
 - Add support for Wowhead links to the multi-link popup?
   - Bronze Bar, for example, has multi-link support for Copper and Tin Ore farming pages on WoW-Professions;
@@ -18,6 +15,10 @@ Add:
       - Yellow: Mining
 
 Fix These:
+- Material count should decrement with each skill-up.
+- Materials should be greyed out and "disabled" when the player has met the required count.
+  - Disabled materials should no longer have a tooltip but the WoW-Professions and Wowhead buttons should continue to work.
+- When all steps that use a given material are completed, that material's N/N count should be hidden from the materials list.
 
 Before Release:
 Clean the code for any unnecessary shit.
