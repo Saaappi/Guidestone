@@ -58,13 +58,23 @@ local function BuildGuideSignature(guide)
 end
 
 ---@param db table
-function MaterialTarcker:Init(db)
+function MaterialTracker:Init(db)
   self._db = db
   if type(self._db) ~= "table" then
     self._db = {}
   end
 
   self._db.materialProgress = self._db.materialProgress or {}
+end
+
+---@param guide table|nil
+function MaterialTracker:SetActiveGuide(guide)
+  self._activeGuide = guide
+
+  -- Prime state so UI can immediately read remaining counts.
+  if guide then
+    self:EnsureGuideState(guide)
+  end
 end
 
 ---@param guide table
@@ -142,4 +152,229 @@ function MaterialTracker:GetRemainingRequired(guide, itemID, defaultRequired)
   end
 
   return max(0, floor(tonumber(remainingValue) or 0))
+end
+
+---@param step table
+---@param stepIndex number
+---@return table|nil
+local function GetStepMaterials(step, stepIndex)
+  if type(step) ~= "table" then
+    return nil
+  end
+
+  -- Materials are expected to be per craft quantities.
+  if type(step.materials) == "table" then
+    return step.materials
+  end
+
+  return nil
+end
+
+---@param guide table
+---@param step table
+---@param stepIndex number
+---@return number
+local function GetPlannedCraftsForStep(guide, step, stepIndex)
+  local planned = tonumber(step and step.maxCrafts) or nil
+  if planned and planned > 0 then
+    return floor(planned)
+  end
+
+  local fromSkill = tonumber(step and step.fromSkill) or 0
+  local toSkill = tonumber(step and step.toSkill) or 0
+  local delta = toSkill - fromSkill
+  if delta < 0 then
+    delta = 0
+  end
+  return floor(delta)
+end
+
+---@param guide table
+---@param step table
+---@param stepIndex number
+function MaterialTracker:CompleteStepIfNeeded(guide, step, stepIndex)
+  if not guide then
+    return
+  end
+
+  local state = self:EnsureGuideState(guide)
+  if not state then
+    return
+  end
+
+  local key = MakeStepKey(step, stepIndex)
+  state.steps[key] = state.steps[key] or { crafts = 0, completed = false }
+  if state.steps[key].completed then
+    return
+  end
+
+  local plannedCrafts = GetPlannedCraftsForStep(guide, step, stepIndex)
+  local stepMats = GetStepMaterials(step, stepIndex)
+  if plannedCrafts <= 0 or type(stepMats) ~= "table" then
+    state.steps[key].completed = true
+    return
+  end
+
+  -- Step completion should remove any remaining planned materials for this step
+  -- that have not already been decremented by crafts.
+  local craftsSoFar = floor(tonumber(state.steps[key].crafts) or 0)
+  local leftoverCrafts = plannedCrafts - craftsSoFar
+  if leftoverCrafts < 0 then
+    leftoverCrafts = 0
+  end
+
+  if leftoverCrafts > 0 then
+    for _, row in ipairs(stepMats) do
+      if type(row) == "table" then
+        local itemID = floor(tonumber(row.itemID) or 0)
+        local quantity = floor(tonumber(row.quantity) or 0)
+        if itemID > 0 and quantity > 0 then
+          self:DecrementRemaining(guide, itemID, quantity * leftoverCrafts)
+        end
+      end
+    end
+  end
+
+  state.steps[key].completed = true
+end
+
+---@return table|nil
+function MaterialTracker:GetActiveGuide()
+  return self._activeGuide
+end
+
+---@param step table
+---@return number|nil
+local function GetRecipeIDForStep(step)
+  local recipeID = tonumber(step and step.recipeID) or nil
+
+  if recipeID and recipeID > 0 then
+    return floor(recipeID)
+  end
+
+  return nil
+end
+
+---@param guide table
+---@param recipeID number
+---@return table|nil step
+---@return number|nil stepIndex
+function MaterialTracker:FindStepByRecipeID(guide, recipeID)
+  if not (guide and type(guide.steps) == "table") then
+    return nil, nil
+  end
+
+  recipeID = floor(tonumber(recipeID) or 0)
+  if recipeID <= 0 then
+    return nil, nil
+  end
+
+  -- Prefer the first step that matches and isn't completed.
+  local state = self:EnsureGuideState(guide)
+  for idx, step in ipairs(guide.steps) do
+    local id = GetRecipeIDForStep(step)
+    if id and id == recipeID then
+      if state then
+        local key = MakeStepKey(step, idx)
+        if state.steps[key] and state.steps[key].completed then
+          -- continue searching...
+        else
+          return step, idx
+        end
+      else
+        return step, idx
+      end
+    end
+  end
+
+  -- Fallback: return the first matching step.
+  for idx, step in ipairs(guide.steps) do
+    local id = GetRecipeIDForStep(step)
+    if id and id == recipeID then
+      return step, idx
+    end
+  end
+
+  return nil, nil
+end
+
+---@param guide table
+---@param step table
+---@param stepIndex number
+---@param crafts number
+function MaterialTracker:OnCraftedStep(guide, step, stepIndex, crafts)
+  if not (guide and step) then
+    return
+  end
+
+  crafts = floor(tonumber(crafts) or 1)
+  if crafts < 1 then
+    crafts = 1
+  end
+
+  local stepMats = GetStepMaterials(step, stepIndex)
+  if type(stepMats) ~= "table" then
+    return
+  end
+
+  local state = self:EnsureGuideState(guide)
+  if not state then
+    return
+  end
+
+  local key = MakeStepKey(step, stepIndex)
+  state.steps[key] = state.steps[key] or { crafts = 0, completed = false }
+  state.steps[key].crafts = floor(tonumber(state.steps[key].crafts) or 0) + crafts
+
+  for _, row in ipairs(stepMats) do
+    if type(row) == "table" then
+      local itemID = floor(tonumber(row.itemID) or 0)
+      local quantity = floor(tonumber(row.quantity) or 0)
+      if itemID > 0 and quantity > 0 then
+        self:DecrementRemaining(guide, itemID, quantity * crafts)
+      end
+    end
+  end
+end
+
+---@param unit string
+---@param spellID number
+function MaterialTracker:OnSpellcastSucceeded(unit, spellID)
+  if unit ~= "player" then
+    return
+  end
+
+  local guide = self:GetActiveGuide()
+  if not guide then
+    return
+  end
+
+  spellID = tonumber(spellID)
+  if not spellID or spellID <= 0 then
+    return
+  end
+
+  local step, idx = self:FindStepByRecipeID(guide, spellID)
+  if step and idx then
+    self:OnCraftedStep(guide, step, idx, 1)
+  end
+end
+
+function MaterialTracker:OnSkillLinesChanged()
+  local guide = self:GetActiveGuide()
+  if not guide then
+    return
+  end
+
+  local currentSkill = Util:GetCurrentSkillLevel(Addon.db and Addon.db.lastGuideSkillLineID) or Util:GetCurrentSkillLevel() or 0
+  if type(guide.steps) ~= "table" then
+    return
+  end
+
+  for idx, step in ipairs(guide.steps) do
+    local toSkill = tonumber(step and step.toSkill)
+    if toSkill and currentSkill >= toSkill then
+      self:CompleteStepIfNeeded(guide, step, idx)
+    end
+  end
 end

@@ -1,5 +1,6 @@
 local Addon = _G.Guidestone
 local Util = Addon.modules.Util
+local MaterialTracker = Addon.modules.MaterialTracker
 
 ---@class GuidestoneCraftRunner
 local CraftRunner = {}
@@ -261,6 +262,19 @@ function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
     if self._noSkillupCasts >= (self._maxNoSkillupCasts or 8) then
       self:Stop("no_skillups")
       return
+    end
+  end
+
+  -- Decrement material requirements for this craft.
+  if MaterialTracker and MaterialTracker.OnCraftedStep and self._step then
+    -- Step index isn't tracked inside CraftRunner, so allow the tracker to
+    -- resolve it.
+    local guide = MaterialTracker.GetActiveGuide and MaterialTracker:GetActiveGuide() or nil
+    if guide then
+      local step, idx = MaterialTracker:FindStepByRecipeID(guide, self._recipeID or spellID)
+      if step and idx then
+        MaterialTracker:OnCraftedStep(guide, step, idx, 1)
+      end
     end
   end
 end

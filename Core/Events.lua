@@ -5,6 +5,8 @@ local SettingsModule = Addon.modules.Settings
 local ProfessionMemory = Addon.modules.ProfessionMemory
 local TrainerLearner = Addon.modules.TrainerLearner
 local GuidePage = Addon.modules.GuidePage
+local MaterialTracker = Addon.modules.MaterialTracker
+local Localization = Addon.modules.Localization
 local Logger = Addon.modules.Logger
 
 ---@class GuidestoneEvents
@@ -13,6 +15,10 @@ Addon.modules.Events = Events
 
 local strlower = string.lower
 local strtrim = string.trim
+
+local function L(key, ...)
+  return Localization:Get(key, ...)
+end
 
 ---@param event string
 function Events:OnEvent(event, ...)
@@ -36,27 +42,32 @@ function Events:OnEvent(event, ...)
         TrainerLearner:Init()
       end
 
-      SLASH_GUIDESTONE1 = "/guidestone"
+      -- Initialize material decrement/progress tracking.
+      if MaterialTracker and MaterialTracker.Init then
+        MaterialTracker:Init(Addon.db)
+      end
+
+      SLASH_GUIDESTONE1 = L("SLASH_CMD_BASE")
       SlashCmdList.GUIDESTONE = function(msg)
         msg = strlower(strtrim(msg or ""))
 
-        if msg == "recipe" then
+        if msg == L("CMD_RECIPE") then
           Util:DumpSelectedRecipeSnapshot()
           return
         end
 
-        if msg == "dump" then
+        if msg == L("CMD_DUMP") then
           Util:DumpProfessionInfo()
           return
         end
 
-        if msg == "debug" then
+        if msg == L("CMD_DEBUG") then
           Addon.db.debug = not Addon.db.debug
           Logger:Info("Debug:", Addon.db.debug and "ON" or "OFF")
           return
         end
 
-        if msg == "settings" then
+        if msg == L("CMD_SETTINGS") then
           if SettingsModule and SettingsModule.Open then
             SettingsModule:Open()
             return
@@ -92,6 +103,31 @@ function Events:OnEvent(event, ...)
     end
     return
   end
+
+  if event == "SKILL_LINES_CHANGED" then
+    if MaterialTracker and MaterialTracker.OnSkillLinesChanged then
+      MaterialTracker:OnSkillLinesChanged()
+    end
+
+    if GuidePage and GuidePage.RefreshMaterialsState then
+      GuidePage:RefreshMaterialsState(true)
+    end
+
+    return
+  end
+
+  if event == "UNIT_SPELLCAST_SUCCEEDED" then
+    local unit, _, spellID = ...
+    if MaterialTracker and MaterialTracker.OnSpellcastSucceeded then
+      MaterialTracker:OnSpellcastSucceeded(unit, spellID)
+    end
+
+    if GuidePage and GuidePage.RefreshMaterialsState then
+      GuidePage:RefreshMaterialsState(true)
+    end
+
+    return
+  end
 end
 
 ---@return Frame
@@ -111,6 +147,8 @@ function Events:Init()
   f:RegisterEvent("AUCTION_HOUSE_SHOW")
   f:RegisterEvent("AUCTION_HOUSE_CLOSED")
   f:RegisterEvent("PLAYER_LOGIN")
+  f:RegisterEvent("SKILL_LINES_CHANGED")
+  f:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 
   Logger:Debug("Events initialized successfully.")
   return f

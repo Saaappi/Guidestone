@@ -30,6 +30,9 @@ local function EnsureDefaults(db)
   -- Persist per-guide choice-group selections.
   db.choiceGroups = db.choiceGroups or {}
 
+  -- Persist material decrement/progress state per guide.
+  db.materialProgress = db.materialProgress or {}
+
   -- Persist the last selected profession expansion (child skill line) per base profession.
   -- Key = parentProfessionID (stable), Value = professionID (child skill line for selected expansion).
   db.lastProfessionChildSkillLineByParentID = db.lastProfessionChildSkillLineByParentID or {}

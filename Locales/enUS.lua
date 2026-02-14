@@ -5,6 +5,12 @@ Localization:RegisterLocale("enUS", {
   -- Generic
   CHAT_PREFIX = Addon.name,
   CMD_COMMANDS = "Commands:",
+  CMD_RECIPE = "recipe",
+  CMD_DEBUG = "debug",
+  CMD_SETTINGS = "settings",
+
+  SLASH_CMD_BASE = "/guidestone",
+
 
   ERR_PROF_API_UNAVAILABLE = "Professions API is unavailable.",
   ERR_NO_PROF_INFO = "No profession info. Open a profession window first.",

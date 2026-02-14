@@ -5,6 +5,7 @@ local ProfessionMemory = Addon.modules.ProfessionMemory
 local CraftRunner = Addon.modules.CraftRunner
 local LinkPopup = Addon.modules.LinkPopup
 local AuctionatorPricing = Addon.modules.AuctionatorPricing
+local MaterialTracker = Addon.modules.MaterialTracker
 local Localization = Addon.modules.Localization
 
 ---@class GuidestoneGuidePage
@@ -1361,6 +1362,10 @@ function GuidePage:LoadForProfession(professionInfo)
   local guide = Guides and Guides.GetBestGuide and Guides:GetBestGuide(professionInfo) or nil
   self.currentGuide = guide
 
+  if MaterialTracker and MaterialTracker.SetActiveGuide then
+    MaterialTracker:SetActiveGuide(guide)
+  end
+
   -- Remember the last active guide so other services can function even when the
   -- professions UI isn't open.
   if Addon.db then
@@ -1749,6 +1754,10 @@ function GuidePage:RenderGuide(guide)
     end
 
     hit:SetScript("OnEnter", function()
+      if row._tooltipDisabled then
+        return
+      end
+
       GameTooltip:SetOwner(hit, "ANCHOR_RIGHT")
 
       local itemID = tonumber(mat.itemID)
@@ -2313,11 +2322,23 @@ function GuidePage:RefreshMaterialsState(skipLayout)
         --   * anyMix groups as "remaining needed * cheapest option unit price"
         --     (best-effort estimate; avoids double-counting options)
         for _, row in ipairs(self.materialRows) do
-          if row._matType == "item" or row._matType == "choiceItem" then
+          --[[if row._matType == "item" or row._matType == "choiceItem" then
             local mat = row._mat
             if mat then
               local have = GetHaveForMaterial(mat)
               local required = ComputeBufferedRequired(tonumber(mat.required) or 0, mat)
+              AddCostForItem(mat, required, have)
+            end]]
+          if row._matType == "item" or row._matType == "choiceItem" then
+            local mat = row._mat
+            if mat then
+              local have = GetHaveForMaterial(mat)
+
+              local remaining = (MaterialTracker and MaterialTracker.GetRemainingRequired)
+                and MaterialTracker:GetRemainingRequired(self.currentGuide, mat.itemID, tonumber(mat.required) or 0)
+                or (tonumber(mat.required) or 0)
+
+              local required = ComputeBufferedRequired(remaining, mat)
               AddCostForItem(mat, required, have)
             end
           elseif row._matType == "anyMixHeader" and row._group then
@@ -2404,19 +2425,33 @@ function GuidePage:RefreshMaterialsState(skipLayout)
 
       if row._matType == "anyMixOption" then
         local gDone = (row._group and anyMixState[row._group] and anyMixState[row._group].done) or false
-        row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
         done = gDone
-      else
-        local required = ComputeBufferedRequired(tonumber(mat.required) or 0, row._mat)
-        done = required > 0 and have >= required
+
         if done then
-          row._text:SetText(("%s  %d / %d"):format(name, have, required))
+          row._text:SetText(name)
         else
-          row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(name, have, required))
+          row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
+        end
+      else
+        local remaining = (MaterialTracker and MaterialTracker.GetRemainingRequired)
+          and MaterialTracker:GetRemainingRequired(self.currentGuide, mat.itemID, tonumber(mat.required) or 0)
+          or (tonumber(mat.required) or 0)
+
+        local required = ComputeBufferedRequired(remaining, row._mat)
+        done = required <= 0
+
+        if done then
+          -- Greyed: remove counts entirely
+          row._text:SetText(name .. aliasSuffix)
+        else
+          row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r%s"):format(name, have, required, aliasSuffix))
         end
       end
 
       Util:SetFontStringGreyed(row._text, done)
+
+      -- Disable only the tooltip.
+      row._tooltipDisabled = done
 
       if row._icon then
         row._icon:SetTexture(GetItemIcon(itemID))
@@ -2428,13 +2463,15 @@ function GuidePage:RefreshMaterialsState(skipLayout)
           (type(mat.wowProfessionsUrl) == "string" and mat.wowProfessionsUrl ~= "")
           or (type(mat.links) == "table" and #mat.links > 0)
 
-        row._wpBtn:SetEnabled((not done) and hasAnyLink)
-        Util:SetDesaturatedAndAlpha(row._wpBtn._tex, done or (not hasAnyLink), (done or (not hasAnyLink)) and 0.35 or 1)
+        -- keep clickable even if greyed
+        row._wpBtn:SetEnabled(hasAnyLink)
+        Util:SetDesaturatedAndAlpha(row._wpBtn._tex, (not hasAnyLink), (not hasAnyLink) and 0.35 or 1)
       end
 
       if row._whBtn and row._whBtn._tex then
-        row._whBtn:SetEnabled(not done)
-        Util:SetDesaturatedAndAlpha(row._whBtn._tex, done, done and 0.35 or 1)
+        -- keep clickable even if greyed
+        row._whBtn:SetEnabled(true)
+        Util:SetDesaturatedAndAlpha(row._whBtn._tex, false, 1)
       end
 
     elseif row._matType == "anyMixHeader" and row._group and row._text then
