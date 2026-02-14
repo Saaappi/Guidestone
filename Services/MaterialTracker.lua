@@ -26,6 +26,30 @@ local floor = math.floor
 MaterialTracker._db = nil
 MaterialTracker._activeGuide = nil
 
+-- Track crafts that have happened, waiting to see if they caused a skill-up.
+MaterialTracker._pendingCrafts = MaterialTracker._pendingCrafts or {}
+MaterialTracker._lastSkill = MaterialTracker._lastSkill or 0
+MaterialTracker._pendingMaxAgeSeconds = 2
+
+---@param now number
+local function FlushExpiredPending(now)
+  now = tonumber(now) or 0
+  local queue = MaterialTracker._pendingCrafts
+  if type(queue) ~= "table" or #queue == 0 then
+    return
+  end
+
+  local maxAge = tonumber(MaterialTracker._pendingMaxAgeSeconds) or 2
+  for i = #queue, 1, -1 do
+    local entry = queue[i]
+    local time = tonumber(entry and entry.at) or 0
+    if (now - time) > maxAge then
+      -- No skill-up arrived in time, so treat it as a wasted craft.
+      table.remove(queue, i)
+    end
+  end
+end
+
 ---@param step table
 ---@param index number
 ---@return string
@@ -354,22 +378,31 @@ function MaterialTracker:OnSpellcastSucceeded(unit, spellID)
     return
   end
 
-  -- 1) Try a direct match first (some recipes match the spellID)
+  -- Clean out old crafts that never produced a skill-up.
+  FlushExpiredPending(GetTime() or 0)
+
+  -- Find the step this craft belongs to.
   local step, idx = self:FindStepByRecipeID(guide, spellID)
-  if step and idx then
-    self:OnCraftedStep(guide, step, idx, 1)
+
+  if not (step and idx) then
+    local recipeID = Util:FindRecipeIDBySpellID(spellID)
+    if recipeID then
+      step, idx = self:FindStepByRecipeID(guide, recipeID)
+    end
+  end
+
+  if not (step and idx) then
     return
   end
 
-  -- 2) Fallback: resolve recipeID from spellID via cached lookup
-  local recipeID = Util:FindRecipeIDBySpellID(spellID)
-  if recipeID then
-    step, idx = self:FindStepByRecipeID(guide, recipeID)
-    if step and idx then
-      self:OnCraftedStep(guide, step, idx, 1)
-      return
-    end
-  end
+  -- Queue it: we only apply material "progress" if SKILL_LINES_CHANGED confirms a skill-up.
+  local queue = self._pendingCrafts
+  queue[#queue + 1] = {
+    at = GetTime() or 0,
+    guide = guide,
+    step = step,
+    idx = idx,
+  }
 end
 
 function MaterialTracker:OnSkillLinesChanged()
@@ -378,7 +411,36 @@ function MaterialTracker:OnSkillLinesChanged()
     return
   end
 
-  local currentSkill = Util:GetCurrentSkillLevel(Addon.db and Addon.db.lastGuideSkillLineID) or Util:GetCurrentSkillLevel() or 0
+  -- Expire any queued crafts that never produced a skill-up.
+  FlushExpiredPending(GetTime() or 0)
+
+  local currentSkill =
+    Util:GetCurrentSkillLevel(Addon.db and Addon.db.lastGuideSkillLineID)
+    or Util:GetCurrentSkillLevel()
+    or 0
+
+  local lastSkill = tonumber(self._lastSkill) or currentSkill
+  if lastSkill == 0 then
+    lastSkill = currentSkill
+  end
+
+  local delta = currentSkill - lastSkill
+  if delta > 0 then
+    -- For each skill-up gained, apply ONE queued craft as progress.
+    local q = self._pendingCrafts
+    for _ = 1, delta do
+      local entry = table.remove(q, 1)
+      if entry and entry.guide and entry.step and entry.idx then
+        self:OnCraftedStep(entry.guide, entry.step, entry.idx, 1)
+      else
+        break
+      end
+    end
+  end
+
+  self._lastSkill = currentSkill
+
+  -- Existing "step completion" logic (keep it)
   if type(guide.steps) ~= "table" then
     return
   end

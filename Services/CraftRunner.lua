@@ -143,7 +143,11 @@ function CraftRunner:Start(step, onDone, skipFirstCraft)
   self._step = step
   self._onDone = onDone
 
-  self._targetSkill = targetSkill
+  local toSkill = tonumber(step.toSkill) or 0
+  if toSkill <= 0 then
+    toSkill = (Util:GetCurrentSkillLevel() or 0) + 1
+  end
+  self._targetSkill = toSkill
   self._lastSkill = Util:GetCurrentSkillLevel() or 0
   self._noSkillupCasts = 0
 
@@ -262,19 +266,6 @@ function CraftRunner:OnSpellcastSucceeded(unit, _, spellID)
     if self._noSkillupCasts >= (self._maxNoSkillupCasts or 8) then
       self:Stop("no_skillups")
       return
-    end
-  end
-
-  -- Decrement material requirements for this craft.
-  if MaterialTracker and MaterialTracker.OnCraftedStep and self._step then
-    -- Step index isn't tracked inside CraftRunner, so allow the tracker to
-    -- resolve it.
-    local guide = MaterialTracker.GetActiveGuide and MaterialTracker:GetActiveGuide() or nil
-    if guide then
-      local step, idx = MaterialTracker:FindStepByRecipeID(guide, self._recipeID or spellID)
-      if step and idx then
-        MaterialTracker:OnCraftedStep(guide, step, idx, 1)
-      end
     end
   end
 end
