@@ -65,7 +65,7 @@ function Util:GetBestItemCount(itemID, aliasItems)
   end
 
   local bestID = primaryID
-  local bestCount = Util.GetItemCount(primaryID) or 0
+  local bestCount = Util:GetItemCount(primaryID) or 0
 
   if type(aliasItems) == "table" then
     for _, v in ipairs(aliasItems) do
