@@ -354,9 +354,21 @@ function MaterialTracker:OnSpellcastSucceeded(unit, spellID)
     return
   end
 
+  -- 1) Try a direct match first (some recipes match the spellID)
   local step, idx = self:FindStepByRecipeID(guide, spellID)
   if step and idx then
     self:OnCraftedStep(guide, step, idx, 1)
+    return
+  end
+
+  -- 2) Fallback: resolve recipeID from spellID via cached lookup
+  local recipeID = Util:FindRecipeIDBySpellID(spellID)
+  if recipeID then
+    step, idx = self:FindStepByRecipeID(guide, recipeID)
+    if step and idx then
+      self:OnCraftedStep(guide, step, idx, 1)
+      return
+    end
   end
 end
 
