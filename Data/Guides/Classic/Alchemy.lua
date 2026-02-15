@@ -58,89 +58,102 @@ local ok, err = Guides:RegisterGuide({
       outputItemID = 118,
       maxCrafts = 60
     },
-    {
+    { -- Lesser Healing Potion
       fromSkill = 60,
       toSkill = 100,
-      recipeName = "Lesser Healing Potion",
-      recipeItemID = 858,
-      maxCrafts = 60,
+      recipeID = 2337,
+      outputItemID = 858,
+      maxCrafts = 40,
     },
-    {
+    { -- Elixir of Wisdom
       fromSkill = 100,
       toSkill = 110,
-      recipeName = "Elixir of Wisdom",
+      recipeID = 3171,
+      outputItemID = 3383,
       maxCrafts = 10,
     },
-    {
+    { -- Healing Potion
       fromSkill = 110,
       toSkill = 140,
-      recipeName = "Healing Potion",
+      recipeID = 3447,
+      outputItemID = 929,
       maxCrafts = 33,
     },
-    {
+    { -- Lesser Mana Potion
       fromSkill = 140,
       toSkill = 155,
-      recipeName = "Lesser Mana Potion",
+      recipeID = 3173,
+      outputItemID = 3385,
       maxCrafts = 18,
     },
-    {
+    { -- Greater Healing Potion
       fromSkill = 155,
       toSkill = 175,
-      recipeName = "Greater Healing Potion",
+      recipeID = 7181,
+      outputItemID = 1710,
       maxCrafts = 20,
     },
-    {
+    { -- Mana Potion
       fromSkill = 175,
       toSkill = 185,
-      recipeName = "Mana Potion",
+      recipeID = 3452,
+      outputItemID = 3827,
       maxCrafts = 10,
     },
-    {
+    { -- Elixir of Agility
       fromSkill = 185,
       toSkill = 205,
-      recipeName = "Elixir of Agility",
+      recipeID = 11449,
+      outputItemID = 8949,
       maxCrafts = 20,
     },
-    {
+    { -- Elixir of Greater Defense
       fromSkill = 205,
       toSkill = 215,
-      recipeName = "Elixir of Greater Defense",
+      recipeID = 11450,
+      outputItemID = 8951,
       maxCrafts = 10,
     },
-    {
+    { -- Superior Healing Potion
       fromSkill = 215,
       toSkill = 240,
-      recipeName = "Superior Healing Potion",
+      recipeID = 11457,
+      outputItemID = 3928,
       maxCrafts = 28,
     },
-    {
+    { -- Elixir of Greater Intellect
       fromSkill = 240,
       toSkill = 250,
-      recipeName = "Elixir of Greater Intellect",
+      recipeID = 11465,
+      outputItemID = 9179,
       maxCrafts = 10,
     },
-    {
+    { -- Elixir of Detect Demon
       fromSkill = 250,
       toSkill = 270,
-      recipeName = "Elixir of Detect Demon",
+      recipeID = 11478,
+      outputItemID = 9233,
       maxCrafts = 20,
     },
-    {
+    { -- Elixir of the Sages
       fromSkill = 270,
       toSkill = 285,
-      recipeName = "Elixir of the Sages",
+      recipeID = 17555,
+      outputItemID = 13447,
       maxCrafts = 15,
     },
-    {
+    { -- Major Healing Potion
       fromSkill = 285,
       toSkill = 295,
-      recipeName = "Major Healing Potion",
+      recipeID = 17556,
+      outputItemID = 13446,
       maxCrafts = 14,
     },
-    {
+    { -- Purification Potion
       fromSkill = 295,
       toSkill = 300,
-      recipeName = "Purification Potion",
+      recipeID = 17572,
+      outputItemID = 13462,
       maxCrafts = 5,
     },
   },
