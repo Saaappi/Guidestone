@@ -51,12 +51,12 @@ local ok, err = Guides:RegisterGuide({
   },
 
   steps = {
-    {
+    { -- Minor Healing Potion
       fromSkill = 1,
       toSkill = 60,
-      recipeName = "Minor Healing Potion",
-      recipeItemID = 118,
-      maxCrafts = 60,
+      recipeID = 2330,
+      outputItemID = 118,
+      maxCrafts = 60
     },
     {
       fromSkill = 60,

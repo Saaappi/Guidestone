@@ -317,7 +317,9 @@ function Util:GetCurrentSkillLevel(skillLineID)
 
   if type(skillLineID) == "number" and C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
     info = C_TradeSkillUI.GetProfessionInfoBySkillLineID(skillLineID)
-  else
+  end
+
+  if type(info) ~= "table" then
     info = self:GetProfessionInfo()
   end
 

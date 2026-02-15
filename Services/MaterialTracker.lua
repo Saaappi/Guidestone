@@ -490,10 +490,7 @@ function MaterialTracker:OnSkillLinesChanged()
   -- Expire any queued crafts that never produced a skill-up.
   FlushExpiredPending(GetTime() or 0)
 
-  local currentSkill =
-    Util:GetCurrentSkillLevel(Addon.db and Addon.db.lastGuideSkillLineID)
-    or Util:GetCurrentSkillLevel()
-    or 0
+  local currentSkill = GetCurrentGuideSkill(guide)
 
   local lastSkill = tonumber(self._lastSkill) or currentSkill
   if lastSkill == 0 then
