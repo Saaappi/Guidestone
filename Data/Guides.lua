@@ -152,8 +152,9 @@ local function NormalizeLinks(links)
     if type(link) == "table" then
       local title = type(link.title) == "string" and link.title ~= "" and link.title or nil
       local url = type(link.url) == "string" and link.url ~= "" and link.url or nil
+      local itemID = floor(tonumber(link.itemID) or 0)
       if url then
-        tinsert(out, { title = title, url = url })
+        tinsert(out, { title = title, url = url, itemID = (itemID > 0) and itemID or nil })
       end
     end
   end
@@ -174,16 +175,18 @@ local function NormalizeWowheadLinks(links)
     if type(link) == "table" then
       local title = type(link.title) == "string" and link.title ~= "" and link.title or nil
       local url = nil
+      local normalizedItemID = nil
 
       local itemID = tonumber(link.itemID)
       if itemID and itemID > 0 and Util and Util.GetWowheadItemUrl then
+        normalizedItemID = floor(itemID)
         url = Util:GetWowheadItemUrl(itemID)
       elseif type(link.url) == "string" and link.url ~= "" then
         url = link.url
       end
 
       if url then
-        tinsert(out, { title = title, url = url })
+        tinsert(out, { title = title, url = url, itemID = normalizedItemID })
       end
     end
   end

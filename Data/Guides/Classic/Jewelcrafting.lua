@@ -47,12 +47,12 @@ local ok, err = Guides:RegisterGuide({
       itemID = 2841,
       required = 120,
       links = {
-        { title = "Copper Ore", url = "https://www.wow-professions.com/farming/copper-ore-farming" },
-        { title = "Tin Ore", url = "https://www.wow-professions.com/farming/tin-ore-farming" }
+        { itemID = 2770, url = "https://www.wow-professions.com/farming/copper-ore-farming" },
+        { itemID = 2771, url = "https://www.wow-professions.com/farming/tin-ore-farming" }
       },
       wowheadLinks = {
-        { title = "Copper Ore", itemID = 2770 },
-        { title = "Tin Ore", itemID = 2771 },
+        { itemID = 2770 },
+        { itemID = 2771 },
       },
       note = "Smelted from Copper and Tin ore."
     },

@@ -1443,11 +1443,100 @@ function GuidePage:RenderGuide(guide)
   local materials = (Guides and Guides.GetMaterials) and Guides:GetMaterials(guide) or (guide.materials or {})
   local prev = nil
 
-  local function OpenWoWProfessionsLinks(mat)
+  local function TryGetImmediateItemName(itemID)
+    itemID = tonumber(itemID)
+    if not itemID or itemID <= 0 then
+      return nil
+    end
+
+    if C_Item and C_Item.GetItemNameByID then
+      local name = C_Item.GetItemNameByID(itemID)
+      if type(name) == "string" and name ~= "" then
+        return name
+      end
+    end
+
+    if C_Item and C_Item.GetItemInfo then
+      local name = C_Item.GetItemInfo(itemID)
+      if type(name) == "string" and name ~= "" then
+        return name
+      end
+    end
+
+    return nil
+  end
+
+  local function ShowLocalizedLinkSet(rawLinks, popupTitle, singleFallbackTitle)
     if not (LinkPopup and LinkPopup.Show) then
       return
     end
 
+    local links = {}
+    local pendingByItemID = {}
+
+    for _, raw in ipairs(rawLinks or {}) do
+      if type(raw) == "table" and type(raw.url) == "string" and raw.url ~= "" then
+        local itemID = floor(tonumber(raw.itemID) or 0)
+        local title = (type(raw.title) == "string" and raw.title ~= "") and raw.title or nil
+        if not title and itemID > 0 then
+          title = TryGetImmediateItemName(itemID)
+          if not title then
+            pendingByItemID[itemID] = true
+          end
+        end
+
+        links[#links + 1] = { title = title, url = raw.url, itemID = (itemID > 0) and itemID or nil }
+      end
+    end
+
+    if #links == 0 then
+      return
+    end
+
+    local pendingIDs = {}
+    for itemID in pairs(pendingByItemID) do
+      pendingIDs[#pendingIDs + 1] = itemID
+    end
+
+    if #pendingIDs > 0 and Item and Item.CreateFromItemID then
+      local remaining = #pendingIDs
+
+      local function FinishOnceLoaded()
+        remaining = remaining - 1
+        if remaining > 0 then
+          return
+        end
+
+        for i = 1, #links do
+          local row = links[i]
+          if (not row.title or row.title == "") and row.itemID then
+            row.title = TryGetImmediateItemName(row.itemID)
+          end
+        end
+
+        if #links == 1 or not (LinkPopup.ShowLinks) then
+          LinkPopup:Show(links[1].title or singleFallbackTitle or "Link", links[1].url)
+        else
+          LinkPopup:ShowLinks(popupTitle or "Links", links)
+        end
+      end
+
+      for _, itemID in ipairs(pendingIDs) do
+        local itemObj = Item:CreateFromItemID(itemID)
+        itemObj:ContinueOnItemLoad(FinishOnceLoaded)
+      end
+      return
+    end
+
+    if #links == 1 or not (LinkPopup.ShowLinks) then
+      LinkPopup:Show(links[1].title or singleFallbackTitle or "Link", links[1].url)
+      return
+    end
+
+    LinkPopup:ShowLinks(popupTitle or "Links", links)
+  end
+
+  local function OpenWoWProfessionsLinks(mat)
     local links = {}
 
     if type(mat.wowProfessionsUrl) == "string" and mat.wowProfessionsUrl ~= "" then
@@ -1457,44 +1546,27 @@ function GuidePage:RenderGuide(guide)
     if type(mat.links) == "table" then
       for _, l in ipairs(mat.links) do
         if type(l) == "table" and type(l.url) == "string" and l.url ~= "" then
-          links[#links + 1] = { title = l.title, url = l.url }
+          links[#links + 1] = { title = l.title, url = l.url, itemID = l.itemID }
         end
       end
     end
 
-    if #links == 0 then
-      return
-    end
-
-    if #links == 1 or not (LinkPopup.ShowLinks) then
-      LinkPopup:Show(links[1].title or "Link", links[1].url)
-      return
-    end
-
-    LinkPopup:ShowLinks("Links", links)
+    ShowLocalizedLinkSet(links, "Links", "Link")
   end
 
   local function OpenWowheadLinks(mat)
-    if not (LinkPopup and LinkPopup.Show) then
-      return
-    end
-
     local links = {}
 
     if type(mat.wowheadLinks) == "table" then
       for _, l in ipairs(mat.wowheadLinks) do
         if type(l) == "table" and type(l.url) == "string" and l.url ~= "" then
-          links[#links + 1] = { title = l.title, url = l.url }
+          links[#links + 1] = { title = l.title, url = l.url, itemID = l.itemID }
         end
       end
     end
 
     if #links > 0 then
-      if #links == 1 or not (LinkPopup.ShowLinks) then
-        LinkPopup:Show(links[1].title or "Wowhead", links[1].url)
-      else
-        LinkPopup:ShowLinks("Wowhead", links)
-      end
+      ShowLocalizedLinkSet(links, "Wowhead", "Wowhead")
       return
     end
 
