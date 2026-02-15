@@ -1,5 +1,4 @@
 Add:
-- Property on materials that allow it to be force ignored by the AuctionPricing service.
 - Add support for Wowhead links to the multi-link popup?
   - Bronze Bar, for example, has multi-link support for Copper and Tin Ore farming pages on WoW-Professions;
     I want the same for Wowhead, just to the item pages for Copper and Tin Ore instead
