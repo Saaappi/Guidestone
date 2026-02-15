@@ -2408,7 +2408,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
         if noLongerNeeded then
           row._text:SetText(name)
         else
-          row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
+          row._text:SetText(("%s  %d"):format(name, have))
         end
       else
         local remaining = (MaterialTracker and MaterialTracker.GetRemainingRequired)
@@ -2423,7 +2423,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
           -- No longer needed: remove counts entirely
           row._text:SetText(name .. aliasSuffix)
         else
-          row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r%s"):format(name, have, required, aliasSuffix))
+          row._text:SetText(("%s  %d / %d%s"):format(name, have, required, aliasSuffix))
         end
       end
 
@@ -2436,16 +2436,6 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       if row._icon then
         row._icon:SetTexture(GetItemIcon(itemID))
         Util:SetDesaturatedAndAlpha(row._icon, satisfied, satisfied and 0.35 or 1)
-      end
-
-      Util:SetFontStringGreyed(row._text, done)
-
-      -- Disable only the tooltip.
-      row._tooltipDisabled = done
-
-      if row._icon then
-        row._icon:SetTexture(GetItemIcon(itemID))
-        Util:SetDesaturatedAndAlpha(row._icon, done, done and 0.35 or 1)
       end
 
       if row._wpBtn and row._wpBtn._tex then
@@ -2469,7 +2459,11 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       local st = anyMixState[g] or { have = 0, required = ComputeRequired(tonumber(g.required) or 0), done = false }
       local label = g.label or "Choose any"
 
-      row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r"):format(label, st.have or 0, st.required or 0))
+      if st.done then
+        row._text:SetText(label)
+      else
+        row._text:SetText(("%s  %d / %d"):format(label, st.have or 0, st.required or 0))
+      end
       Util:SetFontStringGreyed(row._text, st.done)
 
     elseif row._matType == "choiceHeader" and row._group and row._text then
