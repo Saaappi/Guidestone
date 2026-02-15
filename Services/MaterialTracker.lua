@@ -265,9 +265,8 @@ function MaterialTracker:GetRemainingRequired(guide, itemID, defaultRequired)
 end
 
 ---@param step table
----@param stepIndex number
 ---@return table|nil
-local function GetStepMaterials(step, stepIndex)
+local function GetStepMaterials(step)
   if type(step) ~= "table" then
     return nil
   end
@@ -350,11 +349,9 @@ local function GetStepMaterials(step, stepIndex)
   return out
 end
 
----@param guide table
 ---@param step table
----@param stepIndex number
 ---@return number
-local function GetPlannedCraftsForStep(guide, step, stepIndex)
+local function GetPlannedCraftsForStep(step)
   local planned = tonumber(step and step.maxCrafts) or nil
   if planned and planned > 0 then
     return floor(planned)
@@ -395,7 +392,7 @@ function MaterialTracker:ApplySkillBaseline(guide, currentSkill)
       state.steps[key] = state.steps[key] or { crafts = 0, completed = false }
 
       if not state.steps[key].completed then
-        local plannedCrafts = GetPlannedCraftsForStep(guide, step, idx)
+        local plannedCrafts = GetPlannedCraftsForStep(step)
         if plannedCrafts > 0 then
           local desired = currentSkill - fromSkill
           if fromSkill <= 1 and currentSkill >= 1 then
@@ -410,7 +407,7 @@ function MaterialTracker:ApplySkillBaseline(guide, currentSkill)
           local craftsSoFar = floor(tonumber(state.steps[key].crafts) or 0)
           local missing = desired - craftsSoFar
           if missing > 0 then
-            local stepMats = GetStepMaterials(step, idx)
+            local stepMats = GetStepMaterials(step)
             if type(stepMats) == "table" then
               for _, row in ipairs(stepMats) do
                 if type(row) == "table" then
@@ -449,13 +446,13 @@ function MaterialTracker:IsMaterialNoLongerNeeded(guide, itemID)
   local unresolvedMaterials = false
 
   for idx, step in ipairs(guide.steps) do
-    local plannedCrafts = GetPlannedCraftsForStep(guide, step, idx)
+    local plannedCrafts = GetPlannedCraftsForStep(step)
     if plannedCrafts > 0 then
       local key = MakeStepKey(step, idx)
       local stepState = state.steps[key] or { crafts = 0, completed = false }
 
       if not stepState.completed then
-        local stepMats = GetStepMaterials(step, idx)
+        local stepMats = GetStepMaterials(step)
         if type(stepMats) ~= "table" then
           unresolvedMaterials = true
         else
@@ -513,8 +510,8 @@ function MaterialTracker:CompleteStepIfNeeded(guide, step, stepIndex)
     return
   end
 
-  local plannedCrafts = GetPlannedCraftsForStep(guide, step, stepIndex)
-  local stepMats = GetStepMaterials(step, stepIndex)
+  local plannedCrafts = GetPlannedCraftsForStep(step)
+  local stepMats = GetStepMaterials(step)
   if plannedCrafts <= 0 then
     state.steps[key].completed = true
     return
@@ -621,7 +618,7 @@ function MaterialTracker:OnCraftedStep(guide, step, stepIndex, crafts)
     crafts = 1
   end
 
-  local stepMats = GetStepMaterials(step, stepIndex)
+  local stepMats = GetStepMaterials(step)
   if type(stepMats) ~= "table" then
     return
   end
