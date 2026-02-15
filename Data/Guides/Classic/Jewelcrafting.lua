@@ -114,10 +114,9 @@ local ok, err = Guides:RegisterGuide({
 
   trainers = {
     -- Alliance
-    --{ name = "Lilyssia Nightbreeze",  uiMapID = 84,  zone = "Stormwind City",  x = 46.40,  y = 79.60, faction = 1 },
-    --{ name = "Tally Berryfizz",       uiMapID = 87,  zone = "Ironforge",       x = 67.20,  y = 54.20, faction = 1 },
-    --{ name = "Ainethil",              uiMapID = 89,  zone = "Darnassus",       x = 55.00,  y = 23.80, faction = 1 },
-    --{ name = "Lucc",                  uiMapID = 103, zone = "The Exodar",      x = 27.80,  y = 60.20, faction = 1 },
+    { npcId = 44582, name = "Theresa Denman",  uiMapID = 84,  x = 63.60,  y = 61.60, faction = 1 },
+    { npcId = 52586, name = "Hanner Gembold",  uiMapID = 87,  x = 50.60,  y = 27.20, faction = 1 },
+    { npcId = 19778, name = "Farii",           uiMapID = 103, x = 45.60,  y = 25.00, faction = 1 },
 
     -- Horde
     { npcId = 46675,   name = "Lugrah",             uiMapID = 85,   x = 72.48,   y = 34.34,   faction = 2 },
