@@ -15,10 +15,6 @@ Add:
       - Yellow: Mining
 
 Fix These:
-- Material count should decrement with each skill-up.
-- Materials should be greyed out and "disabled" when the player has met the required count.
-  - Disabled materials should no longer have a tooltip but the WoW-Professions and Wowhead buttons should continue to work.
-- When all steps that use a given material are completed, that material's N/N count should be hidden from the materials list.
 
 Before Release:
 Clean the code for any unnecessary shit.
