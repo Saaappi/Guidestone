@@ -2271,7 +2271,11 @@ function GuidePage:RefreshMaterialsState(skipLayout)
     if row._matType == "choiceItem" and row._group and row._mat then
       local g = row._group
       local itemID = tonumber(row._mat.itemID)
-      local required = ComputeBufferedRequired(tonumber(row._mat.required) or 0, row._mat)
+
+      local remaining = MaterialTracker:GetRemainingRequired(self.currentGuide, row._mat.itemID, tonumber(row._mat.required) or 0)
+        or tonumber(row._mat.required) or 0
+
+      local required = ComputeBufferedRequired(remaining, row._mat)
       local have = itemID and (Util:GetItemCount(itemID) or 0) or 0
       local done = (required <= 0) or (have >= required)
 
@@ -2322,13 +2326,6 @@ function GuidePage:RefreshMaterialsState(skipLayout)
         --   * anyMix groups as "remaining needed * cheapest option unit price"
         --     (best-effort estimate; avoids double-counting options)
         for _, row in ipairs(self.materialRows) do
-          --[[if row._matType == "item" or row._matType == "choiceItem" then
-            local mat = row._mat
-            if mat then
-              local have = GetHaveForMaterial(mat)
-              local required = ComputeBufferedRequired(tonumber(mat.required) or 0, mat)
-              AddCostForItem(mat, required, have)
-            end]]
           if row._matType == "item" or row._matType == "choiceItem" then
             local mat = row._mat
             if mat then
@@ -2421,13 +2418,15 @@ function GuidePage:RefreshMaterialsState(skipLayout)
         end
       end
 
-      local done = false
+      local noLongerNeeded = false
+      local satisfied = false
 
       if row._matType == "anyMixOption" then
         local gDone = (row._group and anyMixState[row._group] and anyMixState[row._group].done) or false
-        done = gDone
+        noLongerNeeded = gDone
+        satisfied = gDone
 
-        if done then
+        if noLongerNeeded then
           row._text:SetText(name)
         else
           row._text:SetText(("%s  |cffFFFFFF%d|r"):format(name, have))
@@ -2438,14 +2437,26 @@ function GuidePage:RefreshMaterialsState(skipLayout)
           or (tonumber(mat.required) or 0)
 
         local required = ComputeBufferedRequired(remaining, row._mat)
-        done = required <= 0
+        noLongerNeeded = required <= 0
+        satisfied = noLongerNeeded or (required > 0 and have >= required)
 
-        if done then
-          -- Greyed: remove counts entirely
+        if noLongerNeeded then
+          -- No longer needed: remove counts entirely
           row._text:SetText(name .. aliasSuffix)
         else
           row._text:SetText(("%s  |cffFFFFFF%d|r / |cffFFFFFF%d|r%s"):format(name, have, required, aliasSuffix))
         end
+      end
+
+      Util:SetFontStringGreyed(row._text, satisfied)
+
+      -- Disable the row's primary interactions (tooltip/hover). Shift-click and
+      -- external link buttons should continue to work.
+      row._tooltipDisabled = satisfied
+
+      if row._icon then
+        row._icon:SetTexture(GetItemIcon(itemID))
+        Util:SetDesaturatedAndAlpha(row._icon, satisfied, satisfied and 0.35 or 1)
       end
 
       Util:SetFontStringGreyed(row._text, done)

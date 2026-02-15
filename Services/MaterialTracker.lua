@@ -50,6 +50,19 @@ local function FlushExpiredPending(now)
   end
 end
 
+---@param guide table|nil
+---@return number
+local function GetCurrentGuideSkill(guide)
+  if not guide then
+    return 0
+  end
+
+  local skillLineID = (Addon.db and Addon.db.lastGuideSkillLineID) or guide.skillLineID
+  local current = Util:GetCurrentSkillLevel(skillLineID) or 0
+
+  return floor(tonumber(current) or 0)
+end
+
 ---@param step table
 ---@param index number
 ---@return string
@@ -98,6 +111,10 @@ function MaterialTracker:SetActiveGuide(guide)
   -- Prime state so UI can immediately read remaining counts.
   if guide then
     self:EnsureGuideState(guide)
+
+    local currentSkill = GetCurrentGuideSkill(guide)
+    self._lastSkill = currentSkill
+    self:ApplySkillBaseline(guide, currentSkill)
   end
 end
 
@@ -211,6 +228,65 @@ local function GetPlannedCraftsForStep(guide, step, stepIndex)
     delta = 0
   end
   return floor(delta)
+end
+
+---@param guide table
+---@param currentSkill number
+function MaterialTracker:ApplySkillBaseline(guide, currentSkill)
+  if not guide then
+    return
+  end
+
+  local state = self:EnsureGuideState(guide)
+  if not state then
+    return
+  end
+
+  if type(guide.steps) ~= "table" then
+    return
+  end
+
+  currentSkill = floor(tonumber(currentSkill) or 0)
+
+  for idx, step in ipairs(guide.steps) do
+    local fromSkill = floor(tonumber(step and step.fromSkill) or 0)
+    local toSkill = floor(tonumber(step and step.toSkill) or 0)
+    if toSkill > 0 and fromSkill > 0 and currentSkill > fromSkill then
+      local key = MakeStepKey(step, idx)
+      state.steps[key] = state.steps[key] or { crafts = 0, completed = false }
+
+      if not state.steps[key].completed then
+        local plannedCrafts = GetPlannedCraftsForStep(guide, step, idx)
+        if plannedCrafts > 0 then
+          local desired = currentSkill - fromSkill
+          if desired < 0 then
+            desired = 0
+          elseif desired > plannedCrafts then
+            desired = plannedCrafts
+          end
+
+          local craftsSoFar = floor(tonumber(state.steps[key].crafts) or 0)
+          local missing = desired - craftsSoFar
+          if missing > 0 then
+            local stepMats = GetStepMaterials(step, idx)
+            if type(stepMats) == "table" then
+              for _, row in ipairs(stepMats) do
+                if type(row) == "table" then
+                  local itemID = floor(tonumber(row.itemID) or 0)
+                  local quantity = floor(tonumber(row.quantity) or 0)
+                  if itemID > 0 and quantity > 0 then
+                    self:DecrementRemaining(guide, itemID, quantity * missing)
+                  end
+                end
+              end
+            end
+
+            state.steps[key].crafts = craftsSoFar + missing
+          end
+        end
+      end
+    end
+  end
 end
 
 ---@param guide table
@@ -439,6 +515,10 @@ function MaterialTracker:OnSkillLinesChanged()
   end
 
   self._lastSkill = currentSkill
+
+  -- If the player gained skill via something we didn't track, ensure
+  -- the material totals still reflect current skill.
+  self:ApplySkillBaseline(guide, currentSkill)
 
   -- Existing "step completion" logic (keep it)
   if type(guide.steps) ~= "table" then

@@ -17,8 +17,8 @@ local ok, err = Guides:RegisterGuide({
   materials = {
     { itemID = 2447,  required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Peacebloom
     { itemID = 765,   required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Silverleaf
-    { itemID = 2450,  required = 105, wowProfessionsUrl = "https://www.wow-professions.com/farming/briarthorn-farming" },            -- Briarthorn
-    { itemID = 785,   required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/mageroyal-farming" },             -- Mageroyal
+    { itemID = 2450,  required = 105, wowProfessionsUrl = "https://www.wow-professions.com/farming/briarthorn-mageroyal-farming" },  -- Briarthorn
+    { itemID = 785,   required = 30,  wowProfessionsUrl = "https://www.wow-professions.com/farming/briarthorn-mageroyal-farming" },  -- Mageroyal
     { itemID = 2453,  required = 35,  wowProfessionsUrl = "https://www.wow-professions.com/farming/bruiseweed-farming" },            -- Bruiseweed
     { itemID = 3820,  required = 50,  wowProfessionsUrl = "https://www.wow-professions.com/farming/stranglekelp-farming" },          -- Stranglekelp
     { itemID = 3357,  required = 20,  wowProfessionsUrl = "https://www.wow-professions.com/farming/liferoot-farming" },              -- Liferoot
