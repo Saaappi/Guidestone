@@ -103,13 +103,13 @@ local ok, err = Guides:RegisterGuide({
     { itemID = 3864,  required = 25 }, -- Citrine
     { itemID = 6037,  required = 15 }, -- Truesilver Bar
     { itemID = 7909,  required = 5 }, -- Aquamarine
-    { itemID = 12359,  required = 50, wowProfessionsUrl = "https://www.wow-professions.com/farming/thorium-ore-farming" }, -- Thorium Bar
+    { itemID = 12359, required = 50, wowProfessionsUrl = "https://www.wow-professions.com/farming/thorium-ore-farming" }, -- Thorium Bar
     { itemID = 7910,  required = 10 }, -- Star Ruby
-    { itemID = 12799,  required = 20 }, -- Large Opal
-    { itemID = 12800,  required = 7 }, -- Azerothian Diamond
-    { itemID = 12361,  required = 3 }, -- Blue Sapphire
-    { itemID = 12808,  required = 3 }, -- Essence of Undeath
-    { itemID = 12364,  required = 20 }, -- Huge Emerald
+    { itemID = 12799, required = 20 }, -- Large Opal
+    { itemID = 12800, required = 7 }, -- Azerothian Diamond
+    { itemID = 12361, required = 3 }, -- Blue Sapphire
+    { itemID = 12808, required = 3 }, -- Essence of Undeath
+    { itemID = 12364, required = 20 }, -- Huge Emerald
   },
 
   trainers = {
@@ -119,10 +119,10 @@ local ok, err = Guides:RegisterGuide({
     { npcId = 19778, name = "Farii",           uiMapID = 103, x = 45.60,  y = 25.00, faction = 1 },
 
     -- Horde
-    { npcId = 46675,   name = "Lugrah",             uiMapID = 85,   x = 72.48,   y = 34.34,   faction = 2 },
-    { npcId = 52657,   name = "Nahari Cloudchaser", uiMapID = 88,   x = 35.02,   y = 53.92,   faction = 2 },
-    { npcId = 52587,   name = "Neller Fayne",       uiMapID = 90,   x = 55.80,   y = 35.40,   faction = 2 },
-    --{ npcId = 19775,   name = "Kalinda",            uiMapID = 110,  x = 90.80,   y = 73.40,   faction = 2 }, -- Disabled until Blizzard fixes the map
+    { npcId = 46675, name = "Lugrah",             uiMapID = 85,   x = 72.48,   y = 34.34,   faction = 2 },
+    { npcId = 52657, name = "Nahari Cloudchaser", uiMapID = 88,   x = 35.02,   y = 53.92,   faction = 2 },
+    { npcId = 52587, name = "Neller Fayne",       uiMapID = 90,   x = 55.80,   y = 35.40,   faction = 2 },
+    --{ npcId = 19775, name = "Kalinda",            uiMapID = 110,  x = 90.80,   y = 73.40,   faction = 2 }, -- Disabled until Blizzard fixes the map
   },
 
   steps = {

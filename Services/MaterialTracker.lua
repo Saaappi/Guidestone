@@ -1,6 +1,5 @@
 local Addon = _G.Guidestone
 local Util = Addon.modules.Util
-local Logger = Addon.modules.Logger
 
 ---@class GuidestoneMaterialTracker
 local MaterialTracker = {}
@@ -11,6 +10,7 @@ local tonumber = tonumber
 local tostring = tostring
 local max = math.max
 local floor = math.floor
+local C_TradeSkillUI = C_TradeSkillUI
 
 --
 -- Persisted progress structure:
@@ -30,6 +30,7 @@ MaterialTracker._activeGuide = nil
 MaterialTracker._pendingCrafts = MaterialTracker._pendingCrafts or {}
 MaterialTracker._lastSkill = MaterialTracker._lastSkill or 0
 MaterialTracker._pendingMaxAgeSeconds = 2
+MaterialTracker._stepMaterialsByRecipeID = MaterialTracker._stepMaterialsByRecipeID or {}
 
 ---@param now number
 local function FlushExpiredPending(now)
@@ -50,17 +51,79 @@ local function FlushExpiredPending(now)
   end
 end
 
----@param guide table|nil
+---@param info table|nil
 ---@return number
+local function ExtractSkillLevelFromInfo(info)
+  if type(info) ~= "table" then
+    return 0
+  end
+
+  local best = 0
+  local a = floor(tonumber(info.skillLineCurrentLevelWithoutBonuses) or 0)
+  local b = floor(tonumber(info.skillLineCurrentLevel) or 0)
+  local c = floor(tonumber(info.skillLevel) or 0)
+  local d = floor(tonumber(info.currentSkillLevel) or 0)
+
+  if a > best then best = a end
+  if b > best then best = b end
+  if c > best then best = c end
+  if d > best then best = d end
+
+  return best
+end
+
 local function GetCurrentGuideSkill(guide)
   if not guide then
     return 0
   end
 
-  local skillLineID = (Addon.db and Addon.db.lastGuideSkillLineID) or guide.skillLineID
-  local current = Util:GetCurrentSkillLevel(skillLineID) or 0
+  local best = 0
+  local skillLineID = tonumber(guide.skillLineID)
+  local lastGuideSkillLineID = tonumber(Addon.db and Addon.db.lastGuideSkillLineID)
 
-  return floor(tonumber(current) or 0)
+  local function Consider(value)
+    local v = floor(tonumber(value) or 0)
+    if v > best then
+      best = v
+    end
+  end
+
+  -- Prefer the active guide's skill line first.
+  Consider(Util:GetCurrentSkillLevel(skillLineID))
+
+  -- Cross-check with globally active profession info.
+  Consider(Util:GetCurrentSkillLevel())
+
+  -- If we have a saved child skill line, include it as fallback.
+  if lastGuideSkillLineID and lastGuideSkillLineID > 0 and lastGuideSkillLineID ~= skillLineID then
+    Consider(Util:GetCurrentSkillLevel(lastGuideSkillLineID))
+  end
+
+  -- Direct API reads for clients where Util path reports partial fields.
+  if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
+    if skillLineID and skillLineID > 0 then
+      local okGuide, infoGuide = pcall(C_TradeSkillUI.GetProfessionInfoBySkillLineID, skillLineID)
+      if okGuide then
+        Consider(ExtractSkillLevelFromInfo(infoGuide))
+      end
+    end
+
+    if lastGuideSkillLineID and lastGuideSkillLineID > 0 then
+      local okSaved, infoSaved = pcall(C_TradeSkillUI.GetProfessionInfoBySkillLineID, lastGuideSkillLineID)
+      if okSaved then
+        Consider(ExtractSkillLevelFromInfo(infoSaved))
+      end
+    end
+  end
+
+  if Professions and Professions.GetProfessionInfo then
+    local okProf, infoProf = pcall(Professions.GetProfessionInfo)
+    if okProf then
+      Consider(ExtractSkillLevelFromInfo(infoProf))
+    end
+  end
+
+  return floor(tonumber(best) or 0)
 end
 
 ---@param step table
@@ -110,6 +173,12 @@ function MaterialTracker:SetActiveGuide(guide)
 
   -- Prime state so UI can immediately read remaining counts.
   if guide then
+    -- Rebuild state from canonical guide totals each time a guide is activated.
+    -- This self-heals stale persisted crafts/remaining data created by prior logic.
+    if self._db and self._db.materialProgress and guide.id then
+      self._db.materialProgress[tostring(guide.id)] = nil
+    end
+
     self:EnsureGuideState(guide)
 
     local currentSkill = GetCurrentGuideSkill(guide)
@@ -208,7 +277,77 @@ local function GetStepMaterials(step, stepIndex)
     return step.materials
   end
 
-  return nil
+  local recipeID = floor(tonumber(step and step.recipeID) or 0)
+  if recipeID <= 0 then
+    return nil
+  end
+
+  local cache = MaterialTracker._stepMaterialsByRecipeID
+  local cached = cache[recipeID]
+  if cached ~= nil then
+    return cached
+  end
+
+  if not (C_TradeSkillUI and C_TradeSkillUI.GetRecipeSchematic) then
+    return nil
+  end
+
+  local schematic = nil
+  do
+    local ok, value = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID, false)
+    if ok and type(value) == "table" then
+      schematic = value
+    end
+  end
+
+  if type(schematic) ~= "table" then
+    local ok, value = pcall(C_TradeSkillUI.GetRecipeSchematic, recipeID)
+    if ok and type(value) == "table" then
+      schematic = value
+    end
+  end
+
+  if type(schematic) ~= "table" then
+    return nil
+  end
+
+  local slots = schematic.reagentSlotSchematics
+  if type(slots) ~= "table" then
+    return nil
+  end
+
+  local totals = {}
+  for _, slot in ipairs(slots) do
+    if type(slot) == "table" then
+      local reagents = slot.reagents
+      if type(reagents) == "table" and #reagents > 0 then
+        local reagent = reagents[1]
+        local itemID = floor(tonumber(reagent and reagent.itemID) or 0)
+        local qty = floor(
+          tonumber(slot.quantityRequired)
+          or tonumber(reagent and reagent.quantityRequired)
+          or tonumber(reagent and reagent.quantity)
+          or 0
+        )
+
+        if itemID > 0 and qty > 0 then
+          totals[itemID] = (totals[itemID] or 0) + qty
+        end
+      end
+    end
+  end
+
+  local out = {}
+  for itemID, quantity in pairs(totals) do
+    out[#out + 1] = { itemID = itemID, quantity = quantity }
+  end
+
+  if #out == 0 then
+    return nil
+  end
+
+  cache[recipeID] = out
+  return out
 end
 
 ---@param guide table
@@ -259,6 +398,9 @@ function MaterialTracker:ApplySkillBaseline(guide, currentSkill)
         local plannedCrafts = GetPlannedCraftsForStep(guide, step, idx)
         if plannedCrafts > 0 then
           local desired = currentSkill - fromSkill
+          if fromSkill <= 1 and currentSkill >= 1 then
+            desired = desired + 1
+          end
           if desired < 0 then
             desired = 0
           elseif desired > plannedCrafts then
@@ -279,9 +421,9 @@ function MaterialTracker:ApplySkillBaseline(guide, currentSkill)
                   end
                 end
               end
-            end
 
-            state.steps[key].crafts = craftsSoFar + missing
+              state.steps[key].crafts = craftsSoFar + missing
+            end
           end
         end
       end
@@ -310,8 +452,12 @@ function MaterialTracker:CompleteStepIfNeeded(guide, step, stepIndex)
 
   local plannedCrafts = GetPlannedCraftsForStep(guide, step, stepIndex)
   local stepMats = GetStepMaterials(step, stepIndex)
-  if plannedCrafts <= 0 or type(stepMats) ~= "table" then
+  if plannedCrafts <= 0 then
     state.steps[key].completed = true
+    return
+  end
+
+  if type(stepMats) ~= "table" then
     return
   end
 

@@ -327,7 +327,10 @@ function Util:GetCurrentSkillLevel(skillLineID)
     return nil
   end
 
-  return info.skillLevel or info.skillLineCurrentLevel or info.skillLineCurrentLevelWithoutBonuses
+  return
+    info.skillLineCurrentLevelWithoutBonuses
+    or info.skillLineCurrentLevel
+    or info.skillLevel
 end
 
 local recipeNameToID = {} ---@type table<string, number>
