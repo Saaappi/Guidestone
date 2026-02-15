@@ -53,8 +53,7 @@ local ok, err = Guides:RegisterGuide({
       wowheadLinks = {
         { itemID = 2770 },
         { itemID = 2771 },
-      },
-      note = "Smelted from Copper and Tin ore."
+      }
     },
     { -- Shadowgem or Shadowgem/Small Lustrous Pearl
       type = "group",
