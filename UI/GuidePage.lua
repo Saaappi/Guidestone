@@ -2281,8 +2281,8 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       local totalInCopper = 0
       local missingAnyPrice = false
 
-      local function AddCostForItem(mat, required, have)
-        local need = (required or 0) - (have or 0)
+      local function AddCostForItem(mat, required)
+        local need = (required or 0)
         if need <= 0 then
           return
         end
@@ -2302,26 +2302,27 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       else
         -- I price:
         --   * normal items + selected choiceSet items individually
-        --   * anyMix groups as "remaining needed * cheapest option unit price"
+        --   * anyMix groups as "remaining required * cheapest option unit price"
         --     (best-effort estimate; avoids double-counting options)
+        --
+        -- This intentionally reflects guide remaining requirements rather than
+        -- bag deficits, so the estimate always drops with skill-up progress.
         for _, row in ipairs(self.materialRows) do
           if row._matType == "item" or row._matType == "choiceItem" then
             local mat = row._mat
             if mat then
-              local have = GetHaveForMaterial(mat)
-
               local remaining = (MaterialTracker and MaterialTracker.GetRemainingRequired)
                 and MaterialTracker:GetRemainingRequired(self.currentGuide, mat.itemID, tonumber(mat.required) or 0)
                 or (tonumber(mat.required) or 0)
 
               local required = ComputeRequired(remaining)
-              AddCostForItem(mat, required, have)
+              AddCostForItem(mat, required)
             end
           elseif row._matType == "anyMixHeader" and row._group then
             local group = row._group
             local state = anyMixState[group]
             if state then
-              local remaining = (state.required or 0) - (state.have or 0)
+              local remaining = (state.required or 0)
               if remaining > 0 then
                 local cheapest = nil
 
@@ -2416,7 +2417,10 @@ function GuidePage:RefreshMaterialsState(skipLayout)
           or (tonumber(mat.required) or 0)
 
         local required = ComputeRequired(remaining)
-        noLongerNeeded = required <= 0
+        local noLongerNeededBySteps = (MaterialTracker and MaterialTracker.IsMaterialNoLongerNeeded)
+          and MaterialTracker:IsMaterialNoLongerNeeded(self.currentGuide, mat.itemID)
+
+        noLongerNeeded = (noLongerNeededBySteps == true) or (required <= 0)
         satisfied = noLongerNeeded or (required > 0 and have >= required)
 
         if noLongerNeeded then

@@ -432,6 +432,69 @@ function MaterialTracker:ApplySkillBaseline(guide, currentSkill)
 end
 
 ---@param guide table
+---@param itemID number
+---@return boolean|nil noLongerNeeded -- true = all consuming steps are complete, false = still needed, nil = unknown
+function MaterialTracker:IsMaterialNoLongerNeeded(guide, itemID)
+  itemID = floor(tonumber(itemID) or 0)
+  if itemID <= 0 or type(guide) ~= "table" or type(guide.steps) ~= "table" then
+    return nil
+  end
+
+  local state = self:EnsureGuideState(guide)
+  if not state then
+    return nil
+  end
+
+  local sawAnyConsumingStep = false
+  local unresolvedMaterials = false
+
+  for idx, step in ipairs(guide.steps) do
+    local plannedCrafts = GetPlannedCraftsForStep(guide, step, idx)
+    if plannedCrafts > 0 then
+      local key = MakeStepKey(step, idx)
+      local stepState = state.steps[key] or { crafts = 0, completed = false }
+
+      if not stepState.completed then
+        local stepMats = GetStepMaterials(step, idx)
+        if type(stepMats) ~= "table" then
+          unresolvedMaterials = true
+        else
+          local consumesItem = false
+          for _, row in ipairs(stepMats) do
+            if type(row) == "table" then
+              local reagentItemID = floor(tonumber(row.itemID) or 0)
+              local qty = floor(tonumber(row.quantity) or 0)
+              if reagentItemID == itemID and qty > 0 then
+                consumesItem = true
+                sawAnyConsumingStep = true
+                break
+              end
+            end
+          end
+
+          if consumesItem then
+            local craftsSoFar = floor(tonumber(stepState.crafts) or 0)
+            if craftsSoFar < plannedCrafts then
+              return false
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if sawAnyConsumingStep then
+    return true
+  end
+
+  if unresolvedMaterials then
+    return nil
+  end
+
+  return nil
+end
+
+---@param guide table
 ---@param step table
 ---@param stepIndex number
 function MaterialTracker:CompleteStepIfNeeded(guide, step, stepIndex)
