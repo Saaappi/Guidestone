@@ -50,6 +50,10 @@ local ok, err = Guides:RegisterGuide({
         { title = "Copper Ore", url = "https://www.wow-professions.com/farming/copper-ore-farming" },
         { title = "Tin Ore", url = "https://www.wow-professions.com/farming/tin-ore-farming" }
       },
+      wowheadLinks = {
+        { title = "Copper Ore", itemID = 2770 },
+        { title = "Tin Ore", itemID = 2771 },
+      },
       note = "Smelted from Copper and Tin ore."
     },
     { -- Shadowgem or Shadowgem/Small Lustrous Pearl

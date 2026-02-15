@@ -57,6 +57,7 @@ Addon.modules.Guides = Guides
 --      itemID=123,
 --      required=60,
 --      wowProfessionsUrl="https://www.wow-professions.com/farming/...",
+--      wowheadLinks={ {title="Ore A", itemID=111}, {title="Ore B", itemID=222} }, -- optional
 --      note="...",
 --      ignoreAuctionPricing=true, -- optional: exclude from Auctionator estimate/search
 --    },
@@ -160,6 +161,36 @@ local function NormalizeLinks(links)
   return (#out > 0) and out or nil
 end
 
+---@param links table|nil
+---@return table[]|nil
+local function NormalizeWowheadLinks(links)
+  if type(links) ~= "table" then
+    return nil
+  end
+
+  local out = {}
+
+  for _, link in ipairs(links) do
+    if type(link) == "table" then
+      local title = type(link.title) == "string" and link.title ~= "" and link.title or nil
+      local url = nil
+
+      local itemID = tonumber(link.itemID)
+      if itemID and itemID > 0 and Util and Util.GetWowheadItemUrl then
+        url = Util:GetWowheadItemUrl(itemID)
+      elseif type(link.url) == "string" and link.url ~= "" then
+        url = link.url
+      end
+
+      if url then
+        tinsert(out, { title = title, url = url })
+      end
+    end
+  end
+
+  return (#out > 0) and out or nil
+end
+
 ---@param aliasItems any
 ---@return number[]|nil
 local function NormalizeAliasItems(aliasItems)
@@ -209,7 +240,10 @@ local function NormalizeMaterialItem(entry, farmingUrls)
   local required = tonumber(entry.required) or 0
   if required < 0 then required = 0 end
 
-  local ignoreAuctionPricing = entry.ignoreAuctionPricing == true
+  local ignoreAuctionPricing =
+    entry.ignoreAuctionPricing == true
+    or entry.ignoreAuctionatorPricing == true
+    or entry.forceIgnoreAuctionPricing == true
 
   return {
     type = "item",
@@ -218,6 +252,7 @@ local function NormalizeMaterialItem(entry, farmingUrls)
     required = required,
     ignoreAuctionPricing = ignoreAuctionPricing,
     wowProfessionsUrl = entry.wowProfessionsUrl or (farmingUrls and farmingUrls[itemID]) or nil,
+    wowheadLinks = NormalizeWowheadLinks(entry.wowheadLinks or entry.wowhead or entry.whLinks),
     note = entry.note,
     links = NormalizeLinks(entry.links),
   }

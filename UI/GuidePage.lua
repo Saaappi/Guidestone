@@ -1474,6 +1474,35 @@ function GuidePage:RenderGuide(guide)
     LinkPopup:ShowLinks("Links", links)
   end
 
+  local function OpenWowheadLinks(mat)
+    if not (LinkPopup and LinkPopup.Show) then
+      return
+    end
+
+    local links = {}
+
+    if type(mat.wowheadLinks) == "table" then
+      for _, l in ipairs(mat.wowheadLinks) do
+        if type(l) == "table" and type(l.url) == "string" and l.url ~= "" then
+          links[#links + 1] = { title = l.title, url = l.url }
+        end
+      end
+    end
+
+    if #links > 0 then
+      if #links == 1 or not (LinkPopup.ShowLinks) then
+        LinkPopup:Show(links[1].title or "Wowhead", links[1].url)
+      else
+        LinkPopup:ShowLinks("Wowhead", links)
+      end
+      return
+    end
+
+    if mat.itemID then
+      LinkPopup:Show("Wowhead", Util:GetWowheadItemUrl(mat.itemID))
+    end
+  end
+
   ---@return EditBox|nil searchBox
   ---@return Button|nil searchButton
   local function GetAuctionHouseSearchWidgets()
@@ -1710,9 +1739,7 @@ function GuidePage:RenderGuide(guide)
     local wh = MakeIconButtonWithStates(line, WOWHEAD_ICON, "Wowhead")
     wh:SetPoint("LEFT", wp, "RIGHT", 6, 0)
     wh:SetScript("OnClick", function()
-      if LinkPopup and LinkPopup.Show and mat.itemID then
-        LinkPopup:Show("Wowhead", Util:GetWowheadItemUrl(mat.itemID))
-      end
+      OpenWowheadLinks(mat)
     end)
     row._whBtn = wh
 
@@ -2334,7 +2361,7 @@ function GuidePage:RefreshMaterialsState(skipLayout)
                 -- get the cheapest priced option in the group
                 for _, optRow in ipairs(self.materialRows) do
                   if optRow._matType == "anyMixOption" and optRow._group == group and optRow._mat then
-                    if optRow._mat.ignoreAuctionatorPricing ~= true then
+                    if optRow._mat.ignoreAuctionPricing ~= true and optRow._mat.ignoreAuctionatorPricing ~= true then
                       sawAuctionEligibleOption = true
 
                       local unit = AuctionatorPricing:GetUnitPrice(optRow._mat.itemID)
@@ -2462,9 +2489,17 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       end
 
       if row._whBtn and row._whBtn._tex then
+        local hasWowheadLink = false
+        local wowheadItemID = tonumber(mat.itemID)
+        if wowheadItemID and wowheadItemID > 0 then
+          hasWowheadLink = true
+        elseif type(mat.wowheadLinks) == "table" and #mat.wowheadLinks > 0 then
+          hasWowheadLink = true
+        end
+
         -- keep clickable even if greyed
-        row._whBtn:SetEnabled(true)
-        Util:SetDesaturatedAndAlpha(row._whBtn._tex, false, 1)
+        row._whBtn:SetEnabled(hasWowheadLink)
+        Util:SetDesaturatedAndAlpha(row._whBtn._tex, (not hasWowheadLink), (not hasWowheadLink) and 0.35 or 1)
       end
 
     elseif row._matType == "anyMixHeader" and row._group and row._text then
