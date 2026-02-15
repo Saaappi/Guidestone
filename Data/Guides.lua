@@ -53,7 +53,13 @@ Addon.modules.Guides = Guides
 --  -- You can either provide it explicitly, or allow for auto-generation from step.materials.
 --  -- Explicit entries allow precise "approximate" totals and custom notes.
 --  materials = {
---    { itemID=123, required=60, wowProfessionsUrl="https://www.wow-professions.com/farming/...", note="..." },
+--    {
+--      itemID=123,
+--      required=60,
+--      wowProfessionsUrl="https://www.wow-professions.com/farming/...",
+--      note="...",
+--      ignoreAuctionPricing=true, -- optional: exclude from Auctionator estimate/search
+--    },
 --  },
 --
 --  -- If automatic materials totals is desired but still need farming URLs, provide:
@@ -203,11 +209,14 @@ local function NormalizeMaterialItem(entry, farmingUrls)
   local required = tonumber(entry.required) or 0
   if required < 0 then required = 0 end
 
+  local ignoreAuctionPricing = entry.ignoreAuctionPricing == true
+
   return {
     type = "item",
     itemID = floor(itemID),
     aliasItems = NormalizeAliasItems(entry.aliasItems or entry.aliasItemIDs or entry.alias),
     required = required,
+    ignoreAuctionPricing = ignoreAuctionPricing,
     wowProfessionsUrl = entry.wowProfessionsUrl or (farmingUrls and farmingUrls[itemID]) or nil,
     note = entry.note,
     links = NormalizeLinks(entry.links),

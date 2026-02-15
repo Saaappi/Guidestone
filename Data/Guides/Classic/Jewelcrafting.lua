@@ -19,7 +19,7 @@ local ok, err = Guides:RegisterGuide({
   guideUrl = "https://www.wow-professions.com/guides/vanilla-jewelcrafting-leveling",
 
   materials = {
-    { itemID = 20815, required = 1 }, -- Jeweler's Toolset
+    { itemID = 20815, required = 1,   ignoreAuctionPricing = true }, -- Jeweler's Toolset
     { itemID = 2840,  required = 100, wowProfessionsUrl = "https://www.wow-professions.com/farming/copper-ore-farming" }, -- Copper Ore
     { -- Tigerseye / Malachite
       type = "group",

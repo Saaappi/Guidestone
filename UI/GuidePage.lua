@@ -2282,6 +2282,10 @@ function GuidePage:RefreshMaterialsState(skipLayout)
       local missingAnyPrice = false
 
       local function AddCostForItem(mat, required)
+        if type(mat) == "table" and mat.ignoreAuctionPricing == true then
+          return
+        end
+
         local need = (required or 0)
         if need <= 0 then
           return
@@ -2325,22 +2329,27 @@ function GuidePage:RefreshMaterialsState(skipLayout)
               local remaining = (state.required or 0)
               if remaining > 0 then
                 local cheapest = nil
+                local sawAuctionEligibleOption = false
 
                 -- get the cheapest priced option in the group
                 for _, optRow in ipairs(self.materialRows) do
                   if optRow._matType == "anyMixOption" and optRow._group == group and optRow._mat then
-                    local unit = AuctionatorPricing:GetUnitPrice(optRow._mat.itemID)
-                    if unit ~= nil then
-                      if cheapest == nil or unit < cheapest then
-                        cheapest = unit
+                    if optRow._mat.ignoreAuctionatorPricing ~= true then
+                      sawAuctionEligibleOption = true
+
+                      local unit = AuctionatorPricing:GetUnitPrice(optRow._mat.itemID)
+                      if unit ~= nil then
+                        if cheapest == nil or unit < cheapest then
+                          cheapest = unit
+                        end
                       end
                     end
                   end
                 end
 
-                if cheapest == nil then
+                if sawAuctionEligibleOption and cheapest == nil then
                   missingAnyPrice = true
-                else
+                elseif cheapest ~= nil then
                   totalInCopper = totalInCopper + (cheapest * remaining)
                 end
               end
