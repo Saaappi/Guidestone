@@ -2164,7 +2164,7 @@ function GuidePage:RenderGuide(guide)
     if type(mat) == "table" and tostring(mat.type) == "group" and tostring(mat.mode or "") == "choiceSets" then
       local key = type(mat.key) == "string" and mat.key or nil
       if key and key ~= "" then
-        choiceGroupsByKey[key] = material
+        choiceGroupsByKey[key] = mat
       end
     end
   end
