@@ -15,7 +15,8 @@ local ok, err = Guides:RegisterGuide({
   guideUrl = "https://www.wow-professions.com/guides/northrend-alchemy-leveling",
 
   materials = {
-    { itemID = 44322,  required = 1,   aliasItems = { 9149, 44324 }, ignoreAuctionPricing = true },
+    { itemID = 3371,   required = 85,  ignoreAuctionPricing = true }, -- Crystal Vial
+    { itemID = 44322,  required = 1,   aliasItems = { 9149, 44324 }, ignoreAuctionPricing = true }, -- Mercurial Alchemist Stone
     { itemID = 36907,  required = 24,  wowProfessionsUrl = "https://www.wow-professions.com/farming/talandras-rose-farming" },
     { itemID = 36904,  required = 26,  wowProfessionsUrl = "https://www.wow-professions.com/farming/tiger-lily-farming" },
     { itemID = 36901,  required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/goldclover-farming" },

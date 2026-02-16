@@ -82,6 +82,25 @@ local function GetCurrentGuideSkill(guide)
     return 0
   end
 
+  -- Only infer baseline progress for child skill lines the player actually knows.
+  -- Unknown expansion tiers can still have guide data, but must start at 0 baseline.
+  local isKnownChild = false
+  if C_TradeSkillUI and C_TradeSkillUI.GetChildProfessionInfos then
+    local okChildren, children = pcall(C_TradeSkillUI.GetChildProfessionInfos)
+    if okChildren and type(children) == "table" then
+      for i = 1, #children do
+        if tonumber(children[i] and children[i].professionID) == skillLineID then
+          isKnownChild = true
+          break
+        end
+      end
+    end
+  end
+
+  if not isKnownChild then
+    return 0
+  end
+
   local best = floor(tonumber(Util:GetCurrentSkillLevel(skillLineID)) or 0)
 
   -- Direct API read for the exact guide skill line.

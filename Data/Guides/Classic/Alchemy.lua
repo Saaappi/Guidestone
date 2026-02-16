@@ -15,6 +15,7 @@ local ok, err = Guides:RegisterGuide({
   guideUrl = "https://www.wow-professions.com/guides/vanilla-alchemy-leveling",
 
   materials = {
+    { itemID = 3371,  required = 270, ignoreAuctionPricing = true }, -- Crystal Vial
     { itemID = 2447,  required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Peacebloom
     { itemID = 765,   required = 60,  wowProfessionsUrl = "https://www.wow-professions.com/farming/peacebloom-silverleaf-farming" }, -- Silverleaf
     { itemID = 2450,  required = 105, wowProfessionsUrl = "https://www.wow-professions.com/farming/briarthorn-mageroyal-farming" },  -- Briarthorn
@@ -44,9 +45,9 @@ local ok, err = Guides:RegisterGuide({
     { npcId = 16723, name = "Lucc",                  uiMapID = 103, x = 27.80,  y = 60.20, faction = 1 },
 
     -- Horde
-    { npcId = 3347, name = "Yelmak",                uiMapID = 85,  x = 55.56, y = 46.74, faction = 2 },
-    { npcId = 4611, name = "Doctor Herbert Halsey", uiMapID = 90,  x = 47.60, y = 73.00, faction = 2 },
-    { npcId = 3009, name = "Bena Winterhoof",       uiMapID = 88,  x = 46.80, y = 33.60, faction = 2 },
+    { npcId = 3347, name = "Yelmak",                 uiMapID = 85,  x = 55.56,  y = 46.74, faction = 2 },
+    { npcId = 4611, name = "Doctor Herbert Halsey",  uiMapID = 90,  x = 47.60,  y = 73.00, faction = 2 },
+    { npcId = 3009, name = "Bena Winterhoof",        uiMapID = 88,  x = 46.80,  y = 33.60, faction = 2 },
     --{ npcId = 16642, name = "Camberon",              uiMapID = 110, x = 66.40, y = 16.40, faction = 2 }, -- Disabled until Blizzard fixes the map
   },
 

@@ -317,6 +317,11 @@ function Util:GetCurrentSkillLevel(skillLineID)
 
   if type(skillLineID) == "number" and C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
     info = C_TradeSkillUI.GetProfessionInfoBySkillLineID(skillLineID)
+    -- Strict lookup for explicit child skill lines: do not fall back to the active
+    -- profession tier, otherwise unrelated expansion skill can leak into guide math.
+    if type(info) ~= "table" then
+      return nil
+    end
   end
 
   if type(info) ~= "table" then

@@ -15,6 +15,7 @@ local ok, err = Guides:RegisterGuide({
   guideUrl = "https://www.wow-professions.com/guides/outland-alchemy-leveling",
 
   materials = {
+    { itemID = 3371,   required = 85, ignoreAuctionPricing = true }, -- Crystal Vial
     { itemID = 22785,  required = 40, wowProfessionsUrl = "https://www.wow-professions.com/farming/felweed-farming" },
     { itemID = 13464,  required = 24, wowProfessionsUrl = "https://www.wow-professions.com/farming/golden-sansam-farming" },
     { itemID = 22787,  required = 20, wowProfessionsUrl = "https://www.wow-professions.com/farming/ragveil-farming" },
