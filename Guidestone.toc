@@ -25,8 +25,10 @@ Data/Guides/Classic/Alchemy.lua
 Data/Guides/Classic/Jewelcrafting.lua
 # TBC
 Data/Guides/Outland/Alchemy.lua
-# WotLK
+# Northrend
 Data/Guides/Northrend/Alchemy.lua
+# Cataclysm
+Data/Guides/Cataclysm/Alchemy.lua
 
 Services/CraftRunner.lua
 Services/MaterialTracker.lua

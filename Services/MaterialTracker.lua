@@ -77,49 +77,21 @@ local function GetCurrentGuideSkill(guide)
     return 0
   end
 
-  local best = 0
   local skillLineID = tonumber(guide.skillLineID)
-  local lastGuideSkillLineID = tonumber(Addon.db and Addon.db.lastGuideSkillLineID)
-
-  local function Consider(value)
-    local v = floor(tonumber(value) or 0)
-    if v > best then
-      best = v
-    end
+  if not skillLineID or skillLineID <= 0 then
+    return 0
   end
 
-  -- Prefer the active guide's skill line first.
-  Consider(Util:GetCurrentSkillLevel(skillLineID))
+  local best = floor(tonumber(Util:GetCurrentSkillLevel(skillLineID)) or 0)
 
-  -- Cross-check with globally active profession info.
-  Consider(Util:GetCurrentSkillLevel())
-
-  -- If we have a saved child skill line, include it as fallback.
-  if lastGuideSkillLineID and lastGuideSkillLineID > 0 and lastGuideSkillLineID ~= skillLineID then
-    Consider(Util:GetCurrentSkillLevel(lastGuideSkillLineID))
-  end
-
-  -- Direct API reads for clients where Util path reports partial fields.
+  -- Direct API read for the exact guide skill line.
   if C_TradeSkillUI and C_TradeSkillUI.GetProfessionInfoBySkillLineID then
-    if skillLineID and skillLineID > 0 then
-      local okGuide, infoGuide = pcall(C_TradeSkillUI.GetProfessionInfoBySkillLineID, skillLineID)
-      if okGuide then
-        Consider(ExtractSkillLevelFromInfo(infoGuide))
+    local okGuide, infoGuide = pcall(C_TradeSkillUI.GetProfessionInfoBySkillLineID, skillLineID)
+    if okGuide then
+      local directSkill = ExtractSkillLevelFromInfo(infoGuide)
+      if directSkill > best then
+        best = directSkill
       end
-    end
-
-    if lastGuideSkillLineID and lastGuideSkillLineID > 0 then
-      local okSaved, infoSaved = pcall(C_TradeSkillUI.GetProfessionInfoBySkillLineID, lastGuideSkillLineID)
-      if okSaved then
-        Consider(ExtractSkillLevelFromInfo(infoSaved))
-      end
-    end
-  end
-
-  if Professions and Professions.GetProfessionInfo then
-    local okProf, infoProf = pcall(Professions.GetProfessionInfo)
-    if okProf then
-      Consider(ExtractSkillLevelFromInfo(infoProf))
     end
   end
 
