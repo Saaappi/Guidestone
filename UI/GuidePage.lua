@@ -1023,6 +1023,58 @@ local function GetSortedExpansionKeys()
   return keys
 end
 
+---@param activeInfo table|nil
+---@return table<string, table>
+local function GetGuidesByExpansionForActiveProfession(activeInfo)
+  local out = {}
+  if not Guides then
+    return out
+  end
+
+  local allGuides = Guides.GetAll and Guides:GetAll() or nil
+  if type(allGuides) ~= "table" then
+    return out
+  end
+
+  local professionKey = nil
+  if Guides.GetBestGuide then
+    local activeGuide = Guides:GetBestGuide(activeInfo)
+    professionKey = activeGuide and activeGuide.professionKey or nil
+  end
+
+  if not professionKey then
+    local baseID = GetBaseProfessionID(activeInfo)
+    if baseID and C_TradeSkillUI and C_TradeSkillUI.GetChildProfessionInfos and Guides.GetBySkillLineID then
+      local children = C_TradeSkillUI.GetChildProfessionInfos()
+      if type(children) == "table" then
+        for i = 1, #children do
+          local child = children[i]
+          if tonumber(child and child.parentProfessionID) == baseID then
+            local guide = Guides:GetBySkillLineID(child.professionID)
+            if guide and guide.professionKey then
+              professionKey = guide.professionKey
+              break
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if not professionKey then
+    return out
+  end
+
+  for i = 1, #allGuides do
+    local guide = allGuides[i]
+    if guide and guide.professionKey == professionKey and type(guide.expansionKey) == "string" then
+      out[guide.expansionKey] = guide
+    end
+  end
+
+  return out
+end
+
 function GuidePage:Create(parent)
   if self.frame then
     return self.frame
@@ -1117,6 +1169,7 @@ function GuidePage:Create(parent)
 
       local expansions = Guides and Guides.Expansions or nil
       local byName = GetKnownChildInfosByExpansionName()
+      local guidesByExpansion = GetGuidesByExpansionForActiveProfession(activeInfo)
       local sortedKeys = GetSortedExpansionKeys()
 
       ---@param professionInfo table
@@ -1167,6 +1220,19 @@ function GuidePage:Create(parent)
         local meta = expansions and expansions[expansionKey] or nil
         local name = meta and meta.name or tostring(expansionKey)
         local childInfo = byName[name]
+        local guide = guidesByExpansion[expansionKey]
+
+        if not childInfo and guide and baseID then
+          childInfo = {
+            parentProfessionID = baseID,
+            professionID = guide.skillLineID,
+            professionName = activeInfo and activeInfo.professionName,
+            parentProfessionName = activeInfo and activeInfo.parentProfessionName,
+            expansionName = guide.expansionName or name,
+            skillLevel = 0,
+            maxSkillLevel = 0,
+          }
+        end
 
         if childInfo then
           local radio = rootDescription:CreateRadio(name, IsSelected, SetSelected, childInfo)

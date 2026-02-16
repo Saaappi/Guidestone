@@ -131,7 +131,20 @@ function ProfessionMemory:GetGuideProfessionInfo(activeProfessionInfo)
 
   -- IMPORTANT: do NOT change Blizzard selection; we only return info for the guide to use.
   local fullSaved = GetFullProfessionInfo(savedChild)
-  return fullSaved or active
+  if fullSaved then
+    return fullSaved
+  end
+
+  local guides = Addon and Addon.modules and Addon.modules.Guides or nil
+  local savedGuide = guides and guides.GetBySkillLineID and guides:GetBySkillLineID(savedChild) or nil
+
+  return {
+    professionID = savedChild,
+    parentProfessionID = baseID,
+    professionName = active.professionName,
+    parentProfessionName = active.parentProfessionName,
+    expansionName = (savedGuide and savedGuide.expansionName) or active.expansionName,
+  }
 end
 
 -- Legacy no-op (some code calls this)
