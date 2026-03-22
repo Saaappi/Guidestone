@@ -13,6 +13,10 @@ local ok, err = Guides:RegisterGuide({
 
   guideUrl = "https://www.wow-professions.com/guides/vanilla-herbalism-leveling",
 
+  trainers = {
+    { npcId = 46741, name = "Muraga", uiMapID = 85, x = 54.26, y = 50.97, faction = 2 },
+  },
+
   steps = {
     {
       fromSkill = 1,

@@ -2629,8 +2629,6 @@ function GuidePage:RenderGuide(guide)
       craftReagents:SetWordWrap(true)
       row._craftReagents = craftReagents
 
-      self:UpdateStepRow(row)
-
       if IsNonEmptyString(step.note) then
         local note = MakeText(row, "GameFontHighlightSmall")
         note:SetPoint("TOPLEFT", craftReagents, "BOTTOMLEFT", 0, -4)
@@ -2658,6 +2656,8 @@ function GuidePage:RenderGuide(guide)
 
         row._gatheringButtons = {}
       end
+
+      self:UpdateStepRow(row)
 
       do
         local anchor = row._gatheringContainer or row._note or craftReagents
