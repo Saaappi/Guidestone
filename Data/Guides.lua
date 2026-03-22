@@ -49,6 +49,7 @@ Addon.modules.Guides = Guides
 --      -- Gathering / route steps:
 --      title = "Elwynn Forest",
 --      gathering = { 2447, 765, 2449 },
+--      -- Optional per-item map IDs: { {2447, 37}, {765, 37} }
 --      description = "Optional extra notes for this route.",
 --      images = {
 --        {
@@ -277,13 +278,19 @@ local function NormalizeStepGatheringItem(entry)
     return nil
   end
 
-  local itemID = tonumber(entry.itemID or entry.id)
+  local itemID = tonumber(entry.itemID or entry.id or entry[1])
   if not itemID or itemID <= 0 then
     return nil
   end
 
+  local mapID = tonumber(entry.uiMapID or entry.mapID or entry[2])
+  if mapID and mapID <= 0 then
+    mapID = nil
+  end
+
   return {
     itemID = floor(itemID),
+    mapID = mapID and floor(mapID) or nil,
     label = type(entry.label) == "string" and entry.label ~= "" and entry.label or nil,
   }
 end

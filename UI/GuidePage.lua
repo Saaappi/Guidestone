@@ -3072,6 +3072,27 @@ function GuidePage:UpdateStepRow(row)
     local gatheringItems = step and step.gatheringItems or nil
     local hasItems = type(gatheringItems) == "table" and #gatheringItems > 0
 
+    local function GetGatheringDisplayText(entry, itemLink)
+      if type(entry) ~= "table" then
+        return "Unknown Item"
+      end
+
+      local itemID = tonumber(entry.itemID)
+      local baseText = itemLink or entry.label or (itemID and GetItemName(itemID)) or "Unknown Item"
+
+      local mapID = tonumber(entry.mapID or entry.uiMapID)
+      if not mapID or mapID <= 0 or not (Util and Util.GetMapName) then
+        return baseText
+      end
+
+      local mapName = Util:GetMapName(mapID, "")
+      if not IsNonEmptyString(mapName) then
+        return baseText
+      end
+
+      return string.format("%s (%s)", baseText, mapName)
+    end
+
     if gatheringHeader then
       gatheringHeader:Hide()
     end
@@ -3109,7 +3130,7 @@ function GuidePage:UpdateStepRow(row)
             button._itemLink = loadedLink
           end
 
-          local refreshedText = button._itemLink or entry.label or GetItemName(itemID) or "Unknown Item"
+          local refreshedText = GetGatheringDisplayText(entry, button._itemLink)
           button._text:SetText(("• %s"):format(refreshedText))
 
           if self and self.Layout then
@@ -3118,7 +3139,7 @@ function GuidePage:UpdateStepRow(row)
         end)
       end
 
-      local displayText = button._itemLink or entry.label or (itemID and GetItemName(itemID)) or "Unknown Item"
+      local displayText = GetGatheringDisplayText(entry, button._itemLink)
       button._text:SetText(("• %s"):format(displayText))
       button:Show()
     end

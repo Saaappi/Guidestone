@@ -101,7 +101,7 @@ local ok, err = Guides:RegisterGuide({
     {
       fromSkill = 255,
       toSkill = 300,
-      gathering = { 13464, 13466 },
+      gathering = { {13464, 51}, {13466, 51}, {8846, 77}, {8831, 77}, {13463, 77} },
       images = {
         {
           texture = "Interface\\AddOns\\Guidestone\\Media\\Routes\\Classic\\Herbalism\\swamp-of-sorrows-herbalism.jpg",
