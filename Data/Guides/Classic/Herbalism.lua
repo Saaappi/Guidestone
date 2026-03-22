@@ -63,7 +63,7 @@ local ok, err = Guides:RegisterGuide({
     {
       fromSkill = 115,
       toSkill = 185,
-      gathering = { 3356, 3818, 3358, 3821 },
+      gathering = { 3356, 3818, 3358, {3821, 69} },
       images = {
         {
           texture = "Interface\\AddOns\\Guidestone\\Media\\Routes\\Classic\\Herbalism\\western-plaguelands-herbalism.jpg",
