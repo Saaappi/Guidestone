@@ -3073,12 +3073,7 @@ function GuidePage:UpdateStepRow(row)
     local hasItems = type(gatheringItems) == "table" and #gatheringItems > 0
 
     if gatheringHeader then
-      if hasItems then
-        gatheringHeader:SetText(L("HEADER_YOURE_GATHERING"))
-        gatheringHeader:Show()
-      else
-        gatheringHeader:Hide()
-      end
+      gatheringHeader:Hide()
     end
 
     if not gatheringContainer then
@@ -3092,8 +3087,8 @@ function GuidePage:UpdateStepRow(row)
         gatheringButtons[index] = button
 
         if index == 1 then
-          button:SetPoint("TOPLEFT", gatheringHeader, "BOTTOMLEFT", 0, -4)
-          button:SetPoint("TOPRIGHT", gatheringHeader, "BOTTOMRIGHT", 0, -4)
+          button:SetPoint("TOPLEFT", gatheringContainer, "TOPLEFT", 0, 0)
+          button:SetPoint("TOPRIGHT", gatheringContainer, "TOPRIGHT", 0, 0)
         else
           button:SetPoint("TOPLEFT", gatheringButtons[index - 1], "BOTTOMLEFT", 0, -2)
           button:SetPoint("TOPRIGHT", gatheringButtons[index - 1], "BOTTOMRIGHT", 0, -2)
@@ -3130,6 +3125,10 @@ function GuidePage:UpdateStepRow(row)
 
     for index = #(gatheringItems or {}) + 1, #gatheringButtons do
       gatheringButtons[index]:Hide()
+    end
+
+    if not hasItems then
+      gatheringContainer:SetHeight(1)
     end
 
     row._gatheringButtons = gatheringButtons
@@ -3480,26 +3479,21 @@ function GuidePage:UpdateRowSizing()
       end
 
       local gatheringHeight = 0
-      if row._gatheringHeader and row._gatheringContainer then
-        if row._gatheringHeader:IsShown() then
-          row._gatheringHeader:SetWidth(available)
-          gatheringHeight = gatheringHeight + math.ceil(row._gatheringHeader:GetStringHeight() or 0)
-
-          if type(row._gatheringButtons) == "table" then
-            local visibleButtons = 0
-            for _, button in ipairs(row._gatheringButtons) do
-              if button:IsShown() and button._text then
-                visibleButtons = visibleButtons + 1
-                button._text:SetWidth(available)
-                local buttonHeight = math.max(16, math.ceil(button._text:GetStringHeight() or 0))
-                button:SetHeight(buttonHeight)
-                gatheringHeight = gatheringHeight + 4 + buttonHeight
-              end
+      if row._gatheringContainer then
+        if type(row._gatheringButtons) == "table" then
+          local visibleButtons = 0
+          for _, button in ipairs(row._gatheringButtons) do
+            if button:IsShown() and button._text then
+              visibleButtons = visibleButtons + 1
+              button._text:SetWidth(available)
+              local buttonHeight = math.max(16, math.ceil(button._text:GetStringHeight() or 0))
+              button:SetHeight(buttonHeight)
+              gatheringHeight = gatheringHeight + buttonHeight
             end
+          end
 
-            if visibleButtons > 1 then
-              gatheringHeight = gatheringHeight + (visibleButtons - 1) * 2
-            end
+          if visibleButtons > 1 then
+            gatheringHeight = gatheringHeight + (visibleButtons - 1) * 2
           end
         end
 

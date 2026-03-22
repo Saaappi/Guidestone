@@ -10,7 +10,6 @@ Add:
     - Yellow: Mining
 
 Fix These:
-- The player must open the gathering profession twice to load the gathered items list.
 
 Before Release:
 Clean the code for any unnecessary shit.
