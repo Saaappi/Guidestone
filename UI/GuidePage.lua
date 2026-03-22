@@ -24,6 +24,13 @@ local WOWHEAD_ICON = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\Wowhead.pn
 local TOMTOM_ICON  = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\TomTom.png"
 local HEART_ICON = "Interface\\AddOns\\" .. Addon.name .. "\\Media\\Heart.png"
 
+local GATHERING_PROFESSION_KEYS = {
+  HERBALISM = true,
+  MINING = true,
+  SKINNING = true,
+  FISHING = true,
+}
+
 local PROF_BG_ATLAS_BY_ID = {
   [171] = "Professions-Recipe-Background-Alchemy",
   [164] = "Professions-Recipe-Background-Blacksmithing",
@@ -484,6 +491,17 @@ local function GetItemIcon(itemID)
   end
 
   return "Interface\\Icons\\INV_Misc_QuestionMark"
+end
+
+---@param guide table|nil
+---@return boolean
+local function ShouldShowMaterialsSection(guide)
+  if type(guide) ~= "table" then
+    return true
+  end
+
+  local professionKey = tostring(guide.professionKey or "")
+  return not GATHERING_PROFESSION_KEYS[professionKey]
 end
 
 ---@param required number
@@ -1652,6 +1670,33 @@ function GuidePage:LoadForProfession(professionInfo)
   self:RenderGuide(guide)
 end
 
+---@param visible boolean
+function GuidePage:SetMaterialsSectionVisible(visible)
+  visible = not not visible
+  self._materialsSectionVisible = visible
+
+  if self.materialsHeader then
+    if visible then self.materialsHeader:Show() else self.materialsHeader:Hide() end
+  end
+
+  if self.materialsCostText then
+    if visible then self.materialsCostText:Show() else self.materialsCostText:Hide() end
+  end
+
+  if self.materialsContainer then
+    if visible then self.materialsContainer:Show() else self.materialsContainer:Hide() end
+  end
+
+  if self.trainersHeader and self.titleText and self.materialsContainer then
+    self.trainersHeader:ClearAllPoints()
+    if visible then
+      self.trainersHeader:SetPoint("TOPLEFT", self.materialsContainer, "BOTTOMLEFT", 0, -20)
+    else
+      self.trainersHeader:SetPoint("TOPLEFT", self.titleText, "BOTTOMLEFT", 0, -16)
+    end
+  end
+end
+
 function GuidePage:RequestItemData(itemID, onLoaded)
   itemID = tonumber(itemID)
   if not itemID or itemID <= 0 then
@@ -1760,6 +1805,7 @@ function GuidePage:RenderGuide(guide)
   ClearRows(self.stepRows)
 
   if not guide then
+    self:SetMaterialsSectionVisible(true)
     self.titleText:SetText(L("HEADER_LEVELING_GUIDE"))
     self.materialsHeader:SetText(L("HEADER_MATERIALS_REQUIRED"))
     self.trainersHeader:SetText(L("HEADER_TRAINERS"))
@@ -1782,6 +1828,7 @@ function GuidePage:RenderGuide(guide)
   end
 
   self.titleText:SetText(guide.title or L("HEADER_LEVELING_GUIDE"))
+  self:SetMaterialsSectionVisible(ShouldShowMaterialsSection(guide))
 
   -- Materials
   local materials = (Guides and Guides.GetMaterials) and Guides:GetMaterials(guide) or (guide.materials or {})
@@ -3612,6 +3659,8 @@ function GuidePage:Layout()
     return
   end
 
+  local showMaterials = self._materialsSectionVisible ~= false
+
   -- Keep child width aligned to scroll frame width for wrapping
   local w = self.scrollFrame:GetWidth()
   if w and w > 60 then
@@ -3631,7 +3680,7 @@ function GuidePage:Layout()
   if matsHeight > 0 then
     matsHeight = matsHeight - 6
   end
-  self.materialsContainer:SetHeight(math.max(1, matsHeight))
+  self.materialsContainer:SetHeight(math.max(1, showMaterials and matsHeight or 1))
 
   -- Trainers container height
   local trainersHeight = 0
@@ -3662,9 +3711,7 @@ function GuidePage:Layout()
   -- Total scroll child height
   local total =
     8 + self.titleText:GetHeight()
-    + 16 + self.materialsHeader:GetHeight()
-    + 2 + self.materialsCostText:GetHeight()
-    + 10 + self.materialsContainer:GetHeight()
+    + (showMaterials and (16 + self.materialsHeader:GetHeight() + 2 + self.materialsCostText:GetHeight() + 10 + self.materialsContainer:GetHeight()) or 0)
     + 20 + self.trainersHeader:GetHeight()
     + 10 + self.trainersContainer:GetHeight()
     + 20 + self.stepsHeader:GetHeight()
