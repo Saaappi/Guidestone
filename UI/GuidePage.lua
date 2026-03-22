@@ -50,6 +50,8 @@ GuidePage.stepRows = GuidePage.stepRows or {}
 GuidePage.trainerRows = GuidePage.trainerRows or {}
 
 GuidePage._pendingItemLoads = GuidePage._pendingItemLoads or {}
+GuidePage._pendingItemLoadCallbacks = GuidePage._pendingItemLoadCallbacks or {}
+GuidePage._resolvedItemLinks = GuidePage._resolvedItemLinks or {}
 
 local function L(key, ...)
   return Localization:Get(key, ...)
@@ -395,6 +397,71 @@ local function GetItemName(itemID)
   return ("Item %d"):format(tonumber(itemID) or 0)
 end
 
+---@param itemID number|nil
+---@return string|nil
+local function GetItemLink(itemID)
+  itemID = tonumber(itemID)
+  if not itemID or itemID <= 0 then
+    return nil
+  end
+
+  if C_Item and C_Item.GetItemLinkByID then
+    local ok, link = pcall(C_Item.GetItemLinkByID, itemID)
+    if ok and type(link) == "string" and link ~= "" then
+      return link
+    end
+  end
+
+  if C_Item and C_Item.GetItemInfo then
+    local ok, info = pcall(C_Item.GetItemInfo, itemID)
+    if ok then
+      if type(info) == "table" then
+        local infoLink = info.hyperlink or info.itemLink
+        if type(infoLink) == "string" and infoLink ~= "" then
+          return infoLink
+        end
+      elseif type(info) == "string" and info ~= "" and info:find("|H") then
+        return info
+      end
+    end
+  end
+
+  if GetItemInfo then
+    local _, link = GetItemInfo(itemID)
+    if type(link) == "string" and link ~= "" then
+      return link
+    end
+  end
+
+  if Item and Item.CreateFromItemID then
+    local item = Item:CreateFromItemID(itemID)
+    if item and item.GetItemLink then
+      local ok, link = pcall(item.GetItemLink, item)
+      if ok and type(link) == "string" and link ~= "" then
+        return link
+      end
+    end
+  end
+
+  return nil
+end
+
+---@param imageData table|nil
+---@return boolean
+local function ShouldShowStepImage(imageData)
+  if type(imageData) ~= "table" then
+    return false
+  end
+
+  local faction = tonumber(imageData.faction) or 0
+  if faction == 0 then
+    return true
+  end
+
+  local playerFaction = Util.GetPlayerFactionFlag and Util:GetPlayerFactionFlag() or 0
+  return playerFaction == faction
+end
+
 local function GetItemIcon(itemID)
   itemID = tonumber(itemID)
   if not itemID or itemID <= 0 then
@@ -433,6 +500,171 @@ end
 
 local function IsNonEmptyString(s)
   return type(s) == "string" and s:gsub("%s+", "") ~= ""
+end
+
+---@param step table|nil
+---@return string
+local function GetStepDisplayName(step)
+  if type(step) ~= "table" then
+    return ""
+  end
+
+  local candidates = {
+    step.title,
+    step.label,
+    step.routeName,
+    step.recipeName,
+  }
+
+  for i = 1, #candidates do
+    local value = candidates[i]
+    if IsNonEmptyString(value) then
+      return value
+    end
+  end
+
+  return ""
+end
+
+---@param step table|nil
+---@return string
+local function GetStepDescriptionText(step)
+  if type(step) ~= "table" then
+    return ""
+  end
+
+  local candidates = {
+    step.description,
+    step.details,
+    step.instructions,
+    step.summary,
+  }
+
+  for i = 1, #candidates do
+    local value = candidates[i]
+    if IsNonEmptyString(value) then
+      return value
+    end
+  end
+
+  return ""
+end
+
+---@param parent Frame
+---@return Button
+local function CreateGatheringItemButton(parent)
+  local button = CreateFrame("Button", nil, parent)
+  button:SetHeight(16)
+  button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+
+  local text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  text:SetJustifyH("LEFT")
+  text:SetJustifyV("TOP")
+  text:SetPoint("TOPLEFT", button, "TOPLEFT", 0, 0)
+  text:SetPoint("TOPRIGHT", button, "TOPRIGHT", 0, 0)
+  button._text = text
+
+  button:SetScript("OnEnter", function(self)
+    local itemID = tonumber(self._itemID)
+    if not itemID or itemID <= 0 then
+      return
+    end
+
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetItemByID(itemID)
+    GameTooltip:Show()
+  end)
+
+  button:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
+
+  button:SetScript("OnClick", function(self, buttonName)
+    local itemID = tonumber(self._itemID)
+    if not itemID or itemID <= 0 then
+      return
+    end
+
+    local link = self._itemLink or GetItemLink(itemID)
+    if not IsNonEmptyString(link) then
+      return
+    end
+
+    self._itemLink = link
+
+    if HandleModifiedItemClick and HandleModifiedItemClick(link) then
+      return
+    end
+
+    if SetItemRef then
+      SetItemRef(link, link, buttonName or "LeftButton", self)
+      return
+    end
+
+    if ItemRefTooltip and ItemRefTooltip.SetHyperlink then
+      ItemRefTooltip:SetHyperlink(link)
+      ItemRefTooltip:Show()
+    end
+  end)
+
+  return button
+end
+
+---@param row Frame
+---@return Frame
+local function CreateStepImageFrame(row)
+  local frame = CreateFrame("Frame", nil, row)
+  frame:SetWidth(1)
+  frame:SetHeight(1)
+
+  local bg = frame:CreateTexture(nil, "BACKGROUND")
+  bg:SetAllPoints()
+  bg:SetTexture("Interface\\Buttons\\WHITE8x8")
+  bg:SetVertexColor(0, 0, 0, 0.45)
+  frame._bg = bg
+
+  local borderColor = { 1, 0.82, 0, 0.9 }
+
+  local top = frame:CreateTexture(nil, "BORDER")
+  top:SetTexture("Interface\\Buttons\\WHITE8x8")
+  top:SetHeight(1)
+  top:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+  top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+  top:SetVertexColor(borderColor[1], borderColor[2], borderColor[3], borderColor[4])
+
+  local bottom = frame:CreateTexture(nil, "BORDER")
+  bottom:SetTexture("Interface\\Buttons\\WHITE8x8")
+  bottom:SetHeight(1)
+  bottom:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+  bottom:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+  bottom:SetVertexColor(borderColor[1], borderColor[2], borderColor[3], borderColor[4])
+
+  local left = frame:CreateTexture(nil, "BORDER")
+  left:SetTexture("Interface\\Buttons\\WHITE8x8")
+  left:SetWidth(1)
+  left:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+  left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+  left:SetVertexColor(borderColor[1], borderColor[2], borderColor[3], borderColor[4])
+
+  local right = frame:CreateTexture(nil, "BORDER")
+  right:SetTexture("Interface\\Buttons\\WHITE8x8")
+  right:SetWidth(1)
+  right:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+  right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+  right:SetVertexColor(borderColor[1], borderColor[2], borderColor[3], borderColor[4])
+
+  local image = frame:CreateTexture(nil, "ARTWORK")
+  image:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -4)
+  image:SetTexture("Interface\\Buttons\\WHITE8x8")
+  image:SetVertexColor(1, 1, 1, 1)
+  frame._image = image
+
+  local caption = MakeText(frame, "GameFontHighlightSmall")
+  caption:SetPoint("TOPLEFT", image, "BOTTOMLEFT", 0, -4)
+  caption:SetText("")
+  frame._caption = caption
+
+  return frame
 end
 
 -- Creates a small icon button with hover and pushed states.
@@ -1420,18 +1652,35 @@ function GuidePage:LoadForProfession(professionInfo)
   self:RenderGuide(guide)
 end
 
-function GuidePage:RequestItemData(itemID)
+function GuidePage:RequestItemData(itemID, onLoaded)
   itemID = tonumber(itemID)
   if not itemID or itemID <= 0 then
     return
   end
 
-  -- Check if the name is already available.
+  -- Gathering rows need a full item hyperlink, not just a cached name.
+  local hasName = false
   if C_Item and C_Item.GetItemNameByID then
     local name = C_Item.GetItemNameByID(itemID)
-    if name and name ~= "" then
-      return
+    hasName = name and name ~= "" and true or false
+  end
+
+  local hasLink = IsNonEmptyString(GetItemLink(itemID))
+  if hasName and hasLink then
+    local resolved = GetItemLink(itemID)
+    if IsNonEmptyString(resolved) then
+      self._resolvedItemLinks[itemID] = resolved
     end
+
+    if type(onLoaded) == "function" then
+      onLoaded(resolved)
+    end
+    return
+  end
+
+  if type(onLoaded) == "function" then
+    self._pendingItemLoadCallbacks[itemID] = self._pendingItemLoadCallbacks[itemID] or {}
+    table.insert(self._pendingItemLoadCallbacks[itemID], onLoaded)
   end
 
   -- Avoid spamming
@@ -1443,8 +1692,37 @@ function GuidePage:RequestItemData(itemID)
   if Item and Item.CreateFromItemID then
     local item = Item:CreateFromItemID(itemID)
     item:ContinueOnItemLoad(function()
+      local resolvedLink = nil
+      if item and item.GetItemLink then
+        local ok, link = pcall(item.GetItemLink, item)
+        if ok and IsNonEmptyString(link) then
+          resolvedLink = link
+        end
+      end
+
+      if not IsNonEmptyString(resolvedLink) then
+        resolvedLink = GetItemLink(itemID)
+      end
+
+      if IsNonEmptyString(resolvedLink) then
+        GuidePage._resolvedItemLinks[itemID] = resolvedLink
+      end
+
       -- Mark complete and refresh visible rows.
       GuidePage._pendingItemLoads[itemID] = nil
+
+      local callbacks = GuidePage._pendingItemLoadCallbacks[itemID]
+      GuidePage._pendingItemLoadCallbacks[itemID] = nil
+
+      if type(callbacks) == "table" then
+        for i = 1, #callbacks do
+          local callback = callbacks[i]
+          if type(callback) == "function" then
+            callback(resolvedLink)
+          end
+        end
+      end
+
       if GuidePage.RefreshAllState then
         GuidePage:RefreshAllState()
       else
@@ -2209,6 +2487,7 @@ function GuidePage:RenderGuide(guide)
     if StepPassesChoiceFilters(step) then
       local row = CreateFrame("Frame", nil, self.stepsContainer)
       row:SetHeight(44)
+      row._stepImageFrames = {}
 
       if not prev then
         row:SetPoint("TOPLEFT", 0, 0)
@@ -2359,6 +2638,75 @@ function GuidePage:RenderGuide(guide)
         note:SetWordWrap(true)
         note:SetText(step.note)
         row._note = note
+      end
+
+      do
+        local gatheringAnchor = row._note or craftReagents
+
+        local gatheringContainer = CreateFrame("Frame", nil, row)
+        gatheringContainer:SetPoint("TOPLEFT", gatheringAnchor, "BOTTOMLEFT", 0, -8)
+        gatheringContainer:SetPoint("TOPRIGHT", gatheringAnchor, "BOTTOMRIGHT", 0, -8)
+        gatheringContainer:SetHeight(1)
+        row._gatheringContainer = gatheringContainer
+
+        local gatheringHeader = MakeText(gatheringContainer, "GameFontNormalSmall")
+        gatheringHeader:SetPoint("TOPLEFT", 0, 0)
+        gatheringHeader:SetPoint("TOPRIGHT", 0, 0)
+        gatheringHeader:SetText(L("HEADER_YOURE_GATHERING"))
+        gatheringHeader:Hide()
+        row._gatheringHeader = gatheringHeader
+
+        row._gatheringButtons = {}
+      end
+
+      do
+        local anchor = row._gatheringContainer or row._note or craftReagents
+        local previousImage = nil
+
+        for _, imageData in ipairs(step.images or {}) do
+          if ShouldShowStepImage(imageData) then
+          local imageFrame = CreateStepImageFrame(row)
+          imageFrame._imageData = imageData
+
+          if previousImage then
+            imageFrame:SetPoint("TOPLEFT", previousImage, "BOTTOMLEFT", 0, -8)
+          else
+            imageFrame:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -8)
+          end
+
+          local texture = imageFrame._image
+          if texture then
+            texture:SetTexCoord(0, 1, 0, 1)
+
+            if imageData.atlas and texture.SetAtlas then
+              texture:SetAtlas(imageData.atlas, true)
+            else
+              texture:SetTexture(imageData.texture or "Interface\\Buttons\\WHITE8x8")
+            end
+
+            if type(imageData.texCoord) == "table" and #imageData.texCoord >= 4 then
+              texture:SetTexCoord(
+                imageData.texCoord[1],
+                imageData.texCoord[2],
+                imageData.texCoord[3],
+                imageData.texCoord[4]
+              )
+            end
+          end
+
+          if imageFrame._caption then
+            imageFrame._caption:SetText(imageData.caption or "")
+            if IsNonEmptyString(imageData.caption) then
+              imageFrame._caption:Show()
+            else
+              imageFrame._caption:Hide()
+            end
+          end
+
+          row._stepImageFrames[#row._stepImageFrames + 1] = imageFrame
+          previousImage = imageFrame
+          end
+        end
       end
 
       table.insert(self.stepRows, row)
@@ -2707,7 +3055,138 @@ function GuidePage:UpdateStepRow(row)
 
   local step = row._step
 
-  local displayName = (step and step.recipeName) or "Craft"
+  local function AnchorFullWidth(region, relativeTo, yOffset)
+    if not (region and relativeTo) then
+      return
+    end
+
+    region:ClearAllPoints()
+    region:SetPoint("TOPLEFT", relativeTo, "BOTTOMLEFT", 0, yOffset or 0)
+    region:SetPoint("TOPRIGHT", relativeTo, "BOTTOMRIGHT", 0, yOffset or 0)
+  end
+
+  local function UpdateGatheringList()
+    local gatheringHeader = row._gatheringHeader
+    local gatheringContainer = row._gatheringContainer
+    local gatheringButtons = row._gatheringButtons or {}
+    local gatheringItems = step and step.gatheringItems or nil
+    local hasItems = type(gatheringItems) == "table" and #gatheringItems > 0
+
+    if gatheringHeader then
+      if hasItems then
+        gatheringHeader:SetText(L("HEADER_YOURE_GATHERING"))
+        gatheringHeader:Show()
+      else
+        gatheringHeader:Hide()
+      end
+    end
+
+    if not gatheringContainer then
+      return
+    end
+
+    for index, entry in ipairs(gatheringItems or {}) do
+      local button = gatheringButtons[index]
+      if not button then
+        button = CreateGatheringItemButton(gatheringContainer)
+        gatheringButtons[index] = button
+
+        if index == 1 then
+          button:SetPoint("TOPLEFT", gatheringHeader, "BOTTOMLEFT", 0, -4)
+          button:SetPoint("TOPRIGHT", gatheringHeader, "BOTTOMRIGHT", 0, -4)
+        else
+          button:SetPoint("TOPLEFT", gatheringButtons[index - 1], "BOTTOMLEFT", 0, -2)
+          button:SetPoint("TOPRIGHT", gatheringButtons[index - 1], "BOTTOMRIGHT", 0, -2)
+        end
+      end
+
+      local itemID = tonumber(entry and entry.itemID)
+      button._itemID = itemID
+      button._itemLink = (itemID and (self._resolvedItemLinks[itemID] or GetItemLink(itemID))) or nil
+
+      if itemID and itemID > 0 then
+        self:RequestItemData(itemID, function(loadedLink)
+          if not (button and button._text and button._itemID == itemID) then
+            return
+          end
+
+          if IsNonEmptyString(loadedLink) then
+            button._itemLink = loadedLink
+          end
+
+          local refreshedText = button._itemLink or entry.label or GetItemName(itemID) or "Unknown Item"
+          button._text:SetText(("• %s"):format(refreshedText))
+
+          if self and self.Layout then
+            self:Layout()
+          end
+        end)
+      end
+
+      local displayText = button._itemLink or entry.label or (itemID and GetItemName(itemID)) or "Unknown Item"
+      button._text:SetText(("• %s"):format(displayText))
+      button:Show()
+    end
+
+    for index = #(gatheringItems or {}) + 1, #gatheringButtons do
+      gatheringButtons[index]:Hide()
+    end
+
+    row._gatheringButtons = gatheringButtons
+  end
+
+  local function SetGatheringLayout(bodyText)
+    row._recipeID = nil
+    row._outputHyperlink = nil
+    row._outputItemID = nil
+
+    row._craftBtn:Hide()
+    row._craftBtn:Disable()
+    row._craftBtn:SetAlpha(0.35)
+
+    local titleText = IsNonEmptyString(bodyText) and bodyText or ""
+    local descText = GetStepDescriptionText(step)
+
+    local lastVisible = row._header
+
+    if IsNonEmptyString(titleText) then
+      row._craftName:SetText(titleText)
+      row._craftName:SetTextColor(GetGoldRGB())
+      AnchorFullWidth(row._craftName, row._header, -8)
+      row._craftName:Show()
+      lastVisible = row._craftName
+    else
+      row._craftName:SetText("")
+      row._craftName:Hide()
+    end
+
+    if IsNonEmptyString(descText) then
+      row._craftReagents:SetText(descText)
+      AnchorFullWidth(row._craftReagents, lastVisible, -2)
+      row._craftReagents:Show()
+      lastVisible = row._craftReagents
+    else
+      row._craftReagents:SetText("")
+      row._craftReagents:Hide()
+    end
+
+    if row._note then
+      AnchorFullWidth(row._note, lastVisible, -4)
+      lastVisible = row._note
+    end
+
+    if row._gatheringContainer then
+      AnchorFullWidth(row._gatheringContainer, lastVisible, -8)
+    end
+
+    UpdateGatheringList()
+
+    if row._learnIcon then
+      row._learnIcon:Hide()
+    end
+  end
+
+  local displayName = (step and step.recipeName) or ""
   row._displayName = displayName
 
   local iconTexturePath = "Interface\\Icons\\INV_Misc_QuestionMark"
@@ -2725,6 +3204,39 @@ function GuidePage:UpdateStepRow(row)
 
     row._recipeID = recipeID
   end
+
+  if not (recipeID and recipeID > 0) then
+    local gatheringName = GetStepDisplayName(step)
+
+    row._displayName = IsNonEmptyString(gatheringName) and gatheringName or ""
+    SetGatheringLayout(gatheringName)
+    return
+  end
+
+  row._craftBtn:Show()
+  row._craftName:Show()
+  row._craftReagents:Show()
+  row._craftName:ClearAllPoints()
+  row._craftName:SetPoint("TOPLEFT", row._craftBtn, "TOPRIGHT", 28, -2)
+  row._craftName:SetPoint("TOPRIGHT", -10, 0)
+  row._craftReagents:ClearAllPoints()
+  row._craftReagents:SetPoint("TOPLEFT", row._craftName, "BOTTOMLEFT", 0, -2)
+  row._craftReagents:SetPoint("TOPRIGHT", row._craftName, "BOTTOMRIGHT", 0, -2)
+
+  if row._note then
+    row._note:ClearAllPoints()
+    row._note:SetPoint("TOPLEFT", row._craftReagents, "BOTTOMLEFT", 0, -4)
+    row._note:SetPoint("TOPRIGHT", row._craftReagents, "BOTTOMRIGHT", 0, -4)
+  end
+
+  local gatheringAnchor = row._note or row._craftReagents
+  if row._gatheringContainer and gatheringAnchor then
+    row._gatheringContainer:ClearAllPoints()
+    row._gatheringContainer:SetPoint("TOPLEFT", gatheringAnchor, "BOTTOMLEFT", 0, -8)
+    row._gatheringContainer:SetPoint("TOPRIGHT", gatheringAnchor, "BOTTOMRIGHT", 0, -8)
+  end
+
+  UpdateGatheringList()
 
   local recipeInfo
   if recipeID and C_TradeSkillUI and C_TradeSkillUI.GetRecipeInfo then
@@ -2959,16 +3471,101 @@ function GuidePage:UpdateRowSizing()
   local stepsWidth = self.stepsContainer:GetWidth() or 1
   for _, row in ipairs(self.stepRows) do
     if row:IsShown() and row._craftBtn then
+      local hasVisibleCraftButton = row._craftBtn:IsShown()
+      local craftBtnWidth = hasVisibleCraftButton and (row._craftBtn:GetWidth() or 32) or 0
+      local available = math.max(200, stepsWidth - craftBtnWidth - 8 - 10)
+
       if row._note then
-        local craftBtnWidth = (row._craftBn and row._craftBtn:GetWidth()) or 32
-        local available = math.max(200, stepsWidth - craftBtnWidth - 8 - 10)
         row._note:SetWidth(available)
       end
 
+      local gatheringHeight = 0
+      if row._gatheringHeader and row._gatheringContainer then
+        if row._gatheringHeader:IsShown() then
+          row._gatheringHeader:SetWidth(available)
+          gatheringHeight = gatheringHeight + math.ceil(row._gatheringHeader:GetStringHeight() or 0)
+
+          if type(row._gatheringButtons) == "table" then
+            local visibleButtons = 0
+            for _, button in ipairs(row._gatheringButtons) do
+              if button:IsShown() and button._text then
+                visibleButtons = visibleButtons + 1
+                button._text:SetWidth(available)
+                local buttonHeight = math.max(16, math.ceil(button._text:GetStringHeight() or 0))
+                button:SetHeight(buttonHeight)
+                gatheringHeight = gatheringHeight + 4 + buttonHeight
+              end
+            end
+
+            if visibleButtons > 1 then
+              gatheringHeight = gatheringHeight + (visibleButtons - 1) * 2
+            end
+          end
+        end
+
+        row._gatheringContainer:SetHeight(math.max(1, gatheringHeight))
+      end
+
+      local imagesHeight = 0
+      if type(row._stepImageFrames) == "table" then
+        for index, imageFrame in ipairs(row._stepImageFrames) do
+          local imageData = imageFrame._imageData or {}
+          local requestedWidth = tonumber(imageData.width) or 520
+          local requestedHeight = tonumber(imageData.height) or 260
+
+          if requestedWidth <= 0 then
+            requestedWidth = 520
+          end
+          if requestedHeight <= 0 then
+            requestedHeight = 260
+          end
+
+          local innerWidth = math.min(math.max(200, requestedWidth), math.max(200, stepsWidth - 12))
+          local innerHeight = math.max(100, math.floor((innerWidth * requestedHeight / requestedWidth) + 0.5))
+          local outerWidth = innerWidth + 8
+
+          imageFrame:SetWidth(outerWidth)
+
+          if imageFrame._image then
+            imageFrame._image:SetWidth(innerWidth)
+            imageFrame._image:SetHeight(innerHeight)
+          end
+
+          local captionHeight = 0
+          if imageFrame._caption and imageFrame._caption:IsShown() then
+            imageFrame._caption:SetWidth(innerWidth)
+            imageFrame._caption:ClearAllPoints()
+            imageFrame._caption:SetPoint("TOPLEFT", imageFrame._image, "BOTTOMLEFT", 0, -4)
+            captionHeight = math.ceil(imageFrame._caption:GetStringHeight() or 0)
+          end
+
+          local imageFrameHeight = 8 + innerHeight + (captionHeight > 0 and (4 + captionHeight) or 0) + 4
+          imageFrame:SetHeight(imageFrameHeight)
+
+          imagesHeight = imagesHeight + imageFrameHeight
+          if index < #row._stepImageFrames then
+            imagesHeight = imagesHeight + 8
+          end
+        end
+      end
+
       local headerHeight = (row._header and row._header:GetStringHeight()) or 0
-      local craftHeight = row._craftBtn:GetHeight() or 0
+      local craftHeight = 0
+      if hasVisibleCraftButton then
+        craftHeight = math.max(
+          row._craftBtn:GetHeight() or 0,
+          ((row._craftName and row._craftName:GetStringHeight()) or 0)
+          + ((row._craftReagents and row._craftReagents:GetStringHeight()) or 0)
+          + 2
+        )
+      else
+        local titleHeight = (row._craftName and row._craftName:IsShown()) and ((row._craftName:GetStringHeight() or 0) + 8) or 0
+        local descriptionHeight = (row._craftReagents and row._craftReagents:IsShown()) and ((row._craftReagents:GetStringHeight() or 0) + 2) or 0
+        craftHeight = titleHeight + descriptionHeight
+      end
+
       local noteHeight = (row._note and row._note:GetStringHeight()) or 0
-      local computed = headerHeight + 6 + craftHeight + (noteHeight > 0 and (4 + noteHeight) or 0) + 2
+      local computed = headerHeight + 6 + craftHeight + (noteHeight > 0 and (4 + noteHeight) or 0) + (gatheringHeight > 0 and (8 + gatheringHeight) or 0) + (imagesHeight > 0 and (8 + imagesHeight) or 0) + 2
       row:SetHeight(math.max(44, math.ceil(computed)))
     end
   end

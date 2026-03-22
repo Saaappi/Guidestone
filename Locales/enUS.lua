@@ -25,6 +25,7 @@ Localization:RegisterLocale("enUS", {
   HEADER_LEVELING_GUIDE = "Leveling Guide",
   HEADER_MATERIALS_REQUIRED = "Materials Required",
   HEADER_TRAINERS = "Trainers",
+  HEADER_YOURE_GATHERING = "You're Gathering:",
   DROPDOWN_SELECT_EXPANSION = "Select Expansion",
 
   TEXT_NO_GUIDE_AVAILABLE = "No guide available for this profession.",

@@ -1,4 +1,4 @@
-## Interface: 120000
+## Interface: 120001
 ## Title: Guidestone
 ## Notes: Adds an in-game leveling guide tab to the Professions window with materials tracking and guided crafting.
 ## SavedVariables: GuidestoneDB
@@ -22,6 +22,7 @@ Data/Guides.lua
 # Guides (one file per expansion + profession)
 # Classic
 Data/Guides/Classic/Alchemy.lua
+Data/Guides/Classic/Herbalism.lua
 Data/Guides/Classic/Jewelcrafting.lua
 # TBC
 Data/Guides/Outland/Alchemy.lua

@@ -36,6 +36,8 @@ Addon.modules.Guides = Guides
 --    {
 --      fromSkill = 1,
 --      toSkill = 25,
+--
+--      -- Crafting steps:
 --      recipeID = 25255,
 --
 --      -- Planning + automation constraints:
@@ -43,6 +45,19 @@ Addon.modules.Guides = Guides
 --
 --      -- Optional: materials used per craft (for materials aggregation)
 --      materials = { { itemID=123, quantity=5 }, ... },
+--
+--      -- Gathering / route steps:
+--      title = "Elwynn Forest",
+--      gathering = { 2447, 765, 2449 },
+--      description = "Optional extra notes for this route.",
+--      images = {
+--        {
+--          texture = "Interface\\AddOns\\Guidestone\\Media\\Routes\\ElwynnPeacebloom.blp",
+--          caption = "Elwynn Forest route",
+--          width = 512,
+--          height = 256,
+--        },
+--      },
 --
 --      -- Optional: text
 --      note = "...",
@@ -160,6 +175,178 @@ local function NormalizeLinks(links)
   end
 
   return (#out > 0) and out or nil
+end
+
+---@param image any
+---@return table|nil
+local function NormalizeStepImage(image)
+  if type(image) == "string" then
+    if image ~= "" then
+      return { texture = image }
+    end
+    return nil
+  end
+
+  if type(image) ~= "table" then
+    return nil
+  end
+
+  local texture = type(image.texture) == "string" and image.texture ~= "" and image.texture or nil
+  local atlas = type(image.atlas) == "string" and image.atlas ~= "" and image.atlas or nil
+
+  if not texture and not atlas then
+    return nil
+  end
+
+  local out = {
+    texture = texture,
+    atlas = atlas,
+    caption = type(image.caption) == "string" and image.caption ~= "" and image.caption or nil,
+  }
+
+  local faction = tonumber(image.faction)
+  if faction and faction >= 0 then
+    out.faction = floor(faction)
+  end
+
+  local width = tonumber(image.width or image.displayWidth)
+  if width and width > 0 then
+    out.width = width
+  end
+
+  local height = tonumber(image.height or image.displayHeight)
+  if height and height > 0 then
+    out.height = height
+  end
+
+  if type(image.texCoord) == "table" and #image.texCoord >= 4 then
+    local left = tonumber(image.texCoord[1])
+    local right = tonumber(image.texCoord[2])
+    local top = tonumber(image.texCoord[3])
+    local bottom = tonumber(image.texCoord[4])
+
+    if left and right and top and bottom then
+      out.texCoord = { left, right, top, bottom }
+    end
+  end
+
+  return out
+end
+
+---@param images any
+---@return table[]|nil
+local function NormalizeStepImages(images)
+  if images == nil then
+    return nil
+  end
+
+  local rawList = images
+  if type(images) == "string" then
+    rawList = { images }
+  elseif type(images) == "table" and (images.texture or images.atlas) then
+    rawList = { images }
+  end
+
+  if type(rawList) ~= "table" then
+    return nil
+  end
+
+  local out = {}
+  for _, image in ipairs(rawList) do
+    local normalized = NormalizeStepImage(image)
+    if normalized then
+      out[#out + 1] = normalized
+    end
+  end
+
+  return (#out > 0) and out or nil
+end
+
+---@param entry any
+---@return table|nil
+local function NormalizeStepGatheringItem(entry)
+  if type(entry) == "number" or type(entry) == "string" then
+    local itemID = tonumber(entry)
+    if itemID and itemID > 0 then
+      return { itemID = floor(itemID) }
+    end
+    return nil
+  end
+
+  if type(entry) ~= "table" then
+    return nil
+  end
+
+  local itemID = tonumber(entry.itemID or entry.id)
+  if not itemID or itemID <= 0 then
+    return nil
+  end
+
+  return {
+    itemID = floor(itemID),
+    label = type(entry.label) == "string" and entry.label ~= "" and entry.label or nil,
+  }
+end
+
+---@param items any
+---@return table[]|nil
+local function NormalizeStepGatheringItems(items)
+  if items == nil then
+    return nil
+  end
+
+  local rawList = items
+  if type(items) == "number" or type(items) == "string" then
+    rawList = { items }
+  elseif type(items) == "table" and (items.itemID or items.id) then
+    rawList = { items }
+  end
+
+  if type(rawList) ~= "table" then
+    return nil
+  end
+
+  local out = {}
+  for _, entry in ipairs(rawList) do
+    local normalized = NormalizeStepGatheringItem(entry)
+    if normalized then
+      out[#out + 1] = normalized
+    end
+  end
+
+  return (#out > 0) and out or nil
+end
+
+---@param steps table|nil
+---@return table
+local function NormalizeSteps(steps)
+  if type(steps) ~= "table" then
+    return {}
+  end
+
+  local out = {}
+
+  for _, step in ipairs(steps) do
+    if type(step) == "table" then
+      local normalized = ShallowCopy(step) or {}
+      normalized.images = NormalizeStepImages(
+        step.images
+        or step.image
+        or step.routeImages
+        or step.routeImage
+        or step.routes
+      )
+      normalized.gatheringItems = NormalizeStepGatheringItems(
+        step.gatheringItems
+        or step.gathering
+        or step.gatheredItems
+        or step.itemsToGather
+      )
+      out[#out + 1] = normalized
+    end
+  end
+
+  return out
 end
 
 ---@param links table|nil
@@ -448,7 +635,7 @@ local function NormalizeGuide(guide)
     guide.title or (normalized.expansionName .. " " .. (normalized.professionName or normalized.professionKey))
   )
 
-  normalized.steps = guide.steps
+  normalized.steps = NormalizeSteps(guide.steps)
   normalized.farmingUrls = guide.farmingUrls
   normalized.guideUrl = guide.guideUrl
 
